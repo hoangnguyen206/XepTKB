@@ -30,6 +30,8 @@ Thứ tự phụ thuộc cứng: M0 → M1 → M2 → M3 → M4 → M5. Trong t�
 
 **M1 checkpoint (20/10/2026):** parser/fixture implementation và local evidence đã có; `npm run check` xanh với 28 tests và 5/5 fixture entries, dependency audit không có production vulnerability. Trạng thái là `ready-for-verification`, chưa phải `g1-approved`, `qa-pass`, `security-pass`, `review-pass`, dataset publish hoặc release. Remote CI, approved real-UET validation và browser network evidence còn pending. Registration adapter hiện dừng ở candidate extraction; matching/override/persistence thuộc M2/M4.
 
+**M2 checkpoint (20/10/2026):** pure domain engine implementation và local evidence đã có trên working tree với schema `0.2.0`; `npm run lint`, `npm run typecheck`, `npm test` (54/54) và `npm run fixtures:run` (5/5) đã pass ở local. M2 bao phủ search/alias, Plan/group, conflict theo tuần, week1/date, registration field-level merge và credits; JSONL/UET parser regression được giữ. Trạng thái là `ready-for-verification` với G1 acknowledgement và độc lập G3a/G3b/G3c còn pending; audit production đã pass với 0 vulnerabilities; remote CI, real-UET golden, browser/E2E/network và persistence evidence phải được chạy/thu thập riêng. M3 UI/PWA/IndexedDB/export chưa làm.
+
 ### Fallback
 
 Nếu không kịp cửa sổ tháng 11/2026, giữ core cho beta nội bộ và nhắm kỳ phụ 31/05–06/06/2027 hoặc năm học 2027–2028 05–11/07/2027. Không phát hành public bằng dataset chưa review chỉ để giữ ngày.

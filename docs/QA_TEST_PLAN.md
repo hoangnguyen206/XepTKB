@@ -30,7 +30,7 @@ Chứng minh Kỳ Này đúng với dữ liệu UET biến thiên, an toàn vớ
 - **Q-006 (đã chốt):** mỗi quirk format đã gặp phải có **ít nhất một synthetic row** tái hiện trong fixture (không chỉ file thật). Cung cấp `test:real` script chạy trên file thật ngoài repo, assert các số liệu đã biết (ví dụ HK I 2026–27 ≈ 1.025 section, HK II ≈ 1.009; exam match ≈ 182/192 và 506/523 — cập nhật khi Data Parser xác nhận với source thực).
 - File kết quả đăng ký lưu trong secure store **chỉ sau khi đã xóa họ tên, ngày sinh, mã sinh viên** (raw file không bao giờ được lưu).
 - Mỗi fixture manifest ghi source family, schema version, expected counts, issue codes; hash chỉ ghi cho input timetable synthetic/non-PII được phép. Registration local-only không hash và không ghi filename/PII.
-- M1 local evidence hiện tại: `npm run check` pass với 28 Node tests và 5/5 synthetic fixture entries; đây không thay thế approved real-UET golden run, browser/E2E evidence hoặc independent G3a/G3b/G3c sign-off.
+- **M1/M2 local evidence (20/10/2026):** `npm run lint`, `npm run typecheck`, `npm test` (54/54 Node tests) và `npm run fixtures:run` (5/5 synthetic fixture entries) đã pass trong working tree; M2 tests cover search/alias, Plan/group, week-aware conflict, week1/date, registration merge/override và credits, đồng thời giữ M1 parser/privacy regression. Đây không thay thế approved real-UET golden run, browser/E2E/network, accessibility/device evidence hoặc independent G3a/G3b/G3c sign-off. `npm audit --omit=dev` pass với 0 production vulnerabilities.
 - Khi source document chưa được phép commit, tạo minimized synthetic reproducer giữ đúng lỗi format.
 - Thay đổi expected output phải có reason/reviewer, không update snapshot để làm xanh test mù.
 

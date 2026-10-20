@@ -1,6 +1,6 @@
 {
   "manifestVersion": "1",
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "context": { "term": "2026-2027-h1", "teachingWeeks": 15, "datasetVersion": "synthetic-uet-m1" },
   "fixtures": [
     {

@@ -108,8 +108,8 @@ Parser tuần phải trả `weeks: number[]`, không giữ range string làm log
 | `Học 1 ca/10 tuần` | candidate + warning, cần rule source/round |
 | date range `2/3 - 19/4` | quy đổi theo `Term.week1`, timezone, cần test |
 | `Học tiết 9-12` | period override 9..12 |
-| không ghi tuần | default `[1..15]`, warning |
-| TH từ tuần 2 khi merge registration | `[2..15]` theo approved rule |
+| không ghi tuần | default `[1..teachingWeeks]`, warning |
+| TH từ tuần 2 khi merge registration | `[2..teachingWeeks]` theo approved rule |
 
 Không được suy luận tuần 10 từ “thi đợt 1” nếu không có config/fixture evidence; rule UET được lưu trong adapter và phải test. Nếu nhiều pattern mâu thuẫn, trả error `AMBIGUOUS_NOTE`.
 
@@ -119,13 +119,15 @@ Không được suy luận tuần 10 từ “thi đợt 1” nếu không có co
 2. Tìm bảng môn/lớp và tách multi-value: `T2,T6`, `4 - 6,1 - 3`, phòng dính liền.
 3. Chuẩn hóa periods; đối chiếu danh sách phòng từ TKB nếu có.
 4. Loại field họ tên, ngày sinh, mã sinh viên ngay sau extraction; không ghi raw HTML vào telemetry. Adapter M1 phải trả artifact `localOnly=true`, không có `sha256`/`fileName`; mọi issue chỉ dùng row/field an toàn.
-5. **M1 boundary:** matching a candidate to an existing `Section`/`Session`, creating `Override`, user confirmation and IndexedDB persistence are deferred to M2/M4. M1 returns schedule candidates only and never mutates a `Plan`.
+5. **M1 boundary:** the adapter only extracts schedule candidates, never mutates a `Plan`, and does not create overrides. M2's pure domain layer performs deterministic Section/Session matching, field-level `Override` creation and a separate final Plan; user confirmation and IndexedDB persistence remain deferred to M4. M1 returns schedule candidates only.
 6. Match/merge must be fail-closed: if a candidate cannot be matched deterministically, keep the safe candidate and emit `REGISTRATION_OVERRIDE_UNMATCHED`; do not guess a section/session.
 7. Only after a later user-confirmation flow may normalized registration data be persisted locally.
 
+### M2 domain boundary
+
+M2 bổ sung matching/merge thuần trong `packages/domain`: candidate registration được đối chiếu fail-closed với Section/Session đã chọn, tạo `Override` theo từng field/session, áp dụng precedence và tạo Plan `final` riêng; Section timetable gốc không bị mutate. Session mang `weekOrigin` (`explicit`, `parser-default`, `registration-default`) để phân biệt tuần nguồn với default. Candidate unmatched/ambiguous chỉ tạo warning, không tự đoán. Đây chưa phải user-confirmation flow, IndexedDB persistence, browser file-picker/network evidence hay export của M3/M4.
 ## 8. Validation và error taxonomy
 
-### Errors — block publish/confirm
 
 - `MISSING_REQUIRED_COLUMN`
 - `NO_VALID_SECTION_ROWS`
@@ -155,7 +157,7 @@ Không được suy luận tuần 10 từ “thi đợt 1” nếu không có co
 - `PERIOD_OVERRIDE_APPLIED`
 
 - `ImportArtifact` của nguồn timetable/non-PII được phép phải có SHA-256 hợp lệ; registration local-only phải có `sourceType=registration`, `localOnly=true`, id không định danh và bỏ trống `sha256`/`fileName`.
-- M1 local result hiện chỉ chứng minh candidate extraction; matching/override/persistence và browser network interception là evidence của M2/M4, không được suy ra từ fixture package tests.
+- M1 local result chứng minh candidate extraction; M2 local result thêm pure matching/override behavior. Browser network interception, user confirmation, persistence and export remain M3/M4 evidence and không được suy ra từ fixture package tests.
 
 ## 9. Dedup/grouping
 

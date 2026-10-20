@@ -10,6 +10,7 @@ import {
   type Section,
   type Session,
   type SourceRef,
+  isFixedSession,
 } from "@ky-nay/domain";
 import type { ParserAdapter, ParseResult, SourceInput } from "./adapter.js";
 import { readOoxmlWorkbook, type OoxmlSheet } from "./ooxml.js";
@@ -157,6 +158,7 @@ function sectionSource(artifact: ImportArtifact, row: number): SourceRef {
 }
 
 function sessionKey(session: Session): string {
+  if (!isFixedSession(session)) return ["non-fixed", session.kind, session.group ?? "", session.weeks.join(",")].join("|");
   return [session.day, session.startPeriod, session.endPeriod, session.kind, session.group ?? "", session.room ?? "", session.campus ?? "", session.weeks.join(",")].join("|");
 }
 
@@ -164,13 +166,12 @@ function buildCourse(record: RowRecord, course: { code: string; altCodes: string
   const name = rowValue(record, "courseName");
   if (!name) return undefined;
   const credits = parseCredits(rowValue(record, "credits"));
-  if (credits === undefined) return undefined;
   return {
     code: course.code,
     altCodes: course.altCodes,
     name,
     normalizedName: name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(),
-    credits,
+    ...(credits === undefined ? {} : { credits }),
     school: "uet",
   };
 }
@@ -228,9 +229,11 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, sheet: OoxmlShe
     if (homeClass && !target.homeClasses.includes(homeClass)) target.homeClasses.push(homeClass);
     const builtCourse = buildCourse(record, course);
     if (builtCourse && !courses.has(course.code)) courses.set(course.code, builtCourse);
-    if (!builtCourse && !seenCourseRows.has(course.code)) {
-      seenCourseRows.add(course.code);
-      issues.push(issue("CREDITS_MISSING", "warning", "course credits missing or invalid; course omitted from candidate list", { sourceRow: record.sourceRow, field: "credits" }));
+    if (!builtCourse || builtCourse.credits === undefined) {
+      if (!seenCourseRows.has(course.code)) {
+        seenCourseRows.add(course.code);
+        issues.push(issue("CREDITS_MISSING", "warning", "course credits missing or invalid; course remains searchable with incomplete credits", { sourceRow: record.sourceRow, field: "credits" }));
+      }
     }
 
     const kind = normalizeKind(rowValue(record, "kind"));
@@ -240,6 +243,7 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, sheet: OoxmlShe
     issues.push(...noteResult.issues.map((item) => ({ ...item, sourceRow: record.sourceRow })));
     if (noteResult.issues.some((item) => item.code === "AMBIGUOUS_NOTE")) continue;
     const weeks = noteResult.weeks;
+    const weekOrigin = noteResult.weekOrigin;
     if (!weeks) continue;
     const notePeriods = noteResult.periodOverride ? [{ startPeriod: noteResult.periodOverride.startPeriod, endPeriod: noteResult.periodOverride.endPeriod }] : [];
     if (notePeriods.length > 0) {
@@ -274,6 +278,7 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, sheet: OoxmlShe
         endPeriod: range.endPeriod,
         frame: "uet-default",
         weeks,
+        ...(weekOrigin ? { weekOrigin } : {}),
         kind,
         ...(group ? { group } : {}),
         ...(room ? { room } : {}),

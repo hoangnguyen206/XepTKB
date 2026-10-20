@@ -9,7 +9,7 @@
 
 Đây là protocol làm việc cho đội Agent xây Kỳ Này. Agent không thay thế quyết định của Product, Tech Lead, Security hoặc Release Manager; mỗi role có boundary, artefact và gate rõ ràng.
 
-Workspace hiện có M0–M1 foundation/parser package và local test/fixture evidence; chưa có mã nguồn ứng dụng web/PWA, deploy, dataset publish hoặc release evidence. Không được dùng tài liệu này để ngụ ý rằng G0–G5 đã đạt.
+Workspace hiện có M0–M2 foundation/parser/domain packages và local test/fixture evidence; chưa có mã nguồn ứng dụng web/PWA, deploy, dataset publish hoặc release evidence. Không được dùng tài liệu này để ngụ ý rằng G0–G5 đã đạt.
 
 Protocol này dùng một namespace gate duy nhất. Những bảng cũ ghi `QA G0–G6` hoặc `phase gate` phải được đọc theo [crosswalk](../docs/QA_TEST_PLAN.md#7-canonical-release-gates-và-crosswalk), không tạo thêm nghĩa mới.
 

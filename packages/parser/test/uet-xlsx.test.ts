@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { uetXlsxAdapter } from "../src/uet-xlsx-adapter.js";
 import { readOoxmlWorkbook } from "../src/ooxml.js";
+import { isFixedSession, type FixedSession } from "@ky-nay/domain";
 import { syntheticXlsx } from "./synthetic-xlsx.js";
-
 const headers = ["Lớp", "Mã HP", "Môn", "TC", "Mã LHP", "Nhóm", "Loại buổi", "Thứ", "Ca", "Tiết", "GĐ", "GV", "Ghi chú", "Unknown", "X", "Y", "Z"];
 
 function input(bytes: Uint8Array, fileName = "timetable.xlsx") {
@@ -27,7 +27,9 @@ test("uet-xlsx handles header row 1, aliases, Saturday and note period override"
   assert.equal(result.sections.length, 1);
   assert.equal(result.courses[0]!.code, "INT2213");
   assert.equal(result.sections[0]!.sessions[0]!.day, 7);
-  assert.deepEqual([result.sections[0]!.sessions[0]!.startPeriod, result.sections[0]!.sessions[0]!.endPeriod], [9, 12]);
+  const session = result.sections[0]!.sessions[0]!;
+  assert.ok(isFixedSession(session));
+  assert.deepEqual([session.startPeriod, session.endPeriod], [9, 12]);
   assert.ok(result.issues.some((item) => item.code === "PERIOD_OVERRIDE_APPLIED"));
   assert.equal(result.sections[0]!.sessions[0]!.source.sourceRow, 2);
 });

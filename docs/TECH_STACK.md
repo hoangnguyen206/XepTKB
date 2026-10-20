@@ -15,14 +15,14 @@
 | PWA | `vite-plugin-pwa` + Workbox | precache app shell, runtime cache dataset có version, offline Plan |
 | Local storage | IndexedDB qua Dexie | lưu Plan, user overrides, parser index; dễ version/migrate |
 | Static data | JSON artifacts trên Cloudflare CDN/R2 | tải nhanh, immutable version/hash, không chứa PII |
-| Parser | `fflate` + `@xmldom/xmldom` for bounded local OOXML/HTML parsing in M1; browser `DOMParser`/future reviewed adapter as appropriate; pdf.js (P1/P2) | deterministic local parser boundary; no formula/external-link execution; dependency audit and browser spike required before production |
+| Parser | `fflate` + `@xmldom/xmldom` for bounded local OOXML/HTML parsing in M1; M2 domain engine is pure TypeScript with no parser/network dependency; browser `DOMParser`/future reviewed adapter as appropriate; pdf.js (P1/P2) | deterministic local parser/domain boundary; no formula/external-link execution; dependency audit and browser spike required before production |
 | Export | `.doc` HTML-based (Word), browser Canvas/html-to-image (PNG), tự tạo RFC 5545 `.ics`; **không** PDF generator — “In / Lưu PDF” = print CSS A4 ngang | không cần server; ICS là ưu tiên tương thích iPhone |
 | Backend optional | Supabase Postgres + Auth + Edge Functions | **deferred post-MVP**: Q-003/Q-004 chọn static artifact + CLI admin; share P1 dùng client-side URL encoding; Supabase chỉ quay lại nếu account/sync được approve |
 | Hosting | Cloudflare Pages + versioned static artifact CDN/R2 cho web và dataset | MVP không có Supabase control plane; vendor/data-region/legal review vẫn là gate mở |
 | Observability | privacy-safe aggregate counters và scrubbed client errors theo policy; vendor cụ thể deferred | không GA/tracker bên thứ ba; cookieless, no user ID/IP, privacy notice + opt-out; legal review trước per-user |
 | Tests | Vitest, Testing Library, Playwright, axe, fast-check | unit/domain, UI/accessibility, browser/offline/property |
 
-- **M1 status:** offline parser/domain packages and synthetic fixtures are implemented and locally verified; React/Vite app, browser integration, IndexedDB, export, artifact loader and publish path remain deferred to later milestones.
+- **M1/M2 status:** offline parser and pure domain packages plus synthetic fixtures are implemented and locally verified; M2 search/Plan/conflict/week-date/registration-merge/credits are package-level only. React/Vite app, browser integration, IndexedDB, export, artifact loader and publish path remain deferred to later milestones.
 
 ## 2. Boundary client/server
 
@@ -114,3 +114,4 @@ Mỗi spike trả `decision`, `evidence`, `known limits`, `follow-up ADR`; khôn
 | ADR-0006 | Default TH session weeks `[2..teachingWeeks]` khi merge registration | accepted per Q-006/C-03 |
 | ADR-0007 | Static artifact + CLI admin (Supabase deferred post-MVP) | accepted per Q-003/Q-004 |
 | ADR-0008 | M1 deterministic parser dependencies + local registration provenance | ready; G1 acknowledgement pending |
+| ADR-0009 | M2 pure domain engine contract and schema migration `0.2.0` | ready; G1 acknowledgement pending |

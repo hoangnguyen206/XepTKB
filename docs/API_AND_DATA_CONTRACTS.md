@@ -9,7 +9,7 @@
 
 MVP chỉ dùng **static artifact contract** (Q-003/Q-004): admin chạy local pipeline → push immutable artifact + manifest lên CDN; **không** có backend control plane trong release đầu. Share link P1 dùng client-side URL encoding, không cần server.
 
-M1 hiện chỉ cung cấp parser/domain package và local candidate output; static artifact loader, public catalog validation và các control API dưới đây chưa được triển khai. Các `POST /api/v1/*` là **target contract** cho giai đoạn sau (account/sync), không implement trong MVP — được giữ để frontend/QA mock trước và không thay đổi boundary.
+M1 cung cấp parser package và local candidate output; M2 bổ sung pure domain engine cho search/Plan/conflict/date/registration merge/credits. Static artifact loader, public catalog validation và các control API dưới đây chưa được triển khai. Các `POST /api/v1/*` là **target contract** cho giai đoạn sau (account/sync), không implement trong MVP — được giữ để frontend/QA mock trước và không thay đổi boundary.
 
 ## 2. Versioning rules
 

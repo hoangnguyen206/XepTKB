@@ -1,6 +1,6 @@
 # Kỳ Này — Hướng dẫn làm việc cho Claude Code và Agent
 
-> **Status:** draft / M0–M1 implementation present; app/release gates pending
+> **Status:** draft / M0–M2 implementation present; app/release gates pending
 > **Owner:** Tech Lead  
 > **Last reviewed:** 2026-10-20
 > **Source of truth:** các tài liệu trong `docs/`; bản brief chỉ là nguồn đầu vào ban đầu.
@@ -8,7 +8,7 @@
 
 ## 1. Bối cảnh
 
-Kỳ Này (tên làm việc, chưa chốt thương hiệu) là web app/PWA giúp sinh viên UET xếp thời khóa biểu từ dữ liệu trường phát hành. MVP tập trung UET, chạy tốt trên điện thoại nhưng không bỏ qua desktop. Repository hiện có foundation và parser package cho M0–M1; chưa có mã nguồn ứng dụng web/PWA.
+Kỳ Này (tên làm việc, chưa chốt thương hiệu) là web app/PWA giúp sinh viên UET xếp thời khóa biểu từ dữ liệu trường phát hành. MVP tập trung UET, chạy tốt trên điện thoại nhưng không bỏ qua desktop. Repository hiện có foundation, parser và M2 domain engine packages; chưa có mã nguồn ứng dụng web/PWA.
 
 Mốc kinh doanh/kỹ thuật cần ưu tiên là khi trường công bố TKB học kỳ II năm học 2026–2027, dự kiến tuần **09–15/11/2026**. Nếu không kịp, cắt scope theo [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), không âm thầm hạ chất lượng parser hoặc privacy.
 
@@ -81,7 +81,7 @@ Một task chỉ hoàn thành khi đạt gate tương ứng trong [Agent workflo
 - docs, changelog, rollback/monitoring và handoff được cập nhật;
 - không dùng dữ liệu thật trong CI hoặc log.
 
-Các tài liệu sản phẩm vẫn ở `draft`/`proposed`; M1 parser package có local test/evidence nhưng G0–G5 chưa đạt cho tới khi có actor/date/evidence độc lập theo từng gate. Không điền giả trạng thái app build/test/release.
+Các tài liệu sản phẩm vẫn ở `draft`/`proposed`; M1 parser và M2 domain packages có local test/evidence nhưng G0–G5 chưa đạt cho tới khi có actor/date/evidence độc lập theo từng gate. Không điền giả trạng thái app build/test/release.
 
 ## 6. Quy tắc cho Agent
 

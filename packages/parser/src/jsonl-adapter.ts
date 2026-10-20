@@ -28,7 +28,24 @@ function isSectionRecord(value: unknown): value is Section {
 }
 
 function isCourseRecord(value: unknown): value is Course {
-  return isRecord(value) && typeof value.code === "string" && "credits" in value;
+  if (!isRecord(value)
+    || typeof value.code !== "string"
+    || value.code.trim() === ""
+    || !Array.isArray(value.altCodes)
+    || value.altCodes.some((code) => typeof code !== "string")
+    || typeof value.name !== "string"
+    || value.name.trim() === ""
+    || typeof value.normalizedName !== "string"
+    || value.normalizedName.trim() === ""
+    || typeof value.school !== "string"
+    || value.school.trim() === "") {
+    return false;
+  }
+  return value.credits === undefined
+    || (typeof value.credits === "number"
+      && Number.isFinite(value.credits)
+      && value.credits >= 0
+      && Math.round(value.credits * 100) === value.credits * 100);
 }
 
 function isSafeSessionContainer(value: Section): boolean {

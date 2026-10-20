@@ -42,12 +42,51 @@ test("invalid UTF-8 is rejected without throwing", () => {
   assert.ok(result.artifact.errors.includes("NO_VALID_SECTION_ROWS"));
 });
 
+test("canonical JSONL retains courses when credits are missing", () => {
+  const source = { artifactId: "jsonl-test", sourceType: "timetable" };
+  const payload = JSON.stringify({
+    courses: [{ code: "OPT101", altCodes: [], name: "Optional credits", normalizedName: "optional credits", school: "uet" }],
+    sections: [{
+      id: "OPT101 1",
+      courseCode: "OPT101",
+      homeClasses: [],
+      online: false,
+      sessions: [{ id: "OPT101 1:s1", day: 2, startPeriod: 1, endPeriod: 2, frame: "uet-default", weeks: [1], kind: "LT", lecturers: [], source, confidence: "deterministic" }],
+      source,
+      datasetVersion: "test",
+      warnings: [],
+    }],
+  });
+  const result = canonicalJsonlAdapter.parse({ bytes: new TextEncoder().encode(payload), fileName: "optional-credits.json" });
+  assert.equal(result.courses.length, 1);
+  assert.equal(result.courses[0]!.credits, undefined);
+  assert.ok(result.issues.some((i) => i.code === "CREDITS_MISSING"));
+});
+test("canonical JSONL rejects malformed course shape while retaining optional credits", () => {
+  const source = { artifactId: "jsonl-test", sourceType: "timetable" };
+  const payload = JSON.stringify({
+    courses: [{ code: "OPT101" }],
+    sections: [{
+      id: "OPT101 1",
+      courseCode: "OPT101",
+      homeClasses: [],
+      online: false,
+      sessions: [{ id: "OPT101 1:s1", day: 2, startPeriod: 1, endPeriod: 2, frame: "uet-default", weeks: [1], kind: "LT", lecturers: [], source, confidence: "deterministic" }],
+      source,
+      datasetVersion: "test",
+      warnings: [],
+    }],
+  });
+  const result = canonicalJsonlAdapter.parse({ bytes: new TextEncoder().encode(payload), fileName: "malformed-course.json" });
+  assert.equal(result.courses.length, 0);
+  assert.ok(result.issues.some((i) => i.code === "CONFLICTING_NORMALIZED_FIELDS"));
+});
 test("fixture input paths cannot escape their manifest directory", () => {
   const directory = mkdtempSync(join(tmpdir(), "ky-nay-fixture-"));
   try {
     writeFileSync(join(directory, "manifest.json"), JSON.stringify({
       manifestVersion: "1",
-      schemaVersion: "0.1.0",
+      schemaVersion: "0.2.0",
       context: { term: "synthetic", teachingWeeks: 15 },
       fixtures: [{
         id: "escape",

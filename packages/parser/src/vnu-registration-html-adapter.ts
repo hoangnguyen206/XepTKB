@@ -144,6 +144,7 @@ function safeCandidateSection(row: Record<string, string>, source: { artifactId:
         endPeriod: range.endPeriod,
         frame: "uet-default",
         weeks,
+        weekOrigin: "parser-default",
         kind,
         ...(group ? { group } : {}),
         ...(room ? { room } : {}),

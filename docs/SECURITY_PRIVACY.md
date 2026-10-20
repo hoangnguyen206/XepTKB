@@ -33,7 +33,7 @@
 | Secrets | API keys, signing keys | Secret | secret manager only | rotation schedule |
 
 - Registration artifact metadata is local-only: no content hash, user-selected filename, raw HTML or identity field may enter telemetry, logs, network DTOs or shared evidence. Approved non-PII timetable inputs retain a provenance hash.
-- M1 parser package đã kiểm tra local bằng synthetic fixtures và dependency audit; đây chưa phải browser/network G3b evidence. Khi app có file picker, phải chạy interception test để chứng minh raw registration bytes/PII không vào request, log, analytics hoặc Sentry.
+- M1 parser package và M2 pure domain engine đã kiểm tra local bằng synthetic fixtures/unit tests; M2 không thêm network, storage, credential hoặc external-service boundary. Đây chưa phải browser/network G3b evidence. Khi app có file picker ở M3/M4, phải chạy interception test để chứng minh raw registration bytes/PII không vào request, log, analytics hoặc Sentry.
 - CI/repository không chứa raw source có PII, `.env`, token hoặc fixture chưa redacted.
 
 ## 3. Data-flow controls

@@ -57,7 +57,7 @@ test("local registration artifact rejects retained filename or hash", () => {
     fileName: "student.doc",
     sha256: "a".repeat(64),
     parserVersion: "test@0.1.0",
-    schemaVersion: "0.1.0",
+    schemaVersion: "0.2.0",
     status: "candidate" as const,
     importedAt: new Date(0).toISOString(),
     errors: [],
@@ -66,5 +66,21 @@ test("local registration artifact rejects retained filename or hash", () => {
   const issues = validateArtifact(artifact);
   assert.ok(issues.some((issue) => issue.field === "fileName"));
   assert.ok(issues.some((issue) => issue.field === "sha256"));
+});
+
+test("non-fixed online sessions are valid without day or periods", () => {
+  const section = structuredClone(baseSection);
+  section.online = true;
+  section.sessions = [{
+    id: "online",
+    fixedTime: false,
+    frame: "uet-default",
+    weeks: [1, 2],
+    kind: "ONL",
+    lecturers: [],
+    source: { artifactId: "a1", sourceType: "timetable" },
+    confidence: "deterministic",
+  }];
+  assert.equal(validateSection(section, 12, 15).length, 0);
 });
 

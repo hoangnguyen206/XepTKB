@@ -1,9 +1,9 @@
 /**
- * Canonical domain types — mirror of docs/DOMAIN_MODEL.md §2.
- * Any change here must stay in sync with that doc; bump SCHEMA_VERSION on breaking change.
+ * Canonical domain types — mirror of docs/DOMAIN_MODEL.md §§2–3.
+ * Any breaking change bumps SCHEMA_VERSION and requires an ADR/migration note.
  */
 
-export const SCHEMA_VERSION = "0.1.0";
+export const SCHEMA_VERSION = "0.2.0";
 
 export type SchoolCode = string;
 export type TermId = string;
@@ -11,6 +11,7 @@ export type DatasetVersion = string;
 export type Period = number;
 export type WeekNo = number;
 export type DayNo = 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type WeekOrigin = "explicit" | "parser-default" | "registration-default";
 
 export type SourceRef = {
   artifactId: string;
@@ -42,19 +43,18 @@ export type Course = {
   altCodes: string[];
   name: string;
   normalizedName: string;
-  credits: number;
+  /** Undefined means the source did not provide credits; it is never treated as zero. */
+  credits?: number;
   school: SchoolCode;
 };
 
 export type SessionKind = "LT" | "TH" | "BT" | "ONL" | "OTHER";
 
-export type Session = {
+type SessionBase = {
   id: string;
-  day: DayNo;
-  startPeriod: Period;
-  endPeriod: Period;
   frame: string;
   weeks: WeekNo[];
+  weekOrigin?: WeekOrigin;
   kind: SessionKind;
   group?: string;
   room?: string;
@@ -64,6 +64,25 @@ export type Session = {
   source: SourceRef;
   confidence: "deterministic" | "reviewed-fallback" | "manual";
 };
+
+export type FixedSession = SessionBase & {
+  /** Omitted is treated as true for the 0.1.0 wire shape during migration. */
+  fixedTime?: true;
+  day: DayNo;
+  startPeriod: Period;
+  endPeriod: Period;
+};
+
+export type NonFixedSession = SessionBase & {
+  fixedTime: false;
+  day?: DayNo;
+};
+
+export type Session = FixedSession | NonFixedSession;
+
+export function isFixedSession(session: Session): session is FixedSession {
+  return session.fixedTime !== false;
+}
 
 export type Section = {
   id: string;
@@ -87,10 +106,26 @@ export type Term = {
   timezone: "Asia/Ho_Chi_Minh";
 };
 
+export type DomainCatalog = {
+  courses: readonly Course[];
+  sections: readonly Section[];
+  datasetVersion?: DatasetVersion;
+  /** Optional frame definitions used to validate runtime period overrides. */
+  timeFrames?: readonly TimeFrame[];
+};
+
 export type PlanPick = { sectionId: string; group?: string };
 
+export type OverrideTarget = {
+  sectionId: string;
+  sessionId: string;
+};
+
+export type OverrideField = "room" | "campus" | "day" | "periods" | "weeks" | "lecturer";
+
 export type Override = {
-  field: "room" | "campus" | "day" | "periods" | "weeks" | "lecturer";
+  target: OverrideTarget;
+  field: OverrideField;
   from?: unknown;
   to: unknown;
   source: "registration" | "user" | "admin-correction";
@@ -100,10 +135,12 @@ export type Override = {
 export type Plan = {
   id: string;
   term: TermId;
+  datasetVersion: DatasetVersion;
   name: string;
   planKind: "draft" | "final";
   picks: PlanPick[];
   final: boolean;
+  cohort?: string;
   week1?: string;
   overrides: Override[];
   createdAt: string;

@@ -7,7 +7,7 @@
 
 ## Mục đích
 
-Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ vì còn thiếu actor/sign-off độc lập ở các bước tương ứng. M1 đã có implementation và local evidence riêng, nhưng chưa phải bằng chứng publish/release. Không được coi bộ docs này là bằng chứng build/test/deploy/release hoàn chỉnh.
+Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ vì còn thiếu actor/sign-off độc lập ở các bước tương ứng. M1 đã có implementation và local evidence riêng; M2 domain engine cũng đã có implementation/evidence cục bộ trên working tree, nhưng cả hai chưa phải bằng chứng publish/release. Không được coi bộ docs này là bằng chứng build/test/deploy/release hoàn chỉnh.
 
 Đây là bản đồ tài liệu source of truth cho Kỳ Này. Bản brief `Kế hoạch sản phẩm – Tool xếp TKB cho sinh viên VNU.md` là nguồn nghiên cứu ban đầu; khi brief và tài liệu dự án khác nhau, phải mở decision/ADR hoặc hỏi Product/Tech Lead, không tự chọn theo trí nhớ.
 
@@ -94,6 +94,15 @@ Các giá trị sau phải nhất quán ở mọi tài liệu:
 - [M1 security review](evidence/M1-SECURITY-REVIEW.md) — parser/privacy controls; browser G3b evidence remains pending.
 - [M1 evidence envelope](evidence/M1-EVIDENCE-ENVELOPE.md) — fixture hashes, commands and gate conditions.
 
+## M2 evidence hiện tại
+
+- [ADR-0009 — M2 domain engine contract and schema migration](adr/ADR-0009-m2-domain-engine-schema.md) — schema `0.2.0`; G1 acknowledgement pending.
+- [M2 design handoff](evidence/M2-DESIGN-HANDOFF.md) — pure domain contract, alternatives and verification plan; `g1-blocked` until acknowledgement.
+- [M2 implementation handoff](evidence/M2-IMPLEMENTATION-HANDOFF.md) — local search/Plan/conflict/date/merge/credits implementation; readiness acknowledgement pending.
+- [M2 test report](evidence/M2-TEST-REPORT.md) — 54/54 Node tests and 5/5 synthetic fixture entries locally pass; independent G3a sign-off pending.
+- [M2 evidence envelope](evidence/M2-EVIDENCE-ENVELOPE.md) — schema migration, commands, privacy boundary and open gates.
+
+M2 chưa bao gồm UI/PWA, IndexedDB, export, browser interception, artifact loader, backend/admin publish hoặc real-source validation. Không claim G1/G2/G3a/G3b/G3c, dataset publish hay release từ local evidence này.
 ## Cách dùng
 
 - Product cập nhật PRD và roadmap.

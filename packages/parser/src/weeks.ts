@@ -2,10 +2,11 @@
  * Deterministic note → weeks/period-override parsing (PARSER_SPEC §6).
  * Pure functions, no inference beyond the documented pattern table.
  */
-import type { ParseIssue } from "@ky-nay/domain";
+import type { ParseIssue, WeekOrigin } from "@ky-nay/domain";
 
 export type NoteParse = {
   weeks?: number[];
+  weekOrigin?: WeekOrigin;
   periodOverride?: { startPeriod: number; endPeriod: number };
   issues: ParseIssue[];
 };
@@ -26,7 +27,7 @@ export function parseNote(note: string | undefined, teachingWeeks: number): Note
   const issues: ParseIssue[] = [];
   if (!note || !note.trim()) {
     issues.push({ code: "DEFAULT_WEEKS_APPLIED", severity: "warning", message: `no week info — default [1..${teachingWeeks}]` });
-    return { weeks: range(1, teachingWeeks), issues };
+    return { weeks: range(1, teachingWeeks), weekOrigin: "parser-default", issues };
   }
   const n = note.normalize("NFC");
 
@@ -71,5 +72,5 @@ export function parseNote(note: string | undefined, teachingWeeks: number): Note
   if (mPeriod) {
     periodOverride = { startPeriod: Number(mPeriod[1]), endPeriod: Number(mPeriod[2]) };
   }
-  return { weeks, ...(periodOverride ? { periodOverride } : {}), issues };
+  return { weeks, weekOrigin: "explicit", ...(periodOverride ? { periodOverride } : {}), issues };
 }

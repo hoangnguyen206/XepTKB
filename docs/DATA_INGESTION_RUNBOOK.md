@@ -7,7 +7,7 @@
 
 ## 1. Mục tiêu
 
-M1 hiện có parser package offline và synthetic fixture evidence cho UET XLSX/registration HTML candidate extraction. Quarantine, diff, independent review, immutable artifact build, publish và rollback bên dưới là operational target; chưa có public dataset hoặc admin runtime trong repository.
+M1 có parser package offline và M2 có pure domain engine cùng synthetic fixture evidence cho UET XLSX/registration HTML candidate extraction và local merge behavior. Quarantine, diff, independent review, immutable artifact build, publish và rollback bên dưới là operational target; chưa có public dataset hoặc admin runtime trong repository.
 
 
 ## 2. Roles
