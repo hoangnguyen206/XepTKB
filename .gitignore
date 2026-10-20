@@ -17,6 +17,7 @@ $RECYCLE.BIN/
 # Claude Code local/session state
 .claude/scheduled_tasks.lock
 .claude/.cache/
+.claude/worktrees/
 
 # Environment files and local secrets
 .env
@@ -73,6 +74,10 @@ temp/
 /data/private/
 /fixtures/raw/
 /fixtures/private/
+/fixtures/real/
 /uploads/
 /quarantine/
 /artifacts/local/
+
+# tsbuildinfo incremental state
+*.tsbuildinfo

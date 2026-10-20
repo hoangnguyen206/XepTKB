@@ -1,0 +1,37 @@
+{
+  "manifestVersion": "1",
+  "schemaVersion": "0.1.0",
+  "context": { "term": "2026-2027-h1", "teachingWeeks": 15, "datasetVersion": "synthetic-uet-m1" },
+  "fixtures": [
+    {
+      "id": "uet-hk1-row1",
+      "family": "uet-xlsx",
+      "adapter": "uet-xlsx",
+      "input": "hk1-row1.xlsx",
+      "dataClass": "synthetic",
+      "quirk": "17 columns, header row 1, UET code alias, Saturday, whitespace in shift and note period override",
+      "expected": {
+        "inputSha256": "28165264a93cc29635ef50bd1672fa997b3f66b2b1bc43c7812bfc9a6f1e46f8",
+        "sections": 1,
+        "sessions": 1,
+        "courses": 1,
+        "issueCodes": ["UNKNOWN_COLUMN", "PERIOD_OVERRIDE_APPLIED", "ROOM_CAMPUS_UNKNOWN"]
+      }
+    },
+    {
+      "id": "uet-hk2-row4",
+      "family": "uet-xlsx",
+      "adapter": "uet-xlsx",
+      "input": "hk2-row4.xlsx",
+      "dataClass": "synthetic",
+      "quirk": "18 columns, header row 4, merged cells, PCGD/unknown columns, duplicate row and ten-week class",
+      "expected": {
+        "inputSha256": "e4417afe7d5c77d99d0c0ffd9d7268f3e43bc5b7f159dd324b161513531fa550",
+        "sections": 1,
+        "sessions": 1,
+        "courses": 1,
+        "issueCodes": ["UNKNOWN_COLUMN", "DUPLICATE_SESSION_COLLAPSED"]
+      }
+    }
+  ]
+}

@@ -2,12 +2,12 @@
 
 > **Status:** draft / docs-first  
 > **Owner:** Product + Tech Lead  
-> **Last reviewed:** 2026-10-19  
+> **Last reviewed:** 2026-10-20
 > **Related docs:** [root CLAUDE.md](../CLAUDE.md)
 
 ## Mục đích
 
-Mọi tài liệu hiện là `draft`/`proposed`; G0–G5 chưa đạt vì chưa có actor/date/evidence thực tế. Không được coi bộ docs này là bằng chứng build/test/deploy/release.
+Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ vì còn thiếu actor/sign-off độc lập ở các bước tương ứng. M1 đã có implementation và local evidence riêng, nhưng chưa phải bằng chứng publish/release. Không được coi bộ docs này là bằng chứng build/test/deploy/release hoàn chỉnh.
 
 Đây là bản đồ tài liệu source of truth cho Kỳ Này. Bản brief `Kế hoạch sản phẩm – Tool xếp TKB cho sinh viên VNU.md` là nguồn nghiên cứu ban đầu; khi brief và tài liệu dự án khác nhau, phải mở decision/ADR hoặc hỏi Product/Tech Lead, không tự chọn theo trí nhớ.
 
@@ -65,12 +65,34 @@ Các giá trị sau phải nhất quán ở mọi tài liệu:
 | --- | --- | --- | --- |
 | D-001 | Tên thương hiệu cuối cùng và domain | Open | Product, kiểm tra tên miền/nhãn hiệu |
 | D-002 | Chốt React+Vite hay framework khác | Proposed | Tech Lead sau spike PWA/SSR |
-| D-003 | Chọn backend Supabase hay adapter khác | Proposed | Tech Lead + Security, sau threat/data-region review |
+| D-003 | Backend: **static artifact + CLI admin**; Supabase deferred | **Closed** (Q-003) | Tech Lead + Security 20/10/2026 |
 | D-004 | Hosting/data region và vendor/legal review | Open | Owner + tư vấn pháp lý |
-| D-005 | Browser support và analytics consent | Open | Product + Security |
-| D-006 | Có tài khoản/sync trong release đầu không | Proposed: không | Product evidence từ MVP |
-| D-007 | Bộ fixture UET được phép lưu ở đâu, retention bao lâu | Open | Data Ops + Security |
+| D-005 | Browser matrix Tier 1/2 + analytics cookieless aggregate | **Closed** (Q-007/Q-008) | Product + Security 20/10/2026 |
+| D-006 | Có tài khoản/sync trong release đầu không | **Closed**: không | Product 20/10/2026 |
+| D-007 | Fixture policy: synthetic + `test:real` ngoài repo; registration file xóa PII trước khi lưu | **Closed** (Q-006) | Data Ops + Security 20/10/2026 |
 | D-008 | Lịch phát hành cụ thể ngoài cửa sổ 09–15/11/2026 | Open | Product theo thông báo trường |
+| D-009 | Plan slots P0: 1 draft + 1 final (từ file đăng ký); nhiều nháp P1 | **Closed** (Q-005) | Product 20/10/2026 |
+| D-010 | Export: `.doc` HTML + PNG + ICS + print CSS; không PDF generator | **Closed** (Q-002) | Product 20/10/2026 |
+| D-011 | Week 1 fixture HK II = 15/02/2027 (HK I giữ fixture riêng) | **Closed** (Q-001) | Product 20/10/2026 |
+
+## M0 evidence hiện tại
+
+- [ADR-0001 — monorepo và React/Vite baseline](adr/ADR-0001-react-vite-monorepo.md) — `ready`, chờ Product/Tech Lead G1 acknowledgement.
+- [ADR-0006 — default TH weeks](adr/ADR-0006-default-th-weeks.md) — decision đã ghi trong docs.
+- [ADR-0007 — static artifact + CLI admin](adr/ADR-0007-static-artifact-cli-admin.md) — decision đã ghi trong docs.
+- [M0 fixture policy](evidence/M0-FIXTURE-POLICY.md) — synthetic/redacted only.
+- [M0 G1 threat/data-flow review](evidence/M0-G1-threat-data-flow.md) — draft, chờ Security acknowledgement.
+- [M0 implementation handoff](evidence/M0-IMPLEMENTATION-HANDOFF.md) — local checks pass, independent verification pending.
+- [M0 evidence envelope](evidence/M0-EVIDENCE-ENVELOPE.md) — traceability and execution record; gate approval pending.
+
+## M1 evidence hiện tại
+
+- [ADR-0008 — M1 parser dependencies and local registration provenance](adr/ADR-0008-m1-parser-dependencies-local-provenance.md) — ready; G1 acknowledgement pending.
+- [M1 design handoff](evidence/M1-DESIGN-HANDOFF.md) — contract, dependency and privacy boundary; verification pending.
+- [M1 implementation handoff](evidence/M1-IMPLEMENTATION-HANDOFF.md) — local implementation and scope handoff; independent review pending.
+- [M1 test report](evidence/M1-TEST-REPORT.md) — local G3a evidence and skipped browser/real-source checks.
+- [M1 security review](evidence/M1-SECURITY-REVIEW.md) — parser/privacy controls; browser G3b evidence remains pending.
+- [M1 evidence envelope](evidence/M1-EVIDENCE-ENVELOPE.md) — fixture hashes, commands and gate conditions.
 
 ## Cách dùng
 

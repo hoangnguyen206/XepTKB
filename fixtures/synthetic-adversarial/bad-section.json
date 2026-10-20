@@ -1,0 +1,26 @@
+[
+  {
+    "id": "int1002 1",
+    "courseCode": "INT1002",
+    "homeClasses": ["K69I-IT2"],
+    "online": false,
+    "sessions": [
+      {
+        "id": "s1",
+        "day": 9,
+        "startPeriod": 5,
+        "endPeriod": 2,
+        "frame": "uet-default",
+        "weeks": [3, 1, 3],
+        "kind": "LT",
+        "group": "1",
+        "lecturers": [],
+        "source": { "artifactId": "fixture-bad", "sourceType": "timetable" },
+        "confidence": "deterministic"
+      }
+    ],
+    "source": { "artifactId": "fixture-bad", "sourceType": "timetable" },
+    "datasetVersion": "fixture-v1",
+    "warnings": []
+  }
+]

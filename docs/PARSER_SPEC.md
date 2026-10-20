@@ -2,14 +2,14 @@
 
 > **Status:** draft  
 > **Owner:** Data Parser  
-> **Last reviewed:** 2026-10-19  
+> **Last reviewed:** 2026-10-20
 > **Related docs:** [Domain model](DOMAIN_MODEL.md), [Data ingestion runbook](DATA_INGESTION_RUNBOOK.md), [QA plan](QA_TEST_PLAN.md)
 
 ## 1. Mục tiêu và nguyên tắc
 
 Parser biến file nguồn thành canonical `Course/Section/Session/Term/Exam` có provenance và validation. Parser phải **deterministic-first**: rule, synonym, regex và schema validator chạy trước mọi AI fallback. Không publish output chỉ dựa trên confidence của model.
 
-Mỗi lần import là một `ImportArtifact` có source hash (chỉ khi source được phép và không chứa PII), parser version, source reference, warnings/errors và trạng thái `candidate|hold|validated|published|rejected|retracted`. Raw source chỉ giữ ở nơi được phép; file kết quả đăng ký của user không rời browser và không được hash/log để nhận diện người dùng.
+Mỗi lần import là một `ImportArtifact` có source hash (chỉ khi source được phép và không chứa PII), parser version, source reference, warnings/errors và trạng thái `candidate|hold|validated|published|rejected|retracted`. Với registration local-only, `sha256` và `fileName` đều bỏ trống; artifact dùng marker không định danh. Raw source chỉ giữ ở nơi được phép; file kết quả đăng ký của user không rời browser và không được hash/log để nhận diện người dùng.
 
 ## 2. Pipeline chuẩn
 
@@ -118,10 +118,10 @@ Không được suy luận tuần 10 từ “thi đợt 1” nếu không có co
 1. Kiểm tra extension nhưng quyết định parser theo magic/content (`text/html`/table), giới hạn size.
 2. Tìm bảng môn/lớp và tách multi-value: `T2,T6`, `4 - 6,1 - 3`, phòng dính liền.
 3. Chuẩn hóa periods; đối chiếu danh sách phòng từ TKB nếu có.
-4. Loại field họ tên, ngày sinh, mã sinh viên ngay sau extraction; không ghi raw HTML vào telemetry.
-5. Match Section bằng normalized course/section code; match session theo day/period/kind/group khi có.
-6. Tạo `Override` cho room/time mới và preview warnings nếu không match.
-7. Chỉ sau user confirm mới ghi normalized schedule vào IndexedDB.
+4. Loại field họ tên, ngày sinh, mã sinh viên ngay sau extraction; không ghi raw HTML vào telemetry. Adapter M1 phải trả artifact `localOnly=true`, không có `sha256`/`fileName`; mọi issue chỉ dùng row/field an toàn.
+5. **M1 boundary:** matching a candidate to an existing `Section`/`Session`, creating `Override`, user confirmation and IndexedDB persistence are deferred to M2/M4. M1 returns schedule candidates only and never mutates a `Plan`.
+6. Match/merge must be fail-closed: if a candidate cannot be matched deterministically, keep the safe candidate and emit `REGISTRATION_OVERRIDE_UNMATCHED`; do not guess a section/session.
+7. Only after a later user-confirmation flow may normalized registration data be persisted locally.
 
 ## 8. Validation và error taxonomy
 
@@ -135,6 +135,10 @@ Không được suy luận tuần 10 từ “thi đợt 1” nếu không có co
 - `AMBIGUOUS_NOTE`
 - `SCHEMA_VERSION_UNSUPPORTED`
 - `HASH_OR_PROVENANCE_MISSING`
+- `INPUT_TOO_LARGE`
+- `UNSUPPORTED_INPUT`
+- `MALFORMED_INPUT`
+- `AMBIGUOUS_HEADER`
 
 ### Warnings — cần review/hiển thị
 
@@ -147,8 +151,11 @@ Không được suy luận tuần 10 từ “thi đợt 1” nếu không có co
 - `DUPLICATE_SESSION_COLLAPSED`
 - `REGISTRATION_OVERRIDE_UNMATCHED`
 - `NON_FIXED_TIME`
+- `CREDITS_MISSING`
+- `PERIOD_OVERRIDE_APPLIED`
 
-Mỗi issue: `code`, `severity`, `sourceRow/page`, `field`, `rawValue` đã redacted, `message`, `suggestedAction`.
+- `ImportArtifact` của nguồn timetable/non-PII được phép phải có SHA-256 hợp lệ; registration local-only phải có `sourceType=registration`, `localOnly=true`, id không định danh và bỏ trống `sha256`/`fileName`.
+- M1 local result hiện chỉ chứng minh candidate extraction; matching/override/persistence và browser network interception là evidence của M2/M4, không được suy ra từ fixture package tests.
 
 ## 9. Dedup/grouping
 
@@ -183,7 +190,7 @@ Không gửi file registration, mã sinh viên, họ tên, ngày sinh hoặc raw
 | Study plan | cohort-specific week 1, typo dates after week 1 |
 | Synthetic adversarial | unknown header, duplicate row, ambiguous note, invalid period |
 
-Mỗi fixture có expected summary (counts, hashes, issue codes), không commit raw PII. Release không publish nếu fixture bắt buộc có error hoặc count drift ngoài threshold được reviewer chấp thuận.
+Mỗi fixture có expected summary (counts, hashes nếu là input timetable synthetic/non-PII được phép, issue codes), không commit raw PII. Fixture registration local-only không hash input. Release không publish nếu fixture bắt buộc có error hoặc count drift ngoài threshold được reviewer chấp thuận.
 
 ## 12. Change workflow
 

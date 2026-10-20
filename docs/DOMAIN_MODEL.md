@@ -2,7 +2,7 @@
 
 > **Status:** draft / proposed  
 > **Owner:** Data Parser + Tech Lead  
-> **Last reviewed:** 2026-10-19  
+> **Last reviewed:** 2026-10-20
 > **Related docs:** [Parser spec](PARSER_SPEC.md), [PRD](PRD.md), [API contracts](API_AND_DATA_CONTRACTS.md)
 
 ## 1. Quy tắc nền
@@ -111,8 +111,9 @@ type Plan = {
   id: string;
   term: TermId;
   name: string;                    // "Phương án A"
+  planKind: "draft" | "final";     // P0 UI: tối đa 1 draft + 1 final; model hỗ trợ N
   picks: PlanPick[];
-  final: boolean;
+  final: boolean;                  // giữ tương thích; mirror của planKind === "final"
   week1?: string;
   overrides: Override[];
   createdAt: string;
@@ -137,8 +138,9 @@ type Exam = {
 type ImportArtifact = {
   id: string;
   sourceType: SourceRef["sourceType"];
-  fileName?: string;                // local-only; never send to server by default
-  sha256: string;
+  fileName?: string;                // approved non-PII metadata only; omit for local registration
+  sha256?: string;                  // required for approved non-PII artifacts; omit for local registration
+  localOnly?: boolean;              // only registration input may set true
   parserVersion: string;
   schemaVersion: string;
   status: "candidate" | "hold" | "validated" | "published" | "rejected" | "retracted";
@@ -149,8 +151,8 @@ type ImportArtifact = {
 };
 ```
 
-## 3. Invariants
-
+- Registration artifact: `sourceType="registration"` bắt buộc `localOnly=true`; id phải không định danh; không giữ `sha256`, `fileName`, raw HTML hoặc identity fields.
+- Timetable/artifact công khai không được dùng `localOnly`; provenance hash chỉ áp dụng cho source non-PII đã được phép.
 - `Section.id` canonical hóa uppercase, bỏ dấu sao/khoảng trắng thừa; collision phải được report.
 - `courseCode` normalized bỏ whitespace/dấu sao, uppercase, đồng thời giữ `altCodes` để search.
 - `1 <= startPeriod <= endPeriod <= maxPeriod` của `TimeFrame`.
@@ -199,10 +201,11 @@ Conflict result phải chứa `leftSection`, `rightSection`, `days`, `periodInte
 
 ## 7. Week/date
 
-- `week1` lấy từ Term theo cohort; user có thể override nếu chưa có study plan.
+- `week1` lấy từ `Term.starts[]` theo cohort; user có thể override nếu chưa có study plan. Config thuộc `Term`, không hardcode.
 - `dateFor(week, day) = week1 + (week - 1) * 7 + (day - 2)` ngày.
 - Timezone là `Asia/Ho_Chi_Minh`; ICS phải có `VTIMEZONE` hoặc UTC conversion đúng.
-- Default TKB không ghi tuần là 1–15; TH mặc định từ tuần 2 theo brief khi merge registration.
+- Default TKB không ghi tuần là 1–15.
+- **TH default weeks**: khi merge registration, session `kind=TH` không có weeks explicit được default `[2..teachingWeeks]` (ADR-0006); rule này **không** áp cho TKB ingest thường trừ khi adapter config nói rõ.
 - Tuần dự phòng/buổi bù là user/admin record riêng, không sửa raw dataset.
 
 ## 8. Search và display

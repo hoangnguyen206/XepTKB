@@ -2,12 +2,13 @@
 
 > **Status:** draft / operational gate  
 > **Owner:** Data Parser + Release Manager  
-> **Last reviewed:** 2026-10-19  
+> **Last reviewed:** 2026-10-20
 > **Related docs:** [Parser spec](PARSER_SPEC.md), [Security](SECURITY_PRIVACY.md), [Operations](OPERATIONS.md)
 
 ## 1. Mục tiêu
 
-Nạp TKB/lịch thi/kế hoạch học tập thành dataset có thể truy nguyên, so sánh và rollback. Quy trình này áp dụng cho file trường được phép sử dụng; không biến upload user registration thành nguồn server mặc định.
+M1 hiện có parser package offline và synthetic fixture evidence cho UET XLSX/registration HTML candidate extraction. Quarantine, diff, independent review, immutable artifact build, publish và rollback bên dưới là operational target; chưa có public dataset hoặc admin runtime trong repository.
+
 
 ## 2. Roles
 
