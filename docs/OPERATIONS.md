@@ -122,4 +122,4 @@ S0/S1: contain/rollback ngay, gọi Security + Release Manager, không chờ spr
 
 ## 10. Chưa áp dụng vì chưa có app code
 
-Repo hiện là docs-only; chưa tuyên bố CI/deploy/monitoring đang chạy. Khi tạo app, cập nhật tài liệu này bằng provider/project IDs ở secret-safe location và link dashboard không công khai.
+Repository hiện có M0–M1 package code và local evidence; chưa có app deploy, monitoring runtime, dataset publish hoặc release. Khi tạo app, cập nhật tài liệu này bằng provider/project IDs ở secret-safe location và link dashboard không công khai.

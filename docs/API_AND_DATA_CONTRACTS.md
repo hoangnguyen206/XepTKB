@@ -2,14 +2,14 @@
 
 > **Status:** proposed  
 > **Owner:** Tech Lead  
-> **Last reviewed:** 2026-10-19  
+> **Last reviewed:** 2026-10-20
 > **Related docs:** [Architecture](ARCHITECTURE.md), [Domain model](DOMAIN_MODEL.md), [Security](SECURITY_PRIVACY.md)
 
 ## 1. Phạm vi
 
-MVP ưu tiên static artifact contract và local-first flow. Backend API chỉ là control plane cho admin ingest, share/sync tùy chọn và proxy external service; không được trở thành dependency để tìm/chọn lớp hoặc đọc file kết quả đăng ký.
+MVP chỉ dùng **static artifact contract** (Q-003/Q-004): admin chạy local pipeline → push immutable artifact + manifest lên CDN; **không** có backend control plane trong release đầu. Share link P1 dùng client-side URL encoding, không cần server.
 
-API thực tế chỉ được implement sau khi stack/backend và auth/RLS được chốt bằng ADR. Contract dưới đây là target để frontend, parser và QA có thể mock trước.
+M1 cung cấp parser package và local candidate output; M2 bổ sung pure domain engine cho search/Plan/conflict/date/registration merge/credits. Static artifact loader, public catalog validation và các control API dưới đây chưa được triển khai. Các `POST /api/v1/*` là **target contract** cho giai đoạn sau (account/sync), không implement trong MVP — được giữ để frontend/QA mock trước và không thay đổi boundary.
 
 ## 2. Versioning rules
 
@@ -58,18 +58,22 @@ Client phải validate schema, school/term, version và hash trước khi đưa 
 | --- | --- | --- | --- |
 | `GET /api/v1/health` | liveness/readiness | public | none |
 | `GET /api/v1/catalog?school=uet` | danh sách school/term/version published | public | none |
-| `GET /api/v1/share/{token}` | read-only Plan DTO | token + rate limit | no raw file; only user-shared fields |
-| `POST /api/v1/share` | tạo link share | optional session | DTO tối thiểu, consent |
-| `DELETE /api/v1/share/{id}` | revoke share | owner/admin | none |
-| `POST /api/v1/admin/imports` | đăng ký candidate artifact | admin | approved source only; no user registration file |
-| `POST /api/v1/admin/imports/{id}/validate` | chạy validation/diff | admin | candidate metadata |
-| `POST /api/v1/admin/imports/{id}/publish` | publish sau approval | two-person/admin policy | artifact only |
-| `POST /api/v1/admin/imports/{id}/retract` | retraction/rollback | admin | audit |
+| `GET /api/v1/share/{token}` | read-only Plan DTO (post-MVP) | token + rate limit | no raw file; only user-shared fields |
+| `POST /api/v1/share` | tạo link share (post-MVP; MVP dùng URL-encoded §4) | optional session | DTO tối thiểu, consent |
+| `DELETE /api/v1/share/{id}` | revoke share (post-MVP) | owner/admin | none |
+| `POST /api/v1/admin/imports` | đăng ký candidate artifact (post-MVP; MVP = CLI) | admin | approved source only; no user registration file |
+| `POST /api/v1/admin/imports/{id}/validate` | chạy validation/diff (post-MVP; MVP = CLI) | admin | candidate metadata |
+| `POST /api/v1/admin/imports/{id}/publish` | publish sau approval (post-MVP; MVP = CLI + manual two-person) | two-person/admin policy | artifact only |
+| `POST /api/v1/admin/imports/{id}/retract` | retraction/rollback (post-MVP; MVP = CLI) | admin | audit |
 | `POST /api/v1/external/ratings/lookup` | proxy aggregate ratings | server only | course/lecturer canonical IDs, no PII |
 
 Share/sync endpoints không được nhận `file`, `document`, `studentId`, `birthDate`, `fullName`, raw HTML hoặc raw timetable upload. Tên field bị cấm phải có request validation và test.
 
-## 5. DTO tối thiểu cho share
+### Share link P1 — client-side only (Q-003)
+
+Không cần backend: encode `{ schemaVersion, school, termId, datasetVersion, planName, picks[], overrides[] }` vào URL fragment (ví dụ `#p=<base64url>`). Fragment không được gửi lên server/log — không vi phạm boundary. Khi share được implement, giới hạn length (ước <4KB) và fail safe nếu URL quá dài.
+
+## 5. DTO tối thiểu cho share (post-MVP)
 
 ```ts
 type SharedPlanDto = {

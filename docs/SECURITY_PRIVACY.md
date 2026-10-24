@@ -2,7 +2,7 @@
 
 > **Status:** draft / required gate  
 > **Owner:** Security Reviewer  
-> **Last reviewed:** 2026-10-19  
+> **Last reviewed:** 2026-10-20
 > **Related docs:** [Architecture](ARCHITECTURE.md), [Tech stack](TECH_STACK.md), [Operations](OPERATIONS.md)
 
 > Tài liệu này là baseline kỹ thuật, không phải tư vấn pháp lý. Trước khi thu tiền, lưu account hoặc mở vendor/cross-border processing, cần rà soát với người có chuyên môn và quy định hiện hành.
@@ -29,10 +29,12 @@
 | Registration PII | họ tên, ngày sinh, mã SV | Sensitive personal | browser memory/IndexedDB user-controlled | xóa khi user xóa/import cleanup |
 | Derived personal Plan | môn/giờ/phòng user chọn | Personal | local; server chỉ khi share consent | user-controlled/expiry |
 | Admin identity/audit | user id, action, timestamp | Restricted | control plane | policy/legal review |
-| Analytics | aggregate event, app/dataset version | Low sensitivity | Umami/Sentry scrubbed | shortest useful period |
+| Analytics | aggregate event, app/dataset version (cookieless, no user ID, no IP) | Low sensitivity | local counter aggregate hoặc self-hosted Umami tương đương | shortest useful period |
 | Secrets | API keys, signing keys | Secret | secret manager only | rotation schedule |
 
-CI/repository không chứa raw source có PII, `.env`, token hoặc fixture chưa redacted.
+- Registration artifact metadata is local-only: no content hash, user-selected filename, raw HTML or identity field may enter telemetry, logs, network DTOs or shared evidence. Approved non-PII timetable inputs retain a provenance hash.
+- M1 parser package và M2 pure domain engine đã kiểm tra local bằng synthetic fixtures/unit tests; M2 không thêm network, storage, credential hoặc external-service boundary. Đây chưa phải browser/network G3b evidence. Khi app có file picker ở M3/M4, phải chạy interception test để chứng minh raw registration bytes/PII không vào request, log, analytics hoặc Sentry.
+- CI/repository không chứa raw source có PII, `.env`, token hoặc fixture chưa redacted.
 
 ## 3. Data-flow controls
 
@@ -94,8 +96,9 @@ Raw registration bytes không có mũi tên đến API/DB/log/analytics. Browser
 ## 7. Privacy UX and retention
 
 - Privacy notice explains local processing, optional share/sync, analytics and deletion.
+- **Analytics (Q-008):** không GA/tracker bên thứ ba; chỉ aggregate counter cookieless (không user ID, không lưu IP), có privacy notice + nút tắt; đo theo từng người chỉ khi opt-in; kiểm tra lại với người hiểu luật trước khi bật.
 - User sees exactly what a share link reveals; default hides course names if feature design chooses busy/free.
-- Share links expire by default and have revoke control.
+- Share links created as client-side URL fragments in the MVP do not have server-side expiry or revocation; the UI must warn “ai có link sẽ xem được”. Expiry/revoke is required only when server-backed share is introduced post-MVP.
 - “Delete local data” clears Plan/import-derived data/cache according to app capability; provide export first if useful.
 - Account deletion removes server-owned share/sync records within policy SLA.
 - Do not derive sensitive profiles from schedule or expose student identity through public URL.

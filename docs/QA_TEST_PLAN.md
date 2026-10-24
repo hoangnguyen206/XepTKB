@@ -2,7 +2,7 @@
 
 > **Status:** draft / release gate  
 > **Owner:** Tester  
-> **Last reviewed:** 2026-10-19  
+> **Last reviewed:** 2026-10-20
 > **Related docs:** [PRD](PRD.md), [Parser spec](PARSER_SPEC.md), [Security](SECURITY_PRIVACY.md), [Implementation plan](IMPLEMENTATION_PLAN.md)
 
 ## 1. Mục tiêu
@@ -27,7 +27,10 @@ Chứng minh Kỳ Này đúng với dữ liệu UET biến thiên, an toàn vớ
 ## 3. Fixture policy
 
 - Raw files thật chỉ nằm trong secure local/admin fixture store nếu được phép; repo/CI dùng redacted or synthetic fixture.
-- Mỗi fixture manifest ghi source family, schema version, expected counts, issue codes, hash; không ghi tên/mã SV.
+- **Q-006 (đã chốt):** mỗi quirk format đã gặp phải có **ít nhất một synthetic row** tái hiện trong fixture (không chỉ file thật). Cung cấp `test:real` script chạy trên file thật ngoài repo, assert các số liệu đã biết (ví dụ HK I 2026–27 ≈ 1.025 section, HK II ≈ 1.009; exam match ≈ 182/192 và 506/523 — cập nhật khi Data Parser xác nhận với source thực).
+- File kết quả đăng ký lưu trong secure store **chỉ sau khi đã xóa họ tên, ngày sinh, mã sinh viên** (raw file không bao giờ được lưu).
+- Mỗi fixture manifest ghi source family, schema version, expected counts, issue codes; hash chỉ ghi cho input timetable synthetic/non-PII được phép. Registration local-only không hash và không ghi filename/PII.
+- **M1/M2 local evidence (20/10/2026):** `npm run lint`, `npm run typecheck`, `npm test` (54/54 Node tests) và `npm run fixtures:run` (5/5 synthetic fixture entries) đã pass trong working tree; M2 tests cover search/alias, Plan/group, week-aware conflict, week1/date, registration merge/override và credits, đồng thời giữ M1 parser/privacy regression. Đây không thay thế approved real-UET golden run, browser/E2E/network, accessibility/device evidence hoặc independent G3a/G3b/G3c sign-off. `npm audit --omit=dev` pass với 0 production vulnerabilities.
 - Khi source document chưa được phép commit, tạo minimized synthetic reproducer giữ đúng lỗi format.
 - Thay đổi expected output phải có reason/reviewer, không update snapshot để làm xanh test mù.
 
@@ -46,7 +49,7 @@ Chứng minh Kỳ Này đúng với dữ liệu UET biến thiên, an toàn vớ
 | Study plan PDF | cohort week 1, typo later rows | week1-only rule |
 | Time-frame image/config | periods, breaks, shifts | config/golden time mapping |
 
-Số lượng nêu trong brief là sanity signal, không được hard-code làm pass condition nếu source/version khác; fixture manifest phải là authority cho từng version.
+Số lượng nêu trong brief là sanity signal, không được hard-code làm pass condition nếu source/version khác; **fixture manifest là authority** cho từng version. Các số “1.025 / 1.009 section; exam match 182/192, 506/523” là expected mà `test:real` assert — cập nhật trong manifest khi Data Parser xác nhận với file thật, không hardcode trong code/test.
 
 ## 5. Critical test cases
 
@@ -88,7 +91,8 @@ Số lượng nêu trong brief là sanity signal, không được hard-code làm
 - keyboard-only selection and focus; screen-reader labels for conflict;
 - offline Plan view/export; stale dataset indicator;
 - ICS import in at least one supported calendar; event dates/weeks correct;
-- PNG/Word legible with source/version, no unneeded PII.
+- PNG/Word(.doc HTML)/print-CSS output legible with source/version, no unneeded PII;
+- **browser matrix (Q-007):** Tier 1 = Chrome Android, Safari iOS (2 phiên bản gần nhất), Chrome/Edge desktop; Tier 2 = Firefox desktop, Samsung Internet, in-app browser Facebook/Messenger/Zalo — khi detect in-app browser, phải có banner “Mở bằng trình duyệt” cho upload/download.
 
 ## 6. Performance budgets (initial proposals)
 

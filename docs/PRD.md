@@ -52,23 +52,23 @@ Không dùng KPI để khuyến khích thu thập PII. Không fingerprint ngư�
 
 ### P0 — bắt buộc cho MVP
 
-1. Dataset TKB UET admin preload, versioned; có trang admin upload/review/publish.
-2. Chọn trường/kỳ/ngày đầu tuần 1; mặc định theo cohort (K67–K70: 07/09/2026, K71: 12/10/2026 cho fixture nêu trong brief), cho phép sửa.
+1. Dataset TKB UET admin preload, versioned; admin ingest/review/publish chạy qua local CLI/manual pipeline theo [ADR-0007](adr/ADR-0007-static-artifact-cli-admin.md), không có trang admin web trong release đầu.
+2. Chọn trường/kỳ/ngày đầu tuần 1; mặc định theo cohort từ `Term.starts[]` config, cho phép sửa. Fixture mùa release HK II 2026–2027 dùng week 1 = 15/02/2027; fixture HK I 2026–2027 dùng 07/09/2026 (K67–K70) và 12/10/2026 (K71).
 3. Tìm môn theo mã/tên, không phụ thuộc dấu.
 4. Hiển thị Section: Mã LHP, nhóm, thứ, tiết/ca, tuần, phòng/campus, giảng viên, trạng thái online và thông tin lớp khóa.
 5. Chọn lớp/nhóm; báo conflict theo giờ và tuần, nêu nguyên nhân cụ thể.
 6. Lưới tuần T2–T7 và danh sách theo ngày; có nền tảng để mở rộng Chủ nhật.
-7. Tổng tín chỉ và một Plan hiện tại tối thiểu theo local storage; nhiều phương án A/B/C là P1 nếu không làm trễ core.
+7. Tổng tín chỉ; data model hỗ trợ N `Plan` (draft + final, có `planKind`), nhưng UI P0 chỉ expose **hai slot cố định**: một Plan **nháp** (user tự xếp) và một Plan **chính thức** (tạo từ file đăng ký; merge registration vào Plan chính thức, **không ghi đè nháp**). Nhiều Plan nháp là P1.
 8. Responsive: mobile 360px, tablet 768px, desktop ≥1200px.
 9. Upload file kết quả đăng ký `.doc`/HTML local; bỏ PII, merge vào Plan.
 10. Registration override phòng/giờ mới hơn TKB được ưu tiên và gắn nhãn “đã đổi”.
-11. Export PNG, Word, `.ics`; PDF có thể giữ trong P0 nếu implementation xác nhận không ảnh hưởng mốc, nếu không cắt trước Word.
+11. Export `.ics`, PNG, và Word (`.doc` HTML-based, không phải DOCX generator). “In / Lưu PDF” qua nút in của browser với print CSS A4 ngang — **không** có PDF generator trong P0.
 12. Hiển thị dataset version, thời điểm cập nhật, nguồn văn bản và cảnh báo đối chiếu với cổng trường.
 
 ### P1 — sau khi core ổn định
 
 - Đọc kế hoạch học tập PDF để suy ra week 1 theo cohort.
-- Share link read-only.
+- Share link read-only (client-side URL-encoded section IDs, không cần backend).
 - Khung giờ tùy chỉnh theo trường.
 - Lịch thi, màn hình Hôm nay, deadline và thông báo.
 - Nhiều Plan/share tốt hơn nếu có bằng chứng nhu cầu.
@@ -99,8 +99,8 @@ Thiết bị thường là điện thoại, có thể có file/ảnh từ group 
 2. Tìm mã/tên môn → xem các Section phù hợp.
 3. Chạm Section → nếu có group, chọn nhóm; các lựa chọn conflict mờ và giải thích.
 4. Xem Plan ở list/day/grid; kiểm tra tín chỉ và campus transition.
-5. Lưu Plan hiện tại; nhiều phương án A/B/C và share link là P1 nếu không làm trễ core.
-6. Xuất PNG/Word/ICS; app nhắc đối chiếu trên cổng trường.
+5. Lưu Plan hiện tại (slot nháp); slot chính thức được tạo/merge khi import file đăng ký. Nhiều Plan nháp và share link là P1.
+6. Xuất PNG/Word(.doc HTML)/ICS hoặc dùng “In / Lưu PDF” (print CSS A4 ngang); app nhắc đối chiếu trên cổng trường.
 7. Sau khi đăng ký: chọn file `.doc` trên thiết bị → parser hiện preview không PII → user xác nhận → merge và đánh dấu override.
 
 ## 6. Functional requirements
@@ -117,10 +117,10 @@ Thiết bị thường là điện thoại, có thể có file/ảnh từ group 
 | FR-08 | Tính tổng tín chỉ và cảnh báo thiếu/vượt nếu cấu hình | P0 | unit/UI test |
 | FR-09 | Parse registration result trên browser, loại PII | P0 | security test + manual evidence |
 | FR-10 | Registration room/time override TKB, mark changed | P0 | merge fixture |
-| FR-11 | Export PNG, DOCX, ICS với timezone đúng | P0 | artifact snapshots + calendar import |
+| FR-11 | Export PNG, Word (.doc HTML), ICS với timezone đúng; print CSS A4 ngang cho “In / Lưu PDF” | P0 | artifact snapshots + calendar import + print preview check |
 | FR-12 | Admin ingest versioned, validate, review, publish/rollback | P0 | runbook drill |
 | FR-13 | Study-plan PDF → week 1 | P1 | parser fixture |
-| FR-14 | Read-only share link | P1 | API/security test |
+| FR-14 | Read-only share link (URL-encoded section IDs, không backend) | P1 | unit/UI test URL codec |
 | FR-15 | Custom time frame | P1 | schema + UI test |
 
 ## 7. Acceptance criteria trọng yếu
@@ -175,12 +175,12 @@ Nếu tuần không giao nhau thì không báo time conflict dù cùng thứ/ti�
 - **Privacy:** local file parse; server không nhận raw registration file; logs không có PII.
 - **Accessibility:** keyboard usable trên desktop, focus visible, target touch đủ lớn, color không phải tín hiệu duy nhất, reduced motion.
 - **Responsive:** 360px không horizontal page scroll; grid có vùng scroll được chủ ý.
-- **Compatibility:** xác nhận danh sách browser trước beta; không tuyên bố hỗ trợ nếu chưa test.
+- **Compatibility:** Tier 1 (full): Chrome Android, Safari iOS 2 phiên bản gần nhất, Chrome/Edge desktop. Tier 2 (smoke): Firefox desktop, Samsung Internet, in-app browser Facebook/Messenger/Zalo — khi detect in-app browser, hiện nudge “Mở bằng trình duyệt” cho upload/download. Không tuyên bố hỗ trợ ngoài matrix này khi chưa test.
 - **Integrity:** dataset version/hash/provenance hiển thị cho admin và user.
 
 ## 9. Analytics và feedback
 
-Chỉ thu event tổng hợp, không gửi mã sinh viên, họ tên, raw file, nội dung lịch cá nhân hoặc chuỗi tìm kiếm nếu chưa có consent. Event đề xuất: `app_open`, `dataset_loaded`, `plan_created`, `section_selected`, `export_completed`, `local_import_completed`, `report_data_issue`. Có cơ chế opt-out và tắt analytics khi cần.
+Chỉ thu event tổng hợp, **không GA/tracker bên thứ ba**: dùng aggregate counter **cookieless** (không user ID, không lưu IP), có privacy notice + nút tắt. Đo theo từng người chỉ khi opt-in rõ ràng; trước khi bật phải kiểm tra lại với người hiểu luật. Event đề xuất: `app_open`, `dataset_loaded`, `plan_created`, `section_selected`, `export_completed`, `local_import_completed`, `report_data_issue`. Không gửi mã sinh viên, họ tên, raw file, nội dung lịch cá nhân hoặc chuỗi tìm kiếm.
 
 Mọi báo sai dữ liệu phải kèm dataset/version/section identifier không PII; admin review trước khi publish bản sửa.
 
@@ -198,7 +198,5 @@ Mọi báo sai dữ liệu phải kèm dataset/version/section identifier không
 ## 11. Open questions
 
 - Chốt tên/domain và disclaimer wording sau rà soát pháp lý.
-- Chốt browser matrix, analytics consent, data region/vendor.
-- Chốt số Plan tối đa và có cần account ở P0 hay không (mặc định không).
-- Xác nhận fixture nào được phép commit/retention; CI chỉ dùng redacted/synthetic.
-- Xác nhận có phát hành PDF export trong P0 hay cắt để bảo vệ mốc.
+- Xác nhận browser matrix và analytics consent đã được ghi ở §8/§9; mọi runtime analytics vẫn cần privacy notice, opt-out và legal review trước khi bật.
+- Không có PDF generator trong P0; browser “In / Lưu PDF” qua print CSS A4 ngang là phần đã chốt ở FR-11.

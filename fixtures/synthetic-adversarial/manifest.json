@@ -1,0 +1,20 @@
+{
+  "manifestVersion": "1",
+  "schemaVersion": "0.2.0",
+  "context": { "term": "synthetic-term", "teachingWeeks": 15 },
+  "fixtures": [
+    {
+      "id": "adversarial-invalid",
+      "family": "synthetic-adversarial",
+      "adapter": "canonical-jsonl",
+      "input": "bad-section.json",
+      "dataClass": "synthetic",
+      "quirk": "non-canonical section id, invalid day, inverted periods, unsorted duplicate weeks",
+      "expected": {
+        "inputSha256": "4ca69ef216e2ca9f28a9ee1948422e2489a388d0de4908682cdfc45869d84bfc",
+        "sections": 1,
+        "errorCodes": ["INVALID_SECTION_ID", "INVALID_DAY_OR_PERIOD", "CONFLICTING_NORMALIZED_FIELDS"]
+      }
+    }
+  ]
+}

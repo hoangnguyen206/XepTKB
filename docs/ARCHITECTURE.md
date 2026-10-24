@@ -2,7 +2,7 @@
 
 > **Status:** proposed  
 > **Owner:** Tech Lead  
-> **Last reviewed:** 2026-10-19  
+> **Last reviewed:** 2026-10-20
 > **Related docs:** [Tech stack](TECH_STACK.md), [Domain model](DOMAIN_MODEL.md), [API contracts](API_AND_DATA_CONTRACTS.md), [Security](SECURITY_PRIVACY.md)
 
 ## 1. Architecture goals
@@ -141,6 +141,7 @@ Mọi crossing boundary phải có data contract và security review. Nếu cros
 
 ## 10. Architecture decisions cần review
 
-- Vì MVP không có code, sơ đồ này là target architecture; implementation có thể dùng monorepo một app nhưng phải giữ boundaries.
+- **M1/M2 status:** M1 provides the offline parser package and M2 provides the pure domain engine plus synthetic fixture evidence. The browser/PWA containers, artifact loader, IndexedDB, UI, export and control plane below remain target architecture for later milestones.
+- Vì chưa có mã nguồn ứng dụng web/PWA, sơ đồ này là target architecture; implementation M1/M2 chỉ covers parser/domain package boundaries và không chứng minh runtime/browser controls.
 - Supabase chỉ được bật sau `SECURITY_PRIVACY.md` và data-region review.
 - PDF/LLM/third-party review không được trở thành dependency để xem lịch core.

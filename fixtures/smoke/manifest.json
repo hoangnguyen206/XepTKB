@@ -1,0 +1,16 @@
+{
+  "manifestVersion": "1",
+  "schemaVersion": "0.2.0",
+  "context": { "term": "synthetic-term", "teachingWeeks": 15 },
+  "fixtures": [
+    {
+      "id": "smoke-minimal",
+      "family": "synthetic-smoke",
+      "adapter": "canonical-jsonl",
+      "input": "minimal.json",
+      "dataClass": "synthetic",
+      "quirk": "harness bootstrap — one valid section",
+      "expected": { "inputSha256": "bc108dc1b191856a9d982c2892236a88c6b659f21bdeb61a1f675784d3ead0ab", "sections": 1, "sessions": 1 }
+    }
+  ]
+}

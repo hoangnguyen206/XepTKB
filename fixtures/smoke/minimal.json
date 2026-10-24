@@ -1,0 +1,29 @@
+{
+  "sections": [
+    {
+      "id": "INT1001 1",
+      "courseCode": "INT1001",
+      "homeClasses": ["K69I-IT1"],
+      "online": false,
+      "sessions": [
+        {
+          "id": "s1",
+          "day": 2,
+          "startPeriod": 1,
+          "endPeriod": 3,
+          "frame": "uet-default",
+          "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+          "kind": "LT",
+          "group": "CL",
+          "room": "203-G2",
+          "lecturers": ["GV A"],
+          "source": { "artifactId": "fixture-smoke", "sourceType": "timetable", "sourceRow": 1 },
+          "confidence": "deterministic"
+        }
+      ],
+      "source": { "artifactId": "fixture-smoke", "sourceType": "timetable" },
+      "datasetVersion": "fixture-v1",
+      "warnings": []
+    }
+  ]
+}

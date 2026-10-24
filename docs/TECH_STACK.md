@@ -2,7 +2,7 @@
 
 > **Status:** proposed  
 > **Owner:** Tech Lead  
-> **Last reviewed:** 2026-10-19  
+> **Last reviewed:** 2026-10-20
 > **Related docs:** [Architecture](ARCHITECTURE.md), [Domain model](DOMAIN_MODEL.md), [Security & privacy](SECURITY_PRIVACY.md)
 
 ## 1. Quyết định stack đề xuất cho MVP
@@ -15,14 +15,14 @@
 | PWA | `vite-plugin-pwa` + Workbox | precache app shell, runtime cache dataset có version, offline Plan |
 | Local storage | IndexedDB qua Dexie | lưu Plan, user overrides, parser index; dễ version/migrate |
 | Static data | JSON artifacts trên Cloudflare CDN/R2 | tải nhanh, immutable version/hash, không chứa PII |
-| Parser | SheetJS (`.xlsx`), DOMParser (`.doc` HTML), pdf.js (P1/P2) | chạy local cho file user; admin pipeline reuse cùng canonical parser |
-| Export | `docx`, browser Blob/Canvas/HTML-to-image, tự tạo RFC 5545 `.ics` | không cần server; ICS là ưu tiên tương thích iPhone |
-| Backend optional | Supabase Postgres + Auth + Edge Functions | share/sync/admin queue/proxy; chỉ bật khi feature cần |
-| Hosting | Cloudflare Pages cho web, Supabase cho data/control plane | CDN và deploy đơn giản; vendor secret ở server/edge |
-| Observability | Sentry (error, source maps), Umami (privacy-first analytics) | không gửi file/lịch cá nhân; có opt-out/consent |
+| Parser | `fflate` + `@xmldom/xmldom` for bounded local OOXML/HTML parsing in M1; M2 domain engine is pure TypeScript with no parser/network dependency; browser `DOMParser`/future reviewed adapter as appropriate; pdf.js (P1/P2) | deterministic local parser/domain boundary; no formula/external-link execution; dependency audit and browser spike required before production |
+| Export | `.doc` HTML-based (Word), browser Canvas/html-to-image (PNG), tự tạo RFC 5545 `.ics`; **không** PDF generator — “In / Lưu PDF” = print CSS A4 ngang | không cần server; ICS là ưu tiên tương thích iPhone |
+| Backend optional | Supabase Postgres + Auth + Edge Functions | **deferred post-MVP**: Q-003/Q-004 chọn static artifact + CLI admin; share P1 dùng client-side URL encoding; Supabase chỉ quay lại nếu account/sync được approve |
+| Hosting | Cloudflare Pages + versioned static artifact CDN/R2 cho web và dataset | MVP không có Supabase control plane; vendor/data-region/legal review vẫn là gate mở |
+| Observability | privacy-safe aggregate counters và scrubbed client errors theo policy; vendor cụ thể deferred | không GA/tracker bên thứ ba; cookieless, no user ID/IP, privacy notice + opt-out; legal review trước per-user |
 | Tests | Vitest, Testing Library, Playwright, axe, fast-check | unit/domain, UI/accessibility, browser/offline/property |
 
-Đây là lựa chọn baseline, chưa phải cam kết vendor/legal cuối cùng. Không đưa Firebase/Next.js vào critical path để tránh tạo hai implementation path. Thay đổi stack phải có ADR.
+- **M1/M2 status:** offline parser and pure domain packages plus synthetic fixtures are implemented and locally verified; M2 search/Plan/conflict/week-date/registration-merge/credits are package-level only. React/Vite app, browser integration, IndexedDB, export, artifact loader and publish path remain deferred to later milestones.
 
 ## 2. Boundary client/server
 
@@ -107,8 +107,11 @@ Mỗi spike trả `decision`, `evidence`, `known limits`, `follow-up ADR`; khôn
 
 | ID | Chủ đề | Trạng thái |
 | --- | --- | --- |
-| ADR-0001 | React + Vite + PWA baseline | proposed |
+| ADR-0001 | TypeScript monorepo + React/Vite/PWA baseline | ready; G1 approval pending |
 | ADR-0002 | Local-first và boundary file cá nhân | accepted in product principle |
 | ADR-0003 | Static versioned timetable artifacts | proposed |
-| ADR-0004 | Supabase optional control plane | proposed, chờ security/vendor review |
 | ADR-0005 | Deterministic parser trước LLM fallback | accepted in product principle |
+| ADR-0006 | Default TH session weeks `[2..teachingWeeks]` khi merge registration | accepted per Q-006/C-03 |
+| ADR-0007 | Static artifact + CLI admin (Supabase deferred post-MVP) | accepted per Q-003/Q-004 |
+| ADR-0008 | M1 deterministic parser dependencies + local registration provenance | ready; G1 acknowledgement pending |
+| ADR-0009 | M2 pure domain engine contract and schema migration `0.2.0` | ready; G1 acknowledgement pending |

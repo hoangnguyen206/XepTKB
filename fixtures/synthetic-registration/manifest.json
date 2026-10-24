@@ -1,0 +1,16 @@
+{
+  "manifestVersion": "1",
+  "schemaVersion": "0.2.0",
+  "context": { "term": "2026-2027-h1", "teachingWeeks": 15 },
+  "fixtures": [
+    {
+      "id": "registration-local-synthetic",
+      "family": "vnu-registration-html",
+      "adapter": "vnu-registration-html",
+      "input": "registration.doc",
+      "dataClass": "synthetic",
+      "quirk": "HTML content with deceptive .doc extension, identity fields, multi-day/multi-period rows",
+      "expected": { "sections": 2, "sessions": 5 }
+    }
+  ]
+}
