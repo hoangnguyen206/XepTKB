@@ -20,6 +20,18 @@ export type FixtureOutcome = {
   issues: ParseIssue[];
 };
 
+/** Strip \r before \n so SHA-256 hashes are identical on LF and CRLF platforms. */
+function normalizeCrlf(buf: Uint8Array): Uint8Array {
+  // Fast path: if there's no CR byte, return as-is.
+  if (!buf.includes(0x0d)) return buf;
+  const out: number[] = [];
+  for (let i = 0; i < buf.length; i++) {
+    if (buf[i] === 0x0d && buf[i + 1] === 0x0a) continue; // skip CR before LF
+    out.push(buf[i]!);
+  }
+  return new Uint8Array(out);
+}
+
 function diffExpected(entry: FixtureEntry, counts: { sections: number; sessions: number; courses: number }, issues: ParseIssue[], inputSha256: string | undefined): string[] {
   const out: string[] = [];
   const e = entry.expected;
@@ -69,11 +81,14 @@ export function runFixtures(fixturesDir: string, opts: { verbose?: boolean } = {
       outcomes.push({ id: entry.id, ok: false, mismatches: [`missing input file ${entry.input}`], issues: [] });
       continue;
     }
-    const bytes = new Uint8Array(readFileSync(inputPath));
+    const rawBytes = new Uint8Array(readFileSync(inputPath));
+    // Normalize CRLF → LF before hashing so manifest SHA-256 values are
+    // stable across platforms (hashes are always computed from LF content).
+    const lfBytes = normalizeCrlf(rawBytes);
     const inputSha256 = entry.expected.inputSha256 === undefined
       ? undefined
-      : createHash("sha256").update(bytes).digest("hex");
-    const result = adapter.parse({ bytes, fileName: entry.input, localOnly: adapter.id === "vnu-registration-html", context: manifest.context });
+      : createHash("sha256").update(lfBytes).digest("hex");
+    const result = adapter.parse({ bytes: rawBytes, fileName: entry.input, localOnly: adapter.id === "vnu-registration-html", context: manifest.context });
     const counts = {
       sections: result.sections.length,
       sessions: result.sections.reduce((n, s) => n + s.sessions.length, 0),

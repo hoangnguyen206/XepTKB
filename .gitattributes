@@ -1,0 +1,4 @@
+# Ensure fixture data files are always checked out with LF line endings
+# so that SHA-256 hashes remain stable across platforms.
+fixtures/**/*.json eol=lf
+fixtures/**/*.doc  eol=lf
