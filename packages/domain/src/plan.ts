@@ -1,7 +1,7 @@
 /** Plan selection, group resolution and validation for the M2 domain engine. */
 import { domainIssue, type DomainIssue } from "./issues.js";
 import { canonicalSectionId, normalizeCourseCode, normalizeGroup, normalizeSearchText } from "./normalize.js";
-import type { DomainCatalog, Plan, PlanPick, Section, Session, Term } from "./types.js";
+import type { DomainCatalog, Override, Plan, PlanPick, Section, Session, Term } from "./types.js";
 
 export type ResolvedPlanPick = {
   pick: PlanPick;
@@ -104,8 +104,15 @@ export function validatePlan(plan: Plan, catalog: DomainCatalog, term: Term): re
   const resolution = resolvePlanPicks(plan, catalog);
   issues.push(...resolution.issues);
   const targets = new Set<string>();
+  const bySource = new Map<string, Override>();
   for (const override of plan.overrides) {
     const targetKey = `${canonicalSectionId(override.target.sectionId)}|${override.target.sessionId}|${override.field}`;
+    // Different sources may target the same field (precedence decides); one source may not disagree with itself.
+    const prior = bySource.get(`${targetKey}|${override.source}`);
+    if (prior && JSON.stringify(prior.to) !== JSON.stringify(override.to)) {
+      issues.push(domainIssue("CONFLICTING_OVERRIDES", "error", `conflicting ${override.source} overrides for ${targetKey}`, { sectionId: override.target.sectionId, sessionId: override.target.sessionId, field: override.field }));
+    }
+    bySource.set(`${targetKey}|${override.source}`, override);
     if (targets.has(targetKey)) continue;
     targets.add(targetKey);
     const section = catalog.sections.find((candidate) => canonicalSectionId(candidate.id) === canonicalSectionId(override.target.sectionId));

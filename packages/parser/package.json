@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js"
+    },
+    "./registration": {
+      "types": "./dist/src/vnu-registration-html-adapter.d.ts",
+      "import": "./dist/src/vnu-registration-html-adapter.js"
     }
   },
   "dependencies": {

@@ -2,12 +2,12 @@
 
 > **Status:** draft / docs-first  
 > **Owner:** Product + Tech Lead  
-> **Last reviewed:** 2026-10-20
+> **Last reviewed:** 2026-10-25
 > **Related docs:** [root CLAUDE.md](../CLAUDE.md)
 
 ## Mục đích
 
-Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ vì còn thiếu actor/sign-off độc lập ở các bước tương ứng. M1 đã có implementation và local evidence riêng; M2 domain engine cũng đã có implementation/evidence cục bộ trên working tree, nhưng cả hai chưa phải bằng chứng publish/release. Không được coi bộ docs này là bằng chứng build/test/deploy/release hoàn chỉnh.
+Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ vì còn thiếu actor/sign-off độc lập ở các bước tương ứng. M1 parser và M2 domain engine đã được commit và merge vào `main` local (`aba04b0`) với local evidence, nhưng chưa phải bằng chứng publish/release; xem [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md) cho các finding còn mở. Không được coi bộ docs này là bằng chứng build/test/deploy/release hoàn chỉnh.
 
 Đây là bản đồ tài liệu source of truth cho Kỳ Này. Bản brief `Kế hoạch sản phẩm – Tool xếp TKB cho sinh viên VNU.md` là nguồn nghiên cứu ban đầu; khi brief và tài liệu dự án khác nhau, phải mở decision/ADR hoặc hỏi Product/Tech Lead, không tự chọn theo trí nhớ.
 
@@ -96,16 +96,21 @@ Các giá trị sau phải nhất quán ở mọi tài liệu:
 
 ## M2 evidence hiện tại
 
-- [ADR-0009 — M2 domain engine contract and schema migration](adr/ADR-0009-m2-domain-engine-schema.md) — schema `0.2.0`; G1 acknowledged.
-- [M2 design handoff](evidence/M2-DESIGN-HANDOFF.md) — pure domain contract, alternatives and verification plan.
-- [M2 implementation handoff](evidence/M2-IMPLEMENTATION-HANDOFF.md) — search/Plan/conflict/date/merge/credits implementation; commit `7faccaf`.
+- [ADR-0009 — M2 domain engine contract and schema migration](adr/ADR-0009-m2-domain-engine-schema.md) — schema `0.2.0`; G1 acknowledgement pending (chưa có actor/date).
+- [M2 design handoff](evidence/M2-DESIGN-HANDOFF.md) — pure domain contract, alternatives and verification plan; decision `g1-blocked` chờ acknowledgement.
+- [M2 implementation handoff](evidence/M2-IMPLEMENTATION-HANDOFF.md) — search/Plan/conflict/date/merge/credits; viết trước commit, code nằm ở `61ee300` + `7faccaf`.
 - [M2 test report (draft)](evidence/M2-TEST-REPORT.md) — superseded by G3a report.
-- [M2 G3a QA report](evidence/M2-G3a-QA-REPORT.md) — `qa-pass-with-follow-up`; 54/54 tests, 5/5 fixtures, 5 S2 follow-ups.
-- [M2 G3b security review](evidence/M2-G3b-SECURITY-REVIEW.md) — `security-pass-with-exception`; no S0/S1; 3 S2 inherited exceptions.
-- [M2 G3c independent review](evidence/M2-G3c-INDEPENDENT-REVIEW.md) — `review-pass-with-follow-up`; code review pass; 3 S2 informational findings.
-- [M2 evidence envelope v2](evidence/M2-EVIDENCE-ENVELOPE-v2.md) — consolidated gate decisions, commit `7faccaf`, all G3 gates passed.
+- [M2 G3a QA report](evidence/M2-G3a-QA-REPORT.md) — `qa-pass-with-follow-up` do agent role tự soạn; **reopened** bởi audit.
+- [M2 G3b security review](evidence/M2-G3b-SECURITY-REVIEW.md) — `security-pass-with-exception` do agent role tự soạn; **reopened** bởi audit.
+- [M2 G3c independent review](evidence/M2-G3c-INDEPENDENT-REVIEW.md) — `review-pass-with-follow-up` do agent role tự soạn; **reopened** bởi audit.
+- [M2 evidence envelope v2](evidence/M2-EVIDENCE-ENVELOPE-v2.md) — tổng hợp các quyết định trên; không còn hiệu lực cho tới khi G3 chạy lại.
 
-M2 gates (G2 + G3a + G3b + G3c) đã verified; M2 sẵn sàng merge vào `main`. M2 chưa bao gồm UI/PWA, IndexedDB, export, browser interception, artifact loader, backend/admin publish hoặc real-source validation. G4a/G4b (release) vẫn require M3–M5 completion.
+M2 đã merge vào `main` local (`aba04b0`, chưa push), nhưng G1 chưa approve và G3 cần chạy lại sau khi sửa finding audit. M2 chưa bao gồm UI/PWA, IndexedDB, export, browser interception, artifact loader, backend/admin publish hoặc real-source validation. G4a/G4b (release) vẫn require M3–M5 completion.
+
+## Audit M0–M2 (25/10/2026)
+
+- [REVIEW-M0M2-AUDIT-001](evidence/M0-M2-AUDIT-2026-10-25.md) — `review-no-go` cho trạng thái "M2 verified": 2 finding đề xuất S1 (Plan chính thức dựng từ nháp; ghép thứ/tiết registration theo tích Descartes), thiếu coverage P0 FR-06 ở parser, 10 finding S2/process, 8 finding S3. Fix round 1–2 (cùng ngày, chưa commit) đã sửa AUD-001, AUD-004…009, AUD-016, áp quyết định Q-009 (loại lớp `ONL`) và Q-010 (tuần TKB thắng default TH), cập nhật [ADR-0006](adr/ADR-0006-default-th-weeks.md)/[ADR-0008](adr/ADR-0008-m1-parser-dependencies-local-provenance.md)/[ADR-0009](adr/ADR-0009-m2-domain-engine-schema.md); cần verify độc lập.
+
 ## Cách dùng
 
 - Product cập nhật PRD và roadmap.

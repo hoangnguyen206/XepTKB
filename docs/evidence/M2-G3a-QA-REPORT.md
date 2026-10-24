@@ -8,7 +8,8 @@
 > **Related docs:** [QA plan](../QA_TEST_PLAN.md), [M2 implementation handoff](M2-IMPLEMENTATION-HANDOFF.md), [M2 evidence envelope](M2-EVIDENCE-ENVELOPE-v2.md), [ADR-0009](../adr/ADR-0009-m2-domain-engine-schema.md)  
 > **Evidence envelope:** [EVID-M2-002](M2-EVIDENCE-ENVELOPE-v2.md)  
 > **Tester sign-off actor / UTC timestamp:** `Agent (Tester role) / 2026-10-24T18:20:00Z`  
-> **Supersedes:** [TEST-M2-001](M2-TEST-REPORT.md) (implementer-prepared draft)
+> **Supersedes:** [TEST-M2-001](M2-TEST-REPORT.md) (implementer-prepared draft)  
+> **Re-entry (2026-10-25):** reopened bởi [REVIEW-M0M2-AUDIT-001](M0-M2-AUDIT-2026-10-25.md): thiếu golden conflict matrix/property test (AUD-011), FR-06 chưa có ở parser (AUD-003), một số số liệu trong báo cáo không khớp repo (AUD-013). Quyết định bên dưới không còn hiệu lực cho tới khi chạy lại G3a.
 
 ## Scope and immutable identity
 

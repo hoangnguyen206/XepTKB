@@ -237,6 +237,11 @@ export const vnuRegistrationHtmlAdapter: ParserAdapter = {
       const row: Record<string, string> = {};
       for (const [canonical, index] of columns) row[canonical] = values[index] ?? "";
       const sourceRow = rowIndex + 1;
+      // Q-009: ONL classes are not in the timetable dataset, so they are not merged either.
+      if (normalizeKind(row.kind) === "ONL") {
+        issues.push(issue("ONLINE_SECTION_EXCLUDED", "warning", "ONL registration row excluded", { sourceRow, field: "kind" }));
+        continue;
+      }
       const section = safeCandidateSection(row, { artifactId: artifact.id, sourceType: "registration", sourceRow }, teachingWeeks);
       if (!row.courseCode || !row.sectionId || section.sessions.length === 0) {
         issues.push(issue("REGISTRATION_OVERRIDE_UNMATCHED", "warning", "registration schedule row could not produce a complete local candidate", { sourceRow }));

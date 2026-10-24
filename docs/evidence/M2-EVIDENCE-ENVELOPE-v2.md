@@ -8,7 +8,8 @@
 > **Related docs:** [M2 design handoff](M2-DESIGN-HANDOFF.md), [M2 implementation handoff](M2-IMPLEMENTATION-HANDOFF.md), [M2 G3a QA report](M2-G3a-QA-REPORT.md), [M2 G3b security review](M2-G3b-SECURITY-REVIEW.md), [M2 G3c independent review](M2-G3c-INDEPENDENT-REVIEW.md), [ADR-0009](../adr/ADR-0009-m2-domain-engine-schema.md)  
 > **Decision actor / UTC timestamp:** Agent (Tech Lead role) / 2026-10-24T18:35:00Z  
 > **Receiving owner / acknowledgement:** Product (for M3 planning), Frontend (for M3 implementation)  
-> **Supersedes:** [EVID-M2-001](M2-EVIDENCE-ENVELOPE.md) (implementer-prepared draft)
+> **Supersedes:** [EVID-M2-001](M2-EVIDENCE-ENVELOPE.md) (implementer-prepared draft)  
+> **Re-entry (2026-10-25):** các quyết định G3 tổng hợp ở đây đã được reopen bởi [REVIEW-M0M2-AUDIT-001](M0-M2-AUDIT-2026-10-25.md) (actor là agent role, không độc lập; G1 chưa approve; finding đề xuất S1). Nội dung bên dưới giữ nguyên làm lịch sử, không còn hiệu lực cho tới khi G3 chạy lại.
 
 ## Source and traceability
 

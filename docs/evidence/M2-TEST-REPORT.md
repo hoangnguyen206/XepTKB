@@ -8,6 +8,7 @@
 > **Related docs:** [QA plan](../QA_TEST_PLAN.md), [M2 implementation handoff](M2-IMPLEMENTATION-HANDOFF.md), [M2 evidence envelope](M2-EVIDENCE-ENVELOPE.md)
 > **Evidence envelope:** [EVID-M2-001](M2-EVIDENCE-ENVELOPE.md)
 > **Tester sign-off actor / UTC timestamp:** `N/A — no independent Tester sign-off recorded`
+> **Superseded by:** [TEST-M2-002](M2-G3a-QA-REPORT.md); xem thêm [audit M0–M2](M0-M2-AUDIT-2026-10-25.md)
 
 ## Scope and immutable identity
 

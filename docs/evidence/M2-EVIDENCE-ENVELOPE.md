@@ -8,6 +8,7 @@
 > **Related docs:** [M2 design handoff](M2-DESIGN-HANDOFF.md), [M2 implementation handoff](M2-IMPLEMENTATION-HANDOFF.md), [M2 test report](M2-TEST-REPORT.md), [ADR-0009](../adr/ADR-0009-m2-domain-engine-schema.md)
 > **Decision actor / UTC timestamp:** `N/A — no independent gate approver recorded`
 > **Receiving owner / acknowledgement:** Tester, Security Reviewer and Independent Reviewer — pending
+> **Superseded by:** [EVID-M2-002](M2-EVIDENCE-ENVELOPE-v2.md); xem thêm [audit M0–M2](M0-M2-AUDIT-2026-10-25.md)
 
 ## Source and traceability
 

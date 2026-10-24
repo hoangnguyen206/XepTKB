@@ -210,6 +210,12 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, sheet: OoxmlShe
       issues.push(issue("CONFLICTING_NORMALIZED_FIELDS", "error", "course code and section id disagree after normalization", { sourceRow: record.sourceRow, field: "courseCode" }));
       continue;
     }
+    const kind = normalizeKind(rowValue(record, "kind"));
+    // Q-009: ONL classes are self-paced per lecturer and are left out of the dataset.
+    if (kind === "ONL") {
+      issues.push(issue("ONLINE_SECTION_EXCLUDED", "warning", "ONL row excluded from the timetable dataset", { sourceRow: record.sourceRow, field: "kind" }));
+      continue;
+    }
     const source = sectionSource(artifact, record.sourceRow);
     let target = sections.get(section.id);
     if (!target) {
@@ -236,7 +242,6 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, sheet: OoxmlShe
       }
     }
 
-    const kind = normalizeKind(rowValue(record, "kind"));
     const day = parseDay(rowValue(record, "day") ?? "");
     const note = rowValue(record, "note");
     const noteResult = parseNote(note, teachingWeeks);

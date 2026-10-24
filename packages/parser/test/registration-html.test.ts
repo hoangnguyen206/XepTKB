@@ -1,6 +1,37 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { builtinModules } from "node:module";
 import { vnuRegistrationHtmlAdapter } from "../src/vnu-registration-html-adapter.js";
+
+// Tests run from dist/test; the module graph is checked on the TypeScript sources.
+const parserSrc = new URL("../../src/", import.meta.url);
+const domainSrc = new URL("../../../domain/src/", import.meta.url);
+
+function importsOf(file: URL): string[] {
+  return [...readFileSync(file, "utf8").matchAll(/^(?:import|export)\s(?!type\b)[^;]*?from\s+"([^"]+)"/gm)].map((match) => match[1]!);
+}
+
+test("browser entry @ky-nay/parser/registration has no Node built-in imports", () => {
+  const builtins = new Set(builtinModules);
+  const pending: URL[] = [new URL("vnu-registration-html-adapter.ts", parserSrc)];
+  const seen = new Set<string>();
+  const offenders: string[] = [];
+  while (pending.length > 0) {
+    const file = pending.pop()!;
+    if (seen.has(file.href)) continue;
+    seen.add(file.href);
+    for (const specifier of importsOf(file)) {
+      if (specifier.startsWith("node:") || builtins.has(specifier)) offenders.push(`${file.pathname} -> ${specifier}`);
+      else if (specifier.startsWith(".")) pending.push(new URL(specifier.replace(/\.js$/, ".ts"), file));
+      else if (specifier === "@ky-nay/domain") {
+        for (const name of readdirSync(domainSrc)) if (name.endsWith(".ts")) pending.push(new URL(name, domainSrc));
+      }
+    }
+  }
+  assert.deepEqual(offenders, []);
+  assert.ok(seen.size > 3);
+});
 
 const html = `<!doctype html><html><body><div>Họ tên: Synthetic Student</div><div>Ngày sinh: 01/01/2000</div><div>Mã sinh viên: SYNTH-001</div><table><tr><th>Mã HP</th><th>Tên học phần</th><th>Mã LHP</th><th>Nhóm</th><th>Loại buổi</th><th>Thứ</th><th>Tiết học</th><th>Phòng</th><th>Giảng viên</th></tr><tr><td>INT2213</td><td>&lt;script&gt;not-code&lt;/script&gt;</td><td>INT2213 1</td><td>CL</td><td>LT</td><td>T2,T6</td><td>4 - 6, 1 - 3</td><td>203-G2</td><td>GV A</td></tr><tr><td>MAT1051</td><td>Toán</td><td>MAT1051 2</td><td>1</td><td>TH</td><td>T7</td><td>9-12</td><td>Hòa Lạc A</td><td>GV B</td></tr></table></body></html>`;
 
@@ -22,6 +53,13 @@ test("registration HTML is parsed locally with multi-day and multi-period rows",
   assert.equal(serialized.includes("01/01/2000"), false);
   assert.equal(serialized.includes("SYNTH-001"), false);
   assert.equal(serialized.includes("<script>"), false);
+});
+
+test("registration adapter skips ONL rows (Q-009)", () => {
+  const withOnline = html.replace("</table>", "<tr><td>INT3999</td><td>Trực tuyến</td><td>INT3999 1</td><td>CL</td><td>ONL</td><td>T3</td><td>1-3</td><td>LMS</td><td>GV C</td></tr></table>");
+  const result = vnuRegistrationHtmlAdapter.parse({ bytes: bytes(withOnline) });
+  assert.deepEqual(result.sections.map((section) => section.id), ["INT2213 1", "MAT1051 2"]);
+  assert.ok(result.issues.some((item) => item.code === "ONLINE_SECTION_EXCLUDED" && item.sourceRow === 3));
 });
 
 test("registration adapter detects content rather than extension and rejects non-HTML", () => {

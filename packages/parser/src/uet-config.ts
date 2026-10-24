@@ -7,22 +7,21 @@
  */
 import type { TimeFrame } from "@ky-nay/domain";
 
-function periods(): TimeFrame["periods"] {
-  // Approximate UET clock: 50-minute periods starting 07:00, document as config.
-  const out: TimeFrame["periods"] = [];
-  let minutes = 7 * 60;
-  for (let no = 1; no <= 12; no++) {
-    const fmt = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-    out.push({ no, start: fmt(minutes), end: fmt(minutes + 50) });
-    minutes += 60; // 50-min period + 10-min break
-  }
-  return out;
-}
+/**
+ * UET fixture clock (DOMAIN_MODEL §4): shifts 07:00–09:40, 09:50–12:30,
+ * 13:30–16:10, 16:20–19:00; 50-minute periods with 5-minute breaks inside a shift.
+ */
+const UET_PERIOD_TIMES: ReadonlyArray<readonly [start: string, end: string]> = [
+  ["07:00", "07:50"], ["07:55", "08:45"], ["08:50", "09:40"],
+  ["09:50", "10:40"], ["10:45", "11:35"], ["11:40", "12:30"],
+  ["13:30", "14:20"], ["14:25", "15:15"], ["15:20", "16:10"],
+  ["16:20", "17:10"], ["17:15", "18:05"], ["18:10", "19:00"],
+];
 
 export const UET_TIMEFRAME: TimeFrame = {
   id: "uet-default",
   school: "uet",
-  periods: periods(),
+  periods: UET_PERIOD_TIMES.map(([start, end], index) => ({ no: index + 1, start, end })),
   shifts: [
     { name: "1", periods: [1, 2, 3] },
     { name: "2", periods: [4, 5, 6] },

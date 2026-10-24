@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { uetXlsxAdapter } from "../src/uet-xlsx-adapter.js";
 import { readOoxmlWorkbook } from "../src/ooxml.js";
+import { UET_TIMEFRAME } from "../src/uet-config.js";
 import { isFixedSession, type FixedSession } from "@ky-nay/domain";
 import { syntheticXlsx } from "./synthetic-xlsx.js";
 const headers = ["Lớp", "Mã HP", "Môn", "TC", "Mã LHP", "Nhóm", "Loại buổi", "Thứ", "Ca", "Tiết", "GĐ", "GV", "Ghi chú", "Unknown", "X", "Y", "Z"];
@@ -49,6 +50,36 @@ test("uet-xlsx handles header row 4, merged values, ten-week class and subtotal"
   assert.equal(result.sections[0]!.homeClasses[0], "K70");
   assert.ok(result.issues.some((item) => item.code === "UNKNOWN_COLUMN"));
   assert.ok(result.issues.some((item) => item.code === "DUPLICATE_SESSION_COLLAPSED"));
+});
+
+test("uet-xlsx maps named shifts Sáng/Chiều through config", () => {
+  const bytes = syntheticXlsx([{ name: "Named", rows: [headers,
+    ["K69I", "INT1001", "Mạng", "3", "INT1001 1", "CL", "LT", "T2", "Sáng", "", "203-G2", "GV A", "Học tuần 1-5"],
+    ["K69I", "INT1002", "Hệ điều hành", "3", "INT1002 1", "CL", "LT", "T3", "Chiều", "", "203-G2", "GV B", "Học tuần 1-5"],
+  ] }]);
+  const result = uetXlsxAdapter.parse(input(bytes));
+  const ranges = result.sections.map((section) => section.sessions[0] as FixedSession).map((session) => [session.startPeriod, session.endPeriod]);
+  assert.deepEqual(ranges, [[1, 6], [7, 12]]);
+  assert.equal(result.issues.some((item) => item.severity === "error"), false);
+});
+
+test("uet-xlsx excludes ONL rows (Q-009) and still rejects other rows without time", () => {
+  const bytes = syntheticXlsx([{ name: "Online", rows: [headers,
+    ["K69I", "INT3999", "Học phần trực tuyến", "2", "INT3999 1", "CL", "ONL", "", "", "", "", "GV A", "Học tuần 1-15"],
+    ["K69I", "INT3998", "Học phần trực tuyến 2", "2", "INT3998 1", "CL", "Online", "T4", "", "1-3", "", "GV A", "Học tuần 1-15"],
+    ["K69I", "INT1001", "Mạng", "3", "INT1001 1", "CL", "LT", "", "", "", "203-G2", "GV B", "Học tuần 1-5"],
+  ] }]);
+  const result = uetXlsxAdapter.parse(input(bytes));
+  assert.deepEqual(result.sections.map((section) => section.id), ["INT1001 1"]);
+  assert.deepEqual(result.courses.map((course) => course.code), ["INT1001"]);
+  assert.deepEqual(result.issues.filter((item) => item.code === "ONLINE_SECTION_EXCLUDED").map((item) => item.sourceRow), [2, 3]);
+  assert.ok(result.issues.some((item) => item.code === "INVALID_DAY_OR_PERIOD" && item.sourceRow === 4));
+});
+
+test("UET time frame matches DOMAIN_MODEL §4 shift boundaries", () => {
+  const byNo = new Map(UET_TIMEFRAME.periods.map((period) => [period.no, period]));
+  const shifts = UET_TIMEFRAME.shifts.map((shift) => `${byNo.get(shift.periods[0]!)!.start}-${byNo.get(shift.periods.at(-1)!)!.end}`);
+  assert.deepEqual(shifts, ["07:00-09:40", "09:50-12:30", "13:30-16:10", "16:20-19:00"]);
 });
 
 test("uet-xlsx rejects a missing required header", () => {

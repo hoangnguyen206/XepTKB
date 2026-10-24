@@ -7,7 +7,8 @@
 > **Last reviewed:** 2026-10-25  
 > **Related docs:** [Implementation plan](../IMPLEMENTATION_PLAN.md), [Domain model](../DOMAIN_MODEL.md), [PRD](../PRD.md), [ADR-0009](../adr/ADR-0009-m2-domain-engine-schema.md), [M2 G3a QA report](M2-G3a-QA-REPORT.md), [M2 G3b security review](M2-G3b-SECURITY-REVIEW.md)  
 > **Evidence envelope:** [EVID-M2-002](M2-EVIDENCE-ENVELOPE-v2.md)  
-> **Independent reviewer / approval UTC timestamp:** Agent (Independent Reviewer role) / 2026-10-24T18:30:00Z
+> **Independent reviewer / approval UTC timestamp:** Agent (Independent Reviewer role) / 2026-10-24T18:30:00Z  
+> **Re-entry (2026-10-25):** reopened bởi [REVIEW-M0M2-AUDIT-001](M0-M2-AUDIT-2026-10-25.md): registration merge dựng Plan chính thức từ nháp (AUD-001), override cũ thắng khi import lại (AUD-008), cùng các finding parser AUD-002…007. Quyết định bên dưới không còn hiệu lực cho tới khi chạy lại G3c.
 
 ## Scope and identity
 

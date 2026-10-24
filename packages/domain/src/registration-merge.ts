@@ -4,7 +4,7 @@
  */
 import { domainIssue, type DomainIssue } from "./issues.js";
 import { buildCourseCodeAliases, canonicalSectionId, normalizeCourseCode, normalizeGroup, normalizeSectionId, sectionParts } from "./normalize.js";
-import { isFixedSession, type DomainCatalog, type FixedSession, type Override, type Plan, type Section, type Session, type Term } from "./types.js";
+import { isFixedSession, type DomainCatalog, type FixedSession, type Override, type Plan, type PlanPick, type Section, type Session, type Term } from "./types.js";
 
 export type RegistrationMatch = {
   registrationSection: Section;
@@ -145,8 +145,14 @@ function sectionMatchKey(section: Section, aliases: ReadonlyMap<string, string>)
   return `${courseCode} ${parts.suffix}`;
 }
 
-function registrationWeeks(session: Session, teachingWeeks: number): { session: Session; defaulted: boolean } {
-  if (session.kind !== "TH" || session.weekOrigin !== "parser-default") return { session, defaulted: false };
+/** ADR-0009: a registration candidate without `weekOrigin` (0.1.0 shape) is treated as parser-default. */
+function hasDefaultWeeks(session: Session): boolean {
+  return session.weekOrigin === undefined || session.weekOrigin === "parser-default";
+}
+
+/** ADR-0006 + Q-010: the TH default applies only when the timetable weeks are a parser default too; explicit timetable weeks win. */
+function registrationWeeks(session: Session, base: Session, teachingWeeks: number): { session: Session; defaulted: boolean } {
+  if (session.kind !== "TH" || !hasDefaultWeeks(session) || base.weekOrigin !== "parser-default") return { session, defaulted: false };
   const next = cloneSession(session);
   next.weeks = Array.from({ length: Math.max(0, teachingWeeks - 1) }, (_, index) => index + 2);
   next.weekOrigin = "registration-default";
@@ -154,14 +160,14 @@ function registrationWeeks(session: Session, teachingWeeks: number): { session: 
 }
 
 function overridesForPair(base: Session, registration: Session, sectionId: string, teachingWeeks: number, maxPeriod: number): { session: Session; overrides: Override[]; issues: DomainIssue[] } {
-  const normalizedRegistration = registrationWeeks(registration, teachingWeeks);
+  const normalizedRegistration = registrationWeeks(registration, base, teachingWeeks);
   const nextRegistration = normalizedRegistration.session;
   const overrides: Override[] = [];
   const issues: DomainIssue[] = [];
   const fields: Override["field"][] = ["room", "campus", "day", "periods", "weeks", "lecturer"];
   let merged = cloneSession(base);
   for (const field of fields) {
-    if (field === "weeks" && nextRegistration.weekOrigin === "parser-default" && nextRegistration.kind !== "TH") continue;
+    if (field === "weeks" && hasDefaultWeeks(nextRegistration)) continue;
     if (!hasField(nextRegistration, field) || equalField(base, nextRegistration, field)) continue;
     const value = fieldValue(nextRegistration, field);
     const applied = applyField(merged, field, value, teachingWeeks, maxPeriod);
@@ -184,8 +190,9 @@ function overridesForPair(base: Session, registration: Session, sectionId: strin
   return { session: merged, overrides, issues };
 }
 
+/** `overrides` must already be limited to the section identified by `sectionId`. */
 function applyExistingOverrides(session: Session, sectionId: string, overrides: readonly Override[], teachingWeeks: number, maxPeriod: number): { session: Session; issues: DomainIssue[] } {
-  const relevant = overrides.filter((override) => override.target.sectionId === sectionId && override.target.sessionId === session.id);
+  const relevant = overrides.filter((override) => override.target.sessionId === session.id);
   const issues: DomainIssue[] = [];
   const byField = new Map<string, Override>();
   let next = cloneSession(session);
@@ -204,6 +211,12 @@ function applyExistingOverrides(session: Session, sectionId: string, overrides: 
   return { session: next, issues };
 }
 
+function registrationPick(timetable: Section, registration: Section): PlanPick {
+  // The group comes only from the registration rows; a missing or multi-valued group is left for resolvePlanPicks to report.
+  const groups = [...new Set(registration.sessions.map((session) => normalizeGroup(session.group)).filter((group): group is string => group !== undefined && group !== "CL"))];
+  return groups.length === 1 ? { sectionId: timetable.id, group: groups[0]! } : { sectionId: timetable.id };
+}
+
 export function mergeRegistration(input: RegistrationMergeInput): RegistrationMergeResult {
   const aliases = buildCourseCodeAliases(input.catalog.courses).aliases;
   const sectionsByKey = new Map<string, Section[]>();
@@ -213,12 +226,13 @@ export function mergeRegistration(input: RegistrationMergeInput): RegistrationMe
     candidates.push(section);
     sectionsByKey.set(key, candidates);
   }
-  const selected = new Set(input.plan.picks.map((pick) => canonicalSectionId(pick.sectionId, aliases)));
   const effective = new Map(input.catalog.sections.map((section) => [section.id, section] as const));
   const overrides: Override[] = [];
   const matched: RegistrationMatch[] = [];
   const unmatched: Section[] = [];
   const issues: DomainIssue[] = [];
+  // One registered section may span several rows (e.g. LT and TH); group them so each timetable section is merged once.
+  const registered = new Map<string, { timetable: Section; rows: Section[] }>();
   for (const originalRegistration of input.registrationSections) {
     const key = sectionMatchKey(originalRegistration, aliases);
     const candidates = sectionsByKey.get(key) ?? [];
@@ -233,16 +247,20 @@ export function mergeRegistration(input: RegistrationMergeInput): RegistrationMe
       continue;
     }
     const timetable = candidates[0]!;
-    if (!selected.has(canonicalSectionId(timetable.id, aliases))) {
-      issues.push(domainIssue("REGISTRATION_NOT_SELECTED", "warning", `registration section ${originalRegistration.id} is not selected in the Plan`, { sectionId: timetable.id }));
-      continue;
-    }
-    const matchedSessions = matchSessions(originalRegistration, timetable);
+    const entry = registered.get(timetable.id) ?? { timetable, rows: [] };
+    entry.rows.push(originalRegistration);
+    registered.set(timetable.id, entry);
+  }
+  // The final Plan lists exactly the registered sections. Earlier registration overrides are replaced by this import;
+  // user/admin overrides on registered sections are kept because they outrank registration.
+  const registeredIds = new Set([...registered.keys()].map((id) => canonicalSectionId(id, aliases)));
+  const carried = input.plan.overrides.filter((override) => override.source !== "registration" && registeredIds.has(canonicalSectionId(override.target.sectionId, aliases)));
+  const picks: PlanPick[] = [];
+  for (const { timetable, rows } of registered.values()) {
+    const registration: Section = rows.length === 1 ? rows[0]! : { ...rows[0]!, sessions: rows.flatMap((row) => row.sessions) };
+    picks.push(registrationPick(timetable, registration));
+    const matchedSessions = matchSessions(registration, timetable);
     issues.push(...matchedSessions.issues);
-    if (matchedSessions.pairs.length === 0) {
-      unmatched.push(originalRegistration);
-      continue;
-    }
     const nextSessions: Session[] = [];
     for (const baseSession of timetable.sessions) {
       const pair = matchedSessions.pairs.find((candidate) => candidate.timetable.id === baseSession.id);
@@ -255,17 +273,18 @@ export function mergeRegistration(input: RegistrationMergeInput): RegistrationMe
       overrides.push(...merged.overrides);
       issues.push(...merged.issues);
     }
-    const existing = input.plan.overrides.filter((override) => override.target.sectionId === timetable.id);
+    const timetableId = canonicalSectionId(timetable.id, aliases);
+    const existing = carried.filter((override) => canonicalSectionId(override.target.sectionId, aliases) === timetableId);
     for (let index = 0; index < nextSessions.length; index += 1) {
       const applied = applyExistingOverrides(nextSessions[index]!, timetable.id, existing, input.term.teachingWeeks, maxPeriodFor(nextSessions[index]!, input.catalog));
       nextSessions[index] = applied.session;
       issues.push(...applied.issues);
     }
     effective.set(timetable.id, { ...timetable, sessions: nextSessions });
-    matched.push({ registrationSection: originalRegistration, timetableSection: timetable, sessionPairs: matchedSessions.pairs });
+    matched.push({ registrationSection: registration, timetableSection: timetable, sessionPairs: matchedSessions.pairs });
   }
   const finalPlan: Plan = input.plan.planKind === "final"
-    ? { ...input.plan, picks: [...input.plan.picks], overrides: [...input.plan.overrides, ...overrides] }
-    : { ...input.plan, id: `${input.plan.id}:final`, planKind: "final", final: true, picks: [...input.plan.picks], overrides: [...input.plan.overrides, ...overrides] };
+    ? { ...input.plan, picks, overrides: [...carried, ...overrides] }
+    : { ...input.plan, id: `${input.plan.id}:final`, planKind: "final", final: true, picks, overrides: [...carried, ...overrides] };
   return { plan: finalPlan, sections: [...effective.values()], overrides, matched, unmatched, issues };
 }

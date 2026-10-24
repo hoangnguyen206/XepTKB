@@ -2,7 +2,7 @@
 
 > **Status:** draft  
 > **Owner:** Data Parser  
-> **Last reviewed:** 2026-10-20
+> **Last reviewed:** 2026-10-25
 > **Related docs:** [Domain model](DOMAIN_MODEL.md), [Data ingestion runbook](DATA_INGESTION_RUNBOOK.md), [QA plan](QA_TEST_PLAN.md)
 
 ## 1. Mục tiêu và nguyên tắc
@@ -87,7 +87,8 @@ Unknown columns được giữ trong raw metadata nhưng không được tự g�
 - `TL+TH` → alias đã cấu hình, không đoán ngoài bảng;
 - canonical kind: `LT`, `TH`, `BT`, `ONL`, `OTHER`;
 - `CL` là group đặc biệt “cả lớp”; nhóm số giữ string để không mất leading zero;
-- `ONL`, đồ án, thực tập/LMS không có fixed period thì `online=true`, session không chiếm grid.
+- Dòng có kind `ONL` (gồm alias chứa `online`) bị loại khỏi dataset và khỏi candidate registration, kèm warning `ONLINE_SECTION_EXCLUDED` theo `sourceRow` (Q-009: học tự do theo giảng viên). Section chỉ có dòng `ONL` không được tạo.
+- Đồ án, thực tập/LMS không có fixed period thì session `fixedTime=false`, không chiếm grid. **Chưa** có rule nhận diện cho các dòng này; cần dữ liệu thật và quyết định trước khi thêm từ khóa (không nới validator). Hiện dòng thiếu thứ/tiết vẫn là error.
 
 ### Room/campus/lecturer
 
@@ -108,8 +109,9 @@ Parser tuần phải trả `weeks: number[]`, không giữ range string làm log
 | `Học 1 ca/10 tuần` | candidate + warning, cần rule source/round |
 | date range `2/3 - 19/4` | quy đổi theo `Term.week1`, timezone, cần test |
 | `Học tiết 9-12` | period override 9..12 |
-| không ghi tuần | default `[1..teachingWeeks]`, warning |
-| TH từ tuần 2 khi merge registration | `[2..teachingWeeks]` theo approved rule |
+| không ghi tuần | default `[1..teachingWeeks]`, warning, `weekOrigin=parser-default` |
+| pattern tuần khớp nhưng số ngoài `1..teachingWeeks` hoặc đảo ngược (`Học tuần 11-20`, `15-11`) | error `INVALID_DAY_OR_PERIOD`, không default |
+| TH từ tuần 2 khi merge registration | `[2..teachingWeeks]` theo approved rule, chỉ khi tuần TKB của session đó cũng là default; tuần explicit của TKB thắng (Q-010) |
 
 Không được suy luận tuần 10 từ “thi đợt 1” nếu không có config/fixture evidence; rule UET được lưu trong adapter và phải test. Nếu nhiều pattern mâu thuẫn, trả error `AMBIGUOUS_NOTE`.
 
@@ -125,9 +127,9 @@ Không được suy luận tuần 10 từ “thi đợt 1” nếu không có co
 
 ### M2 domain boundary
 
-M2 bổ sung matching/merge thuần trong `packages/domain`: candidate registration được đối chiếu fail-closed với Section/Session đã chọn, tạo `Override` theo từng field/session, áp dụng precedence và tạo Plan `final` riêng; Section timetable gốc không bị mutate. Session mang `weekOrigin` (`explicit`, `parser-default`, `registration-default`) để phân biệt tuần nguồn với default. Candidate unmatched/ambiguous chỉ tạo warning, không tự đoán. Đây chưa phải user-confirmation flow, IndexedDB persistence, browser file-picker/network evidence hay export của M3/M4.
-## 8. Validation và error taxonomy
+M2 bổ sung matching/merge thuần trong `packages/domain`: candidate registration được đối chiếu fail-closed với Section/Session đã chọn, tạo `Override` theo từng field/session, áp dụng precedence và tạo Plan `final` riêng mà `picks` là các Section đã đăng ký, không phải picks của nháp ([ADR-0009 amendment](adr/ADR-0009-m2-domain-engine-schema.md)); Section timetable gốc không bị mutate. Code trình duyệt chỉ import `@ky-nay/parser/registration` ([ADR-0008 amendment](adr/ADR-0008-m1-parser-dependencies-local-provenance.md)). Session mang `weekOrigin` (`explicit`, `parser-default`, `registration-default`) để phân biệt tuần nguồn với default. Candidate unmatched/ambiguous chỉ tạo warning, không tự đoán. Đây chưa phải user-confirmation flow, IndexedDB persistence, browser file-picker/network evidence hay export của M3/M4.
 
+## 8. Validation và error taxonomy
 
 - `MISSING_REQUIRED_COLUMN`
 - `NO_VALID_SECTION_ROWS`
@@ -155,6 +157,7 @@ M2 bổ sung matching/merge thuần trong `packages/domain`: candidate registrat
 - `NON_FIXED_TIME`
 - `CREDITS_MISSING`
 - `PERIOD_OVERRIDE_APPLIED`
+- `ONLINE_SECTION_EXCLUDED` (Q-009)
 
 - `ImportArtifact` của nguồn timetable/non-PII được phép phải có SHA-256 hợp lệ; registration local-only phải có `sourceType=registration`, `localOnly=true`, id không định danh và bỏ trống `sha256`/`fileName`.
 - M1 local result chứng minh candidate extraction; M2 local result thêm pure matching/override behavior. Browser network interception, user confirmation, persistence and export remain M3/M4 evidence and không được suy ra từ fixture package tests.

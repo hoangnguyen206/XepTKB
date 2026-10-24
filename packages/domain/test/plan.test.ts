@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createPlan, resolvePlanPicks, sessionsForPick, type DomainCatalog, type Section, type Term } from "../src/index.js";
+import { createPlan, resolvePlanPicks, sessionsForPick, validatePlan, type DomainCatalog, type Section, type Term } from "../src/index.js";
 
 const source = { artifactId: "m2-plan", sourceType: "timetable" as const };
 const term: Term = { id: "2026-h2", school: "uet", name: "HK II", teachingWeeks: 15, starts: [{ cohorts: ["K69"], week1: "2027-02-15" }], timezone: "Asia/Ho_Chi_Minh" };
@@ -33,6 +33,20 @@ test("multiple numbered groups require explicit group", () => {
   const resolved = sessionsForPick(section, { sectionId: section.id });
   assert.ok(resolved.issues.some((issue) => issue.code === "GROUP_REQUIRED"));
   assert.equal(resolved.sessions.length, 0);
+});
+
+test("validatePlan rejects one source disagreeing with itself on the same field", () => {
+  const target = { sectionId: section.id, sessionId: "lt" };
+  const conflicting = { ...plan(), overrides: [
+    { target, field: "room" as const, to: "101", source: "registration" as const },
+    { target, field: "room" as const, to: "102", source: "registration" as const },
+  ] };
+  assert.ok(validatePlan(conflicting, catalog, term).some((issue) => issue.code === "CONFLICTING_OVERRIDES"));
+  const layered = { ...plan(), overrides: [
+    { target, field: "room" as const, to: "101", source: "registration" as const },
+    { target, field: "room" as const, to: "Lab", source: "user" as const },
+  ] };
+  assert.equal(validatePlan(layered, catalog, term).some((issue) => issue.code === "CONFLICTING_OVERRIDES"), false);
 });
 
 test("Plan resolves picks without mutating input and mirrors final status", () => {

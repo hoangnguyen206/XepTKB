@@ -2,8 +2,8 @@
 
 > **Status:** draft — Q-001..Q-008 đã approve 20/10/2026; milestone M0–M5 chờ Product sign-off G0
 > **Owner:** Tech Lead + Release Manager
-> **Last reviewed:** 2026-10-20
-> **Related docs:** [PRD](PRD.md), [QA plan](QA_TEST_PLAN.md), [Data ingestion runbook](DATA_INGESTION_RUNBOOK.md)
+> **Last reviewed:** 2026-10-25
+> **Related docs:** [PRD](PRD.md), [QA plan](QA_TEST_PLAN.md), [Data ingestion runbook](DATA_INGESTION_RUNBOOK.md), [Audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md)
 
 ## 1. Nguyên tắc lập kế hoạch
 
@@ -30,7 +30,9 @@ Thứ tự phụ thuộc cứng: M0 → M1 → M2 → M3 → M4 → M5. Trong t�
 
 **M1 checkpoint (20/10/2026):** parser/fixture implementation và local evidence đã có; `npm run check` xanh với 28 tests và 5/5 fixture entries, dependency audit không có production vulnerability. Trạng thái là `ready-for-verification`, chưa phải `g1-approved`, `qa-pass`, `security-pass`, `review-pass`, dataset publish hoặc release. Remote CI, approved real-UET validation và browser network evidence còn pending. Registration adapter hiện dừng ở candidate extraction; matching/override/persistence thuộc M2/M4.
 
-**M2 checkpoint (20/10/2026):** pure domain engine implementation và local evidence đã có trên working tree với schema `0.2.0`; `npm run lint`, `npm run typecheck`, `npm test` (54/54) và `npm run fixtures:run` (5/5) đã pass ở local. M2 bao phủ search/alias, Plan/group, conflict theo tuần, week1/date, registration field-level merge và credits; JSONL/UET parser regression được giữ. Trạng thái là `ready-for-verification` với G1 acknowledgement và độc lập G3a/G3b/G3c còn pending; audit production đã pass với 0 vulnerabilities; remote CI, real-UET golden, browser/E2E/network và persistence evidence phải được chạy/thu thập riêng. M3 UI/PWA/IndexedDB/export chưa làm.
+**M2 checkpoint (20/10/2026):** pure domain engine implementation và local evidence với schema `0.2.0`; `npm run lint`, `npm run typecheck`, `npm test` (54/54) và `npm run fixtures:run` (5/5) đã pass ở local. M2 bao phủ search/alias, Plan/group, conflict theo tuần, week1/date, registration field-level merge và credits; JSONL/UET parser regression được giữ. M3 UI/PWA/IndexedDB/export chưa làm.
+
+**M0–M2 checkpoint (25/10/2026):** M0+M1 commit `22bf934`, M2 commit `61ee300` + `7faccaf`, merge vào `main` local tại `aba04b0` (chưa push `origin/main`; GitHub Actions chưa có run nào). `npm run check` chạy lại tại `aba04b0` vẫn xanh (54/54, 5/5) và `npm audit --omit=dev` = 0. G1 của M0/M1/M2 **chưa được approve** (design handoff/ADR vẫn ghi pending hoặc `g1-blocked`). Các báo cáo G3a/G3b/G3c của M2 (`4057589`) do agent role tự soạn, không độc lập, và đã được **reopen** bởi [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md): 2 finding đề xuất S1 ở luồng registration → Plan chính thức, thiếu coverage P0 FR-06 ở parser, chưa có golden conflict matrix/property test theo exit gate M2. Trạng thái M1/M2: `g2-ready-for-verification`, không phải `verified`; M3 có thể bắt đầu G0/G1 song song nhưng phải sửa các finding audit trước khi G3 chạy lại. Fix round 1–2 cùng ngày (chưa commit) đã sửa AUD-001, AUD-004…009 và AUD-016, áp quyết định Q-009 (loại `ONL`) và Q-010 (tuần TKB thắng default TH), kèm ADR-0006/0008/0009 amendment; `npm run check` 69/69 + 5/5. Còn mở: AUD-002 (chờ C-09), golden matrix/property test, CI, gate độc lập và các S3.
 
 ### Fallback
 
@@ -90,7 +92,7 @@ Mỗi bước phải có test evidence trước khi bước tiếp theo coi là 
 | FR-02 search | domain/search spec | Coder | unit/property/UI | G1 → G2 → G3a |
 | FR-03/04 select/conflict | domain model | Coder | golden conflict matrix | G1 → G2 → G3a |
 | FR-05 note override | parser spec | Data Parser | fixture/golden | G1 → G2 → G3a |
-| FR-06 online/no fixed | domain/UI | Coder/Frontend | unit/visual | G2 → G3a/G3c |
+| FR-06 no fixed time; `ONL` excluded (Q-009) | parser + domain/UI | Data Parser + Coder/Frontend | parser test + unit/visual | G1 → G2 → G3a/G3c |
 | FR-07 responsive views | UX spec | Frontend | a11y/viewport | G2 → G3a/G3c |
 | FR-08 credits | PRD/domain | Coder | unit/UI | G2 → G3a |
 | FR-09/10 registration | parser + privacy | Data/Frontend | network/security/import | G1 → G2 → G3a/G3b |
@@ -163,10 +165,17 @@ Tất cả 8 quyết định đã được Product Owner approve. Chi tiết s�
 | Q-002 | Export P0 | **Cắt PDF generator**; thay bằng “In / Lưu PDF” + print CSS A4 ngang. **Giữ Word dạng `.doc` HTML-based** (không phải DOCX generator). Nếu trễ: cắt DOCX trước ICS/PNG | Product | [PRD §4 #11](PRD.md), [TECH_STACK export](TECH_STACK.md), [QA §5](QA_TEST_PLAN.md) |
 | Q-003 | Backend | **Static artifact + CLI admin** cho mùa đầu; share P1 = URL-encoded section IDs trong fragment; Supabase deferred | Product + Tech Lead | [ADR-0007](adr/ADR-0007-static-artifact-cli-admin.md), [API_CONTRACTS §1](API_AND_DATA_CONTRACTS.md) |
 | Q-004 | Admin ingest boundary | **Local pipeline + push artifact**; không upload raw source trong MVP | Product + Security | [ADR-0007](adr/ADR-0007-static-artifact-cli-admin.md), [RUNBOOK §3](DATA_INGESTION_RUNBOOK.md) |
-| Q-005 | Plan slots | Data model hỗ trợ **N `Plan`** (`planKind: draft|final`); UI P0 = **1 nháp + 1 chính thức** (chính thức từ file đăng ký, **không ghi đè nháp**); nhiều nháp là P1 | Product | [PRD §4 #7](PRD.md), [DOMAIN_MODEL Plan](DOMAIN_MODEL.md) |
+| Q-005 | Plan slots | Data model hỗ trợ **N `Plan`** (`planKind: draft\|final`); UI P0 = **1 nháp + 1 chính thức** (chính thức từ file đăng ký, **không ghi đè nháp**); nhiều nháp là P1 | Product | [PRD §4 #7](PRD.md), [DOMAIN_MODEL Plan](DOMAIN_MODEL.md) |
 | Q-006 | Fixture policy | Synthetic + mỗi quirk có 1 synthetic row; `test:real` script ngoài repo assert counts (1.025 / 1.009 section; exam 182/192, 506/523); registration file xóa PII trước khi lưu | Data Ops + Security | [QA §3](QA_TEST_PLAN.md), [PARSER §11](PARSER_SPEC.md) |
 | Q-007 | Browser matrix | **Tier 1** = Chrome Android, Safari iOS (2 bản gần nhất), Chrome/Edge desktop; **Tier 2** = Firefox desktop, Samsung Internet, in-app browser FB/Messenger/Zalo; detect in-app → nudge “Mở bằng trình duyệt” | Product + Tester | [PRD §8](PRD.md), [QA §5](QA_TEST_PLAN.md) |
 | Q-008 | Analytics | Không GA/tracker; **aggregate counter cookieless** (no user ID, no IP), privacy notice + nút tắt; per-user chỉ khi opt-in; legal review trước khi bật | Product + Security | [PRD §9](PRD.md), [SECURITY §7](SECURITY_PRIVACY.md) |
+
+### Quyết định bổ sung — 25/10/2026
+
+| ID | Câu hỏi | Decision | Người chốt | Docs/ADR phản ánh |
+| --- | --- | --- | --- | --- |
+| Q-009 | Lớp ghi `ONL` có đưa vào app không? | **Không.** Lớp `ONL` học tự do theo từng giảng viên: parser `uet-xlsx` bỏ dòng `ONL` (warning `ONLINE_SECTION_EXCLUDED`), adapter registration cũng bỏ. Hệ quả: môn `ONL` không tìm được, không vào Plan, không cộng tín chỉ | Product (owner) | [PRD §4 #4, FR-06, FR-08](PRD.md), [PARSER_SPEC §5/§8](PARSER_SPEC.md), [DOMAIN_MODEL §3](DOMAIN_MODEL.md) |
+| Q-010 | Default TH `[2..teachingWeeks]` khi merge registration có ghi đè tuần explicit của TKB không? | **Không — TKB thắng.** Default TH chỉ áp khi tuần của session TKB cũng là default (`weekOrigin=parser-default`) | Product (owner) | [ADR-0006 amendment](adr/ADR-0006-default-th-weeks.md), [ADR-0009 amendment](adr/ADR-0009-m2-domain-engine-schema.md), [DOMAIN_MODEL §7](DOMAIN_MODEL.md) |
 
 ### Mâu thuẫn/gap đã ghi nhận — trạng thái sau decisions
 

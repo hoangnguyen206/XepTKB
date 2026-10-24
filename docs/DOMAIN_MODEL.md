@@ -4,7 +4,7 @@
 > **Owner:** Data Parser + Tech Lead  
 > **Last reviewed:** 2026-10-20
 > **Related docs:** [Parser spec](PARSER_SPEC.md), [PRD](PRD.md), [API contracts](API_AND_DATA_CONTRACTS.md)
-> **Schema implementation:** `0.2.0` on M2 branch; see [ADR-0009](adr/ADR-0009-m2-domain-engine-schema.md) and [M2 design handoff](evidence/M2-DESIGN-HANDOFF.md)
+> **Schema implementation:** `0.2.0` on `main` (merge `aba04b0`); open findings in [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md); see [ADR-0009](adr/ADR-0009-m2-domain-engine-schema.md) and [M2 design handoff](evidence/M2-DESIGN-HANDOFF.md)
 
 ## 1. Quy tắc nền
 
@@ -183,7 +183,7 @@ type ImportArtifact = {
 - `1 <= startPeriod <= endPeriod <= maxPeriod` của `TimeFrame`.
 - `day` chỉ nhận 2–8; thứ 7 được hỗ trợ ở MVP, Chủ nhật mở rộng bằng config.
 - `weeks` sorted, unique, trong `1..term.teachingWeeks` hoặc gắn `isReserveWeek` ở model mở rộng; không dùng range string trong engine.
-- `ONL`/không có fixed time không tạo cell grid; vẫn hiện trong list và tín chỉ.
+- Session không có fixed time (đồ án…) không tạo cell grid; vẫn hiện trong list và tín chỉ. Lớp ghi `ONL` không có trong dataset (Q-009): parser bỏ dòng `ONL`, nên engine không gặp chúng.
 - Section có nhiều nhóm phải không cho user chọn hai group incompatible cho cùng requirement.
 - `Course.credits` không âm; thiếu credits là warning, không bịa `0` nếu ảnh hưởng tổng.
 - Mọi normalized field liên quan lịch phải có `SourceRef`.
@@ -230,7 +230,7 @@ Conflict result phải chứa `leftSection`, `rightSection`, `days`, `periodInte
 - `dateFor(week, day) = week1 + (week - 1) * 7 + (day - 2)` ngày.
 - Timezone là `Asia/Ho_Chi_Minh`; ICS phải có `VTIMEZONE` hoặc UTC conversion đúng.
 - Default TKB không ghi tuần là `[1..term.teachingWeeks]`.
-- **TH default weeks**: khi merge registration, session `kind=TH` không có weeks explicit được default `[2..term.teachingWeeks]` (ADR-0006); rule này **không** áp cho TKB ingest thường trừ khi adapter config nói rõ.
+- **TH default weeks**: khi merge registration, session `kind=TH` không có weeks explicit được default `[2..term.teachingWeeks]` (ADR-0006); rule này **không** áp cho TKB ingest thường trừ khi adapter config nói rõ. Default chỉ áp khi tuần của session TKB tương ứng cũng là default (`weekOrigin=parser-default`); tuần explicit của TKB (hoặc TKB legacy không có `weekOrigin`) thắng (Q-010).
 - Tuần dự phòng/buổi bù là user/admin record riêng, không sửa raw dataset.
 
 ## 8. Search và display

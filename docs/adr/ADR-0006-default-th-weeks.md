@@ -6,7 +6,7 @@
 > **Date:** 2026-10-20
 > **Owner:** Data Parser + Tech Lead
 > **Decision owner:** Product
-> **Last reviewed:** 2026-10-20
+> **Last reviewed:** 2026-10-25
 > **Related docs:** [Domain model §7](../DOMAIN_MODEL.md), [Parser spec §6](../PARSER_SPEC.md), [Implementation plan §10 C-03](../IMPLEMENTATION_PLAN.md)
 > **Evidence envelope:** `N/A — docs-only`
 
@@ -85,3 +85,11 @@
 | Change ID | Date/actor | Reason | Supersedes |
 | --- | --- | --- | --- |
 | ADR-0006 | 2026-10-20 / Product | Chốt rule TH default từ brief thành contract | — |
+| Q-010 | 2026-10-25 / Product (owner) | Tuần explicit của TKB thắng default TH khi merge registration | làm rõ Decision 1 |
+
+## Amendment 2026-10-25 — Q-010: tuần explicit của TKB thắng
+
+Product chốt: Decision 1 chỉ áp khi **cả** session registration **và** session TKB tương ứng đều không có tuần explicit (`weekOrigin=parser-default` ở TKB). Nếu TKB đã ghi tuần (ví dụ `Học tuần 6-15`), hoặc là dữ liệu TKB legacy không có `weekOrigin`, tuần của TKB được giữ và không phát `REGISTRATION_DEFAULT_WEEKS`. Tuần explicit trong file registration vẫn override TKB như mọi field registration khác.
+
+- Implementation: `registrationWeeks` trong `packages/domain/src/registration-merge.ts`; xem [ADR-0009 amendment](ADR-0009-m2-domain-engine-schema.md).
+- Acceptance bổ sung: TH registration default + TKB explicit `[6..15]` → giữ `[6..15]`, không có override `weeks`; TH registration default + TKB default → `[2..15]` + warning.

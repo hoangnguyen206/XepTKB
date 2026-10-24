@@ -127,7 +127,8 @@ export function parsePeriodRanges(value: string | undefined): PeriodRange[] {
 export function periodsFromShift(value: string | undefined): PeriodRange[] {
   if (!value) return [];
   const normalized = normalizeHeader(value);
-  const named = UET_CONFIG.namedShiftRanges[normalized];
+  // Config keys keep their Vietnamese spelling; compare them in the same folded form as the cell value.
+  const named = Object.entries(UET_CONFIG.namedShiftRanges).find(([name]) => normalizeHeader(name) === normalized)?.[1];
   if (named) return [{ startPeriod: named.start, endPeriod: named.end }];
   const number = normalized.match(/^(?:ca\s*)?(\d+)$/)?.[1];
   if (!number) return [];

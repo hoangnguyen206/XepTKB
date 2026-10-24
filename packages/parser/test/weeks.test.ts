@@ -34,6 +34,28 @@ test("conflicting week patterns are blocking", () => {
   assert.equal(r.weeks, undefined);
 });
 
+test("out-of-term or inverted week numbers fail closed instead of defaulting", () => {
+  for (const note of ["Học tuần 11-20", "Học tuần 15-11", "Học từ tuần 16", "Học tuần 3, 18"]) {
+    const r = parseNote(note, 15);
+    assert.equal(r.weeks, undefined, note);
+    assert.ok(r.issues.some((i) => i.code === "INVALID_DAY_OR_PERIOD" && i.severity === "error"), note);
+  }
+});
+
+test("weekOrigin separates explicit weeks from parser defaults", () => {
+  assert.equal(parseNote(undefined, 15).weekOrigin, "parser-default");
+  assert.equal(parseNote("Nhóm 1", 15).weekOrigin, "parser-default");
+  assert.equal(parseNote("Học tuần 11-15", 15).weekOrigin, "explicit");
+});
+
+test("period-only note keeps default weeks without UNPARSED_NOTE", () => {
+  const r = parseNote("Học tiết 9-12", 15);
+  assert.deepEqual(r.periodOverride, { startPeriod: 9, endPeriod: 12 });
+  assert.equal(r.weekOrigin, "parser-default");
+  assert.equal(r.issues.some((i) => i.code === "UNPARSED_NOTE"), false);
+  assert.ok(r.issues.some((i) => i.code === "DEFAULT_WEEKS_APPLIED"));
+});
+
 test("unrecognized note → UNPARSED_NOTE warning + default weeks", () => {
   const r = parseNote("Nhóm 1", 15);
   assert.deepEqual(r.weeks, Array.from({ length: 15 }, (_, i) => i + 1));

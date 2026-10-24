@@ -7,7 +7,8 @@
 > **Last reviewed:** 2026-10-25  
 > **Related docs:** [Security & privacy](../SECURITY_PRIVACY.md), [M2 design handoff](M2-DESIGN-HANDOFF.md), [M2 implementation handoff](M2-IMPLEMENTATION-HANDOFF.md), [M1 security review](M1-SECURITY-REVIEW.md), [ADR-0009](../adr/ADR-0009-m2-domain-engine-schema.md)  
 > **Evidence envelope:** [EVID-M2-002](M2-EVIDENCE-ENVELOPE-v2.md)  
-> **Supersedes:** M1 security review for domain-specific modules
+> **Supersedes:** M1 security review for domain-specific modules  
+> **Re-entry (2026-10-25):** reopened bởi [REVIEW-M0M2-AUDIT-001](M0-M2-AUDIT-2026-10-25.md): parser chưa an toàn cho browser bundle (AUD-009), fill-down merged cell không giới hạn (AUD-010), actor không độc lập (AUD-013). Quyết định bên dưới không còn hiệu lực cho tới khi chạy lại G3b.
 
 ## Scope and identity
 
