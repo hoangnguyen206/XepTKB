@@ -32,7 +32,7 @@ Thứ tự phụ thuộc cứng: M0 → M1 → M2 → M3 → M4 → M5. Trong t�
 
 **M2 checkpoint (20/10/2026):** pure domain engine implementation và local evidence với schema `0.2.0`; `npm run lint`, `npm run typecheck`, `npm test` (54/54) và `npm run fixtures:run` (5/5) đã pass ở local. M2 bao phủ search/alias, Plan/group, conflict theo tuần, week1/date, registration field-level merge và credits; JSONL/UET parser regression được giữ. M3 UI/PWA/IndexedDB/export chưa làm.
 
-**M0–M2 checkpoint (25/10/2026):** M0+M1 commit `22bf934`, M2 commit `61ee300` + `7faccaf`, merge vào `main` local tại `aba04b0` (chưa push `origin/main`; GitHub Actions chưa có run nào). `npm run check` chạy lại tại `aba04b0` vẫn xanh (54/54, 5/5) và `npm audit --omit=dev` = 0. G1 của M0/M1/M2 **chưa được approve** (design handoff/ADR vẫn ghi pending hoặc `g1-blocked`). Các báo cáo G3a/G3b/G3c của M2 (`4057589`) do agent role tự soạn, không độc lập, và đã được **reopen** bởi [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md): 2 finding đề xuất S1 ở luồng registration → Plan chính thức, thiếu coverage P0 FR-06 ở parser, chưa có golden conflict matrix/property test theo exit gate M2. Trạng thái M1/M2: `g2-ready-for-verification`, không phải `verified`; M3 có thể bắt đầu G0/G1 song song nhưng phải sửa các finding audit trước khi G3 chạy lại. Fix round 1–2 cùng ngày (chưa commit) đã sửa AUD-001, AUD-004…009 và AUD-016, áp quyết định Q-009 (loại `ONL`) và Q-010 (tuần TKB thắng default TH), kèm ADR-0006/0008/0009 amendment; `npm run check` 69/69 + 5/5. Còn mở: AUD-002 (chờ C-09), golden matrix/property test, CI, gate độc lập và các S3.
+**M0–M2 checkpoint (25/10/2026):** M0+M1 commit `22bf934`, M2 commit `61ee300` + `7faccaf`, merge vào `main` local tại `aba04b0` (chưa push `origin/main`; GitHub Actions chưa có run nào). `npm run check` chạy lại tại `aba04b0` vẫn xanh (54/54, 5/5) và `npm audit --omit=dev` = 0. G1 của M0/M1/M2 **chưa được approve** (design handoff/ADR vẫn ghi pending hoặc `g1-blocked`). Các báo cáo G3a/G3b/G3c của M2 (`4057589`) do agent role tự soạn, không độc lập, và đã được **reopen** bởi [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md): 2 finding đề xuất S1 ở luồng registration → Plan chính thức, thiếu coverage P0 FR-06 ở parser, chưa có golden conflict matrix/property test theo exit gate M2. Trạng thái M1/M2: `g2-ready-for-verification`, không phải `verified`; M3 có thể bắt đầu G0/G1 song song nhưng phải sửa các finding audit trước khi G3 chạy lại. Fix round 1–2 cùng ngày (chưa commit) đã sửa AUD-001, AUD-004…009 và AUD-016, áp quyết định Q-009 (`ONL` không giờ cố định, vẫn tính tín chỉ) và Q-010 (tuần TKB thắng default TH), kèm ADR-0006/0008/0009 amendment; `npm run check` 70/70 + 5/5. Còn mở: AUD-002 (chờ C-09), golden matrix/property test, CI, gate độc lập và các S3.
 
 ### Fallback
 
@@ -92,7 +92,7 @@ Mỗi bước phải có test evidence trước khi bước tiếp theo coi là 
 | FR-02 search | domain/search spec | Coder | unit/property/UI | G1 → G2 → G3a |
 | FR-03/04 select/conflict | domain model | Coder | golden conflict matrix | G1 → G2 → G3a |
 | FR-05 note override | parser spec | Data Parser | fixture/golden | G1 → G2 → G3a |
-| FR-06 no fixed time; `ONL` excluded (Q-009) | parser + domain/UI | Data Parser + Coder/Frontend | parser test + unit/visual | G1 → G2 → G3a/G3c |
+| FR-06 no fixed time; `ONL` non-fixed (Q-009) | parser + domain/UI | Data Parser + Coder/Frontend | parser test + unit/visual | G1 → G2 → G3a/G3c |
 | FR-07 responsive views | UX spec | Frontend | a11y/viewport | G2 → G3a/G3c |
 | FR-08 credits | PRD/domain | Coder | unit/UI | G2 → G3a |
 | FR-09/10 registration | parser + privacy | Data/Frontend | network/security/import | G1 → G2 → G3a/G3b |
@@ -174,7 +174,7 @@ Tất cả 8 quyết định đã được Product Owner approve. Chi tiết s�
 
 | ID | Câu hỏi | Decision | Người chốt | Docs/ADR phản ánh |
 | --- | --- | --- | --- | --- |
-| Q-009 | Lớp ghi `ONL` có đưa vào app không? | **Không.** Lớp `ONL` học tự do theo từng giảng viên: parser `uet-xlsx` bỏ dòng `ONL` (warning `ONLINE_SECTION_EXCLUDED`), adapter registration cũng bỏ. Hệ quả: môn `ONL` không tìm được, không vào Plan, không cộng tín chỉ | Product (owner) | [PRD §4 #4, FR-06, FR-08](PRD.md), [PARSER_SPEC §5/§8](PARSER_SPEC.md), [DOMAIN_MODEL §3](DOMAIN_MODEL.md) |
+| Q-009 | Lớp ghi `ONL` hiển thị thế nào? | **Có trong app, tính tín chỉ, không hiện trên TKB tuần.** Lớp `ONL` học tự do theo từng giảng viên: parser `uet-xlsx` và adapter registration luôn tạo session `fixedTime=false` (warning `NON_FIXED_TIME`), bỏ qua thứ/tiết nếu nguồn có ghi; môn vẫn tìm, chọn, merge đăng ký và cộng tín chỉ được, không chiếm ô grid, không tính conflict | Product (owner) | [PRD §4 #4, FR-06, FR-08](PRD.md), [PARSER_SPEC §5](PARSER_SPEC.md), [DOMAIN_MODEL §3](DOMAIN_MODEL.md) |
 | Q-010 | Default TH `[2..teachingWeeks]` khi merge registration có ghi đè tuần explicit của TKB không? | **Không — TKB thắng.** Default TH chỉ áp khi tuần của session TKB cũng là default (`weekOrigin=parser-default`) | Product (owner) | [ADR-0006 amendment](adr/ADR-0006-default-th-weeks.md), [ADR-0009 amendment](adr/ADR-0009-m2-domain-engine-schema.md), [DOMAIN_MODEL §7](DOMAIN_MODEL.md) |
 
 ### Mâu thuẫn/gap đã ghi nhận — trạng thái sau decisions

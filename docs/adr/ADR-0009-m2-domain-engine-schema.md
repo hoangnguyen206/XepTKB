@@ -57,6 +57,6 @@ Source: [audit M0–M2](../evidence/M0-M2-AUDIT-2026-10-25.md). Decision 8 is re
 7. A registration candidate without `weekOrigin` is treated as `parser-default` at the merge boundary, as the compatibility section above already stated; it no longer overrides timetable weeks for non-TH sessions.
 
 8. Resolved by Product (Q-010, 2026-10-25): explicit timetable weeks win. The ADR-0006 TH default `[2..teachingWeeks]` replaces timetable weeks only when the timetable session's weeks are themselves `parser-default`; a timetable session without `weekOrigin` (legacy) also keeps its weeks. See the [ADR-0006 amendment](ADR-0006-default-th-weeks.md).
-9. Q-009 (2026-10-25): `ONL` rows never reach the domain engine — `uet-xlsx` and `vnu-registration-html` drop them with `ONLINE_SECTION_EXCLUDED`. Non-fixed session support in the engine is kept for other no-fixed-time classes.
+9. Q-009 (2026-10-25): `ONL` classes reach the engine as non-fixed sessions (`fixedTime: false`) from both `uet-xlsx` and `vnu-registration-html`. They match into the final Plan, count toward credits and never produce conflicts or grid cells.
 
 Re-entry: this amendment reopens G1 (acknowledgement), G2 and G3a/G3c for M2 per [Agent workflow §6](../../.claude/AGENT_WORKFLOW.md).

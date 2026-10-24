@@ -33,7 +33,6 @@ export const WARNING_CODES = [
   "NON_FIXED_TIME",
   "CREDITS_MISSING",
   "PERIOD_OVERRIDE_APPLIED",
-  "ONLINE_SECTION_EXCLUDED",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

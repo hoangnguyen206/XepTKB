@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createPlan, isFixedSession, mergeRegistration, validatePlan, type Course, type DomainCatalog, type Section, type Session, type Term } from "../src/index.js";
+import { calculatePlanCredits, createPlan, findConflicts, isFixedSession, mergeRegistration, resolvePlanPicks, validatePlan, type Course, type DomainCatalog, type Section, type Session, type Term } from "../src/index.js";
 
 const timetableSource = { artifactId: "m2-timetable", sourceType: "timetable" as const };
 const registrationSource = { artifactId: "local-registration", sourceType: "registration" as const, sourceRow: 1 };
@@ -128,6 +128,20 @@ test("registration rows of one section are merged into a single pick", () => {
   assert.equal(result.matched.length, 1);
 });
 
+
+test("ONL registration joins the final Plan, counts credits and never conflicts (Q-009)", () => {
+  const onlineSession: Session = { id: "onl", fixedTime: false, frame: "uet-default", weeks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], weekOrigin: "explicit", kind: "ONL", group: "CL", lecturers: [], source: timetableSource, confidence: "deterministic" };
+  const onlineSection: Section = { ...baseSection, id: "INT3999 1", courseCode: "INT3999", online: true, sessions: [onlineSession] };
+  const onlineCourse: Course = { ...course, code: "INT3999", altCodes: [], name: "Trực tuyến", normalizedName: "truc tuyen", credits: 2 };
+  const onlineCatalog: DomainCatalog = { courses: [course, onlineCourse], sections: [baseSection, onlineSection], datasetVersion: "m2" };
+  const registered: Section = { ...onlineSection, source: registrationSource, datasetVersion: "local-registration", sessions: [{ ...onlineSession, id: "reg-onl", weekOrigin: "parser-default", room: "LMS", source: registrationSource }] };
+  const result = mergeRegistration({ plan: draft, catalog: onlineCatalog, registrationSections: [registrationSection(registrationSession()), registered], term });
+  assert.deepEqual(result.plan.picks.map((pick) => pick.sectionId), [baseSection.id, onlineSection.id]);
+  assert.equal(result.issues.some((issue) => issue.code === "REGISTRATION_OVERRIDE_UNMATCHED"), false);
+  const effective = { ...onlineCatalog, sections: result.sections };
+  assert.equal(calculatePlanCredits(result.plan, effective).knownTotal, 5);
+  assert.equal(findConflicts(resolvePlanPicks(result.plan, effective).picks).conflicts.length, 0);
+});
 
 function mergeTh(timetableWeeks: Partial<Session>) {
   const thBase: Section = { ...baseSection, id: "MAT1051 1", courseCode: "MAT1051", sessions: [{ ...baseSession, id: "th", kind: "TH", room: "A", ...timetableWeeks } as Session] };

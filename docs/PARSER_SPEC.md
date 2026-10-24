@@ -87,7 +87,7 @@ Unknown columns được giữ trong raw metadata nhưng không được tự g�
 - `TL+TH` → alias đã cấu hình, không đoán ngoài bảng;
 - canonical kind: `LT`, `TH`, `BT`, `ONL`, `OTHER`;
 - `CL` là group đặc biệt “cả lớp”; nhóm số giữ string để không mất leading zero;
-- Dòng có kind `ONL` (gồm alias chứa `online`) bị loại khỏi dataset và khỏi candidate registration, kèm warning `ONLINE_SECTION_EXCLUDED` theo `sourceRow` (Q-009: học tự do theo giảng viên). Section chỉ có dòng `ONL` không được tạo.
+- Dòng có kind `ONL` (gồm alias chứa `online`) luôn thành session `fixedTime=false` với `Section.online=true`, kèm warning `NON_FIXED_TIME` theo `sourceRow`; thứ/tiết trong nguồn (nếu có) không được dùng (Q-009: học tự do theo giảng viên). Course và tín chỉ vẫn được tạo; adapter registration tạo một session non-fixed cho dòng `ONL` để merge được vào Plan chính thức.
 - Đồ án, thực tập/LMS không có fixed period thì session `fixedTime=false`, không chiếm grid. **Chưa** có rule nhận diện cho các dòng này; cần dữ liệu thật và quyết định trước khi thêm từ khóa (không nới validator). Hiện dòng thiếu thứ/tiết vẫn là error.
 
 ### Room/campus/lecturer
@@ -157,7 +157,6 @@ M2 bổ sung matching/merge thuần trong `packages/domain`: candidate registrat
 - `NON_FIXED_TIME`
 - `CREDITS_MISSING`
 - `PERIOD_OVERRIDE_APPLIED`
-- `ONLINE_SECTION_EXCLUDED` (Q-009)
 
 - `ImportArtifact` của nguồn timetable/non-PII được phép phải có SHA-256 hợp lệ; registration local-only phải có `sourceType=registration`, `localOnly=true`, id không định danh và bỏ trống `sha256`/`fileName`.
 - M1 local result chứng minh candidate extraction; M2 local result thêm pure matching/override behavior. Browser network interception, user confirmation, persistence and export remain M3/M4 evidence and không được suy ra từ fixture package tests.

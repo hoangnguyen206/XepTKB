@@ -183,7 +183,7 @@ type ImportArtifact = {
 - `1 <= startPeriod <= endPeriod <= maxPeriod` của `TimeFrame`.
 - `day` chỉ nhận 2–8; thứ 7 được hỗ trợ ở MVP, Chủ nhật mở rộng bằng config.
 - `weeks` sorted, unique, trong `1..term.teachingWeeks` hoặc gắn `isReserveWeek` ở model mở rộng; không dùng range string trong engine.
-- Session không có fixed time (đồ án…) không tạo cell grid; vẫn hiện trong list và tín chỉ. Lớp ghi `ONL` không có trong dataset (Q-009): parser bỏ dòng `ONL`, nên engine không gặp chúng.
+- `ONL`/không có fixed time không tạo cell grid và không tham gia conflict; vẫn hiện trong list và tín chỉ. Lớp ghi `ONL` luôn được parser đưa về session `fixedTime=false`, kể cả khi nguồn có ghi thứ/tiết (Q-009).
 - Section có nhiều nhóm phải không cho user chọn hai group incompatible cho cùng requirement.
 - `Course.credits` không âm; thiếu credits là warning, không bịa `0` nếu ảnh hưởng tổng.
 - Mọi normalized field liên quan lịch phải có `SourceRef`.

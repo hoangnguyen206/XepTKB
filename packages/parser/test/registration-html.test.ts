@@ -55,11 +55,14 @@ test("registration HTML is parsed locally with multi-day and multi-period rows",
   assert.equal(serialized.includes("<script>"), false);
 });
 
-test("registration adapter skips ONL rows (Q-009)", () => {
-  const withOnline = html.replace("</table>", "<tr><td>INT3999</td><td>Trực tuyến</td><td>INT3999 1</td><td>CL</td><td>ONL</td><td>T3</td><td>1-3</td><td>LMS</td><td>GV C</td></tr></table>");
+test("registration adapter keeps ONL rows as one non-fixed session (Q-009)", () => {
+  const withOnline = html.replace("</table>", "<tr><td>INT3999</td><td>Trực tuyến</td><td>INT3999 1</td><td>CL</td><td>ONL</td><td></td><td></td><td>LMS</td><td>GV C</td></tr></table>");
   const result = vnuRegistrationHtmlAdapter.parse({ bytes: bytes(withOnline) });
-  assert.deepEqual(result.sections.map((section) => section.id), ["INT2213 1", "MAT1051 2"]);
-  assert.ok(result.issues.some((item) => item.code === "ONLINE_SECTION_EXCLUDED" && item.sourceRow === 3));
+  const online = result.sections.find((section) => section.id === "INT3999 1")!;
+  assert.equal(online.online, true);
+  assert.equal(online.sessions.length, 1);
+  assert.equal(online.sessions[0]!.fixedTime, false);
+  assert.equal(result.issues.some((item) => item.severity === "error"), false);
 });
 
 test("registration adapter detects content rather than extension and rejects non-HTML", () => {

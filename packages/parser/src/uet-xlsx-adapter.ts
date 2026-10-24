@@ -162,6 +162,16 @@ function sessionKey(session: Session): string {
   return [session.day, session.startPeriod, session.endPeriod, session.kind, session.group ?? "", session.room ?? "", session.campus ?? "", session.weeks.join(",")].join("|");
 }
 
+function addSession(target: Section, session: Session, sourceRow: number, issues: ParseIssue[]): void {
+  const key = sessionKey(session);
+  if (target.sessions.some((existing) => sessionKey(existing) === key)) {
+    target.warnings.push("DUPLICATE_SESSION_COLLAPSED");
+    issues.push(issue("DUPLICATE_SESSION_COLLAPSED", "warning", "duplicate normalized session collapsed", { sourceRow }));
+  } else {
+    target.sessions.push(session);
+  }
+}
+
 function buildCourse(record: RowRecord, course: { code: string; altCodes: string[] }): Course | undefined {
   const name = rowValue(record, "courseName");
   if (!name) return undefined;
@@ -210,12 +220,6 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, sheet: OoxmlShe
       issues.push(issue("CONFLICTING_NORMALIZED_FIELDS", "error", "course code and section id disagree after normalization", { sourceRow: record.sourceRow, field: "courseCode" }));
       continue;
     }
-    const kind = normalizeKind(rowValue(record, "kind"));
-    // Q-009: ONL classes are self-paced per lecturer and are left out of the dataset.
-    if (kind === "ONL") {
-      issues.push(issue("ONLINE_SECTION_EXCLUDED", "warning", "ONL row excluded from the timetable dataset", { sourceRow: record.sourceRow, field: "kind" }));
-      continue;
-    }
     const source = sectionSource(artifact, record.sourceRow);
     let target = sections.get(section.id);
     if (!target) {
@@ -242,6 +246,7 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, sheet: OoxmlShe
       }
     }
 
+    const kind = normalizeKind(rowValue(record, "kind"));
     const day = parseDay(rowValue(record, "day") ?? "");
     const note = rowValue(record, "note");
     const noteResult = parseNote(note, teachingWeeks);
@@ -267,6 +272,26 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, sheet: OoxmlShe
     if (room && !campus) issues.push(issue("ROOM_CAMPUS_UNKNOWN", "warning", "room campus did not match configured UET campus patterns", { sourceRow: record.sourceRow, field: "room" }));
     const group = normalizeGroup(rowValue(record, "group"));
     if (!group) issues.push(issue("GROUP_MISSING", "warning", "session group is missing; reviewer must confirm applicability", { sourceRow: record.sourceRow, field: "group" }));
+    const sessionBase = {
+      frame: "uet-default",
+      weeks,
+      ...(weekOrigin ? { weekOrigin } : {}),
+      kind,
+      ...(group ? { group } : {}),
+      ...(room ? { room } : {}),
+      ...(campus ? { campus } : {}),
+      lecturers: normalizeLecturers(rowValue(record, "lecturer")),
+      ...(note ? { rawNote: note } : {}),
+      source,
+      confidence: "deterministic" as const,
+    };
+    // Q-009: ONL classes are self-paced per lecturer — listed and counted for credits, never placed on the week grid.
+    if (kind === "ONL") {
+      target.online = true;
+      issues.push(issue("NON_FIXED_TIME", "warning", "ONL session is kept without a fixed day/period and is not placed on the week grid", { sourceRow: record.sourceRow }));
+      addSession(target, { id: `${section.id}:${record.sourceRow}:non-fixed`, fixedTime: false, ...sessionBase }, record.sourceRow, issues);
+      continue;
+    }
     if (day === undefined || uniqueRanges.size === 0) {
       issues.push(issue("INVALID_DAY_OR_PERIOD", "error", "row has no valid day and period range", { sourceRow: record.sourceRow }));
       continue;
@@ -276,30 +301,13 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, sheet: OoxmlShe
         issues.push(issue("INVALID_DAY_OR_PERIOD", "error", `periods must be within 1..${MAX_PERIOD}`, { sourceRow: record.sourceRow, field: "periodText" }));
         continue;
       }
-      const session: Session = {
+      addSession(target, {
         id: `${section.id}:${record.sourceRow}:${range.startPeriod}-${range.endPeriod}`,
         day,
         startPeriod: range.startPeriod,
         endPeriod: range.endPeriod,
-        frame: "uet-default",
-        weeks,
-        ...(weekOrigin ? { weekOrigin } : {}),
-        kind,
-        ...(group ? { group } : {}),
-        ...(room ? { room } : {}),
-        ...(campus ? { campus } : {}),
-        lecturers: normalizeLecturers(rowValue(record, "lecturer")),
-        ...(note ? { rawNote: note } : {}),
-        source,
-        confidence: "deterministic",
-      };
-      const key = sessionKey(session);
-      if (target.sessions.some((existing) => sessionKey(existing) === key)) {
-        target.warnings.push("DUPLICATE_SESSION_COLLAPSED");
-        issues.push(issue("DUPLICATE_SESSION_COLLAPSED", "warning", "duplicate normalized session collapsed", { sourceRow: record.sourceRow }));
-      } else {
-        target.sessions.push(session);
-      }
+        ...sessionBase,
+      }, record.sourceRow, issues);
     }
   }
   for (const section of sections.values()) {

@@ -55,7 +55,7 @@ Không dùng KPI để khuyến khích thu thập PII. Không fingerprint ngư�
 1. Dataset TKB UET admin preload, versioned; admin ingest/review/publish chạy qua local CLI/manual pipeline theo [ADR-0007](adr/ADR-0007-static-artifact-cli-admin.md), không có trang admin web trong release đầu.
 2. Chọn trường/kỳ/ngày đầu tuần 1; mặc định theo cohort từ `Term.starts[]` config, cho phép sửa. Fixture mùa release HK II 2026–2027 dùng week 1 = 15/02/2027; fixture HK I 2026–2027 dùng 07/09/2026 (K67–K70) và 12/10/2026 (K71).
 3. Tìm môn theo mã/tên, không phụ thuộc dấu.
-4. Hiển thị Section: Mã LHP, nhóm, thứ, tiết/ca, tuần, phòng/campus, giảng viên và thông tin lớp khóa. Lớp ghi `ONL` không đưa vào dataset vì học tự do theo từng giảng viên (Q-009, 25/10/2026).
+4. Hiển thị Section: Mã LHP, nhóm, thứ, tiết/ca, tuần, phòng/campus, giảng viên, trạng thái online và thông tin lớp khóa. Lớp ghi `ONL` học tự do theo từng giảng viên: vẫn tìm, chọn và tính tín chỉ được, nhưng không hiện trên lưới TKB tuần và không tính conflict (Q-009, 25/10/2026).
 5. Chọn lớp/nhóm; báo conflict theo giờ và tuần, nêu nguyên nhân cụ thể.
 6. Lưới tuần T2–T7 và danh sách theo ngày; có nền tảng để mở rộng Chủ nhật.
 7. Tổng tín chỉ; data model hỗ trợ N `Plan` (draft + final, có `planKind`), nhưng UI P0 chỉ expose **hai slot cố định**: một Plan **nháp** (user tự xếp) và một Plan **chính thức** (tạo từ file đăng ký; merge registration vào Plan chính thức, **không ghi đè nháp**). Nhiều Plan nháp là P1.
@@ -112,9 +112,9 @@ Thiết bị thường là điện thoại, có thể có file/ảnh từ group 
 | FR-03 | Chọn Section và group, giữ nhiều session | P0 | domain tests + UI flow |
 | FR-04 | Conflict theo periods giao nhau và weeks giao nhau | P0 | golden matrix 100% |
 | FR-05 | Note có “Học tiết …” override Ca | P0 | parser fixture |
-| FR-06 | Section đồ án/không có giờ cố định không chiếm ô grid; lớp ghi `ONL` bị loại khỏi dataset và khỏi merge đăng ký (Q-009) | P0 | parser test + domain/UI test |
+| FR-06 | Section ONL/đồ án không chiếm ô grid; lớp ghi `ONL` luôn là session không giờ cố định, kể cả khi nguồn có ghi thứ/tiết (Q-009) | P0 | parser test + domain/UI test |
 | FR-07 | Xem day list và week grid, responsive | P0 | visual/accessibility evidence |
-| FR-08 | Tính tổng tín chỉ và cảnh báo thiếu/vượt nếu cấu hình; môn `ONL` không có trong dataset nên không được cộng (Q-009) | P0 | unit/UI test |
+| FR-08 | Tính tổng tín chỉ và cảnh báo thiếu/vượt nếu cấu hình; môn `ONL` vẫn được cộng (Q-009) | P0 | unit/UI test |
 | FR-09 | Parse registration result trên browser, loại PII | P0 | security test + manual evidence |
 | FR-10 | Registration room/time override TKB, mark changed | P0 | merge fixture |
 | FR-11 | Export PNG, Word (.doc HTML), ICS với timezone đúng; print CSS A4 ngang cho “In / Lưu PDF” | P0 | artifact snapshots + calendar import + print preview check |

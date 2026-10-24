@@ -63,16 +63,22 @@ test("uet-xlsx maps named shifts Sáng/Chiều through config", () => {
   assert.equal(result.issues.some((item) => item.severity === "error"), false);
 });
 
-test("uet-xlsx excludes ONL rows (Q-009) and still rejects other rows without time", () => {
+test("uet-xlsx keeps ONL rows as non-fixed sessions with credits (Q-009) and still rejects other rows without time", () => {
   const bytes = syntheticXlsx([{ name: "Online", rows: [headers,
     ["K69I", "INT3999", "Học phần trực tuyến", "2", "INT3999 1", "CL", "ONL", "", "", "", "", "GV A", "Học tuần 1-15"],
     ["K69I", "INT3998", "Học phần trực tuyến 2", "2", "INT3998 1", "CL", "Online", "T4", "", "1-3", "", "GV A", "Học tuần 1-15"],
     ["K69I", "INT1001", "Mạng", "3", "INT1001 1", "CL", "LT", "", "", "", "203-G2", "GV B", "Học tuần 1-5"],
   ] }]);
   const result = uetXlsxAdapter.parse(input(bytes));
-  assert.deepEqual(result.sections.map((section) => section.id), ["INT1001 1"]);
-  assert.deepEqual(result.courses.map((course) => course.code), ["INT1001"]);
-  assert.deepEqual(result.issues.filter((item) => item.code === "ONLINE_SECTION_EXCLUDED").map((item) => item.sourceRow), [2, 3]);
+  for (const id of ["INT3999 1", "INT3998 1"]) {
+    const online = result.sections.find((section) => section.id === id)!;
+    assert.equal(online.online, true, id);
+    assert.equal(online.sessions.length, 1, id);
+    assert.equal(isFixedSession(online.sessions[0]!), false, id);
+  }
+  assert.deepEqual(result.courses.filter((course) => course.code.startsWith("INT399")).map((course) => course.credits), [2, 2]);
+  assert.deepEqual(result.issues.filter((item) => item.code === "NON_FIXED_TIME").map((item) => item.sourceRow), [2, 3]);
+  assert.equal(result.issues.some((item) => item.severity === "error" && (item.sourceRow === 2 || item.sourceRow === 3)), false);
   assert.ok(result.issues.some((item) => item.code === "INVALID_DAY_OR_PERIOD" && item.sourceRow === 4));
 });
 

@@ -131,30 +131,31 @@ function safeCandidateSection(row: Record<string, string>, source: { artifactId:
   const ranges = parsePeriodRanges(row.periodText);
   const kind = normalizeKind(row.kind);
   const weeks = Array.from({ length: teachingWeeks }, (_, index) => index + 1);
-  const sessions: Session[] = [];
-  for (const day of days) {
-    for (const range of ranges) {
-      const group = normalizeGroup(row.group);
-      const room = normalizeRoom(row.room);
-      const campus = detectCampus(row.room);
-      sessions.push({
-        id: `${sectionId}:${source.sourceRow}:${day}:${range.startPeriod}-${range.endPeriod}`,
-        day,
-        startPeriod: range.startPeriod,
-        endPeriod: range.endPeriod,
-        frame: "uet-default",
-        weeks,
-        weekOrigin: "parser-default",
-        kind,
-        ...(group ? { group } : {}),
-        ...(room ? { room } : {}),
-        ...(campus ? { campus } : {}),
-        lecturers: normalizeLecturers(row.lecturer),
-        source: sectionSource,
-        confidence: "deterministic",
-      });
-    }
-  }
+  const group = normalizeGroup(row.group);
+  const room = normalizeRoom(row.room);
+  const campus = detectCampus(row.room);
+  const sessionBase = {
+    frame: "uet-default",
+    weeks,
+    weekOrigin: "parser-default" as const,
+    kind,
+    ...(group ? { group } : {}),
+    ...(room ? { room } : {}),
+    ...(campus ? { campus } : {}),
+    lecturers: normalizeLecturers(row.lecturer),
+    source: sectionSource,
+    confidence: "deterministic" as const,
+  };
+  // Q-009: an ONL class has no fixed slot; one non-fixed session lets it match the timetable and count for credits.
+  const sessions: Session[] = kind === "ONL"
+    ? [{ id: `${sectionId}:${source.sourceRow}:non-fixed`, fixedTime: false, ...sessionBase }]
+    : days.flatMap((day) => ranges.map((range) => ({
+      id: `${sectionId}:${source.sourceRow}:${day}:${range.startPeriod}-${range.endPeriod}`,
+      day,
+      startPeriod: range.startPeriod,
+      endPeriod: range.endPeriod,
+      ...sessionBase,
+    })));
   return {
     id: sectionId,
     courseCode,
@@ -237,11 +238,6 @@ export const vnuRegistrationHtmlAdapter: ParserAdapter = {
       const row: Record<string, string> = {};
       for (const [canonical, index] of columns) row[canonical] = values[index] ?? "";
       const sourceRow = rowIndex + 1;
-      // Q-009: ONL classes are not in the timetable dataset, so they are not merged either.
-      if (normalizeKind(row.kind) === "ONL") {
-        issues.push(issue("ONLINE_SECTION_EXCLUDED", "warning", "ONL registration row excluded", { sourceRow, field: "kind" }));
-        continue;
-      }
       const section = safeCandidateSection(row, { artifactId: artifact.id, sourceType: "registration", sourceRow }, teachingWeeks);
       if (!row.courseCode || !row.sectionId || section.sessions.length === 0) {
         issues.push(issue("REGISTRATION_OVERRIDE_UNMATCHED", "warning", "registration schedule row could not produce a complete local candidate", { sourceRow }));

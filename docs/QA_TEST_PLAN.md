@@ -31,7 +31,7 @@ Chứng minh Kỳ Này đúng với dữ liệu UET biến thiên, an toàn vớ
 - File kết quả đăng ký lưu trong secure store **chỉ sau khi đã xóa họ tên, ngày sinh, mã sinh viên** (raw file không bao giờ được lưu).
 - Mỗi fixture manifest ghi source family, schema version, expected counts, issue codes; hash chỉ ghi cho input timetable synthetic/non-PII được phép. Registration local-only không hash và không ghi filename/PII.
 - **M1/M2 local evidence (20/10/2026):** `npm run lint`, `npm run typecheck`, `npm test` (54/54 Node tests) và `npm run fixtures:run` (5/5 synthetic fixture entries) đã pass trong working tree; M2 tests cover search/alias, Plan/group, week-aware conflict, week1/date, registration merge/override và credits, đồng thời giữ M1 parser/privacy regression. Đây không thay thế approved real-UET golden run, browser/E2E/network, accessibility/device evidence hoặc independent G3a/G3b/G3c sign-off. `npm audit --omit=dev` pass với 0 production vulnerabilities.
-- **Re-run 25/10/2026 tại `main` `aba04b0`:** cùng kết quả (54/54, 5/5, 0 vulnerabilities). Các báo cáo G3 của M2 do agent role tự soạn và đã được reopen bởi [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md): chưa có golden conflict matrix/property test theo exit gate M2, chưa có test pass-path cho time override của AC-05, chưa có synthetic row cho `Sáng/Chiều`, ONL và date-range note, chưa có script `test:real`. Remote CI chưa từng chạy. Sau fix round 1–2: 69/69 test (thêm unit test cho `Sáng/Chiều`, loại `ONL`, tuần sai, AC-05 đổi thứ/tiết, Plan chính thức, import lại, tuần TKB thắng default TH); synthetic fixture trong manifest, golden matrix, property test và `test:real` vẫn thiếu.
+- **Re-run 25/10/2026 tại `main` `aba04b0`:** cùng kết quả (54/54, 5/5, 0 vulnerabilities). Các báo cáo G3 của M2 do agent role tự soạn và đã được reopen bởi [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md): chưa có golden conflict matrix/property test theo exit gate M2, chưa có test pass-path cho time override của AC-05, chưa có synthetic row cho `Sáng/Chiều`, ONL và date-range note, chưa có script `test:real`. Remote CI chưa từng chạy. Sau fix round 1–3: 70/70 test (thêm unit test cho `Sáng/Chiều`, `ONL` non-fixed + tín chỉ, tuần sai, AC-05 đổi thứ/tiết, Plan chính thức, import lại, tuần TKB thắng default TH); synthetic fixture trong manifest, golden matrix, property test và `test:real` vẫn thiếu.
 - Khi source document chưa được phép commit, tạo minimized synthetic reproducer giữ đúng lỗi format.
 - Thay đổi expected output phải có reason/reviewer, không update snapshot để làm xanh test mù.
 
@@ -59,7 +59,7 @@ Số lượng nêu trong brief là sanity signal, không được hard-code làm
 - same day/overlap period/overlap week → hard conflict;
 - same period but disjoint weeks → no conflict;
 - adjacent periods (3 and 4) → no overlap;
-- no fixed time (đồ án) → no grid conflict, list warning; `ONL` rows excluded by parser/registration adapter with `ONLINE_SECTION_EXCLUDED` (Q-009);
+- ONL/no fixed time → no grid conflict, list warning; `ONL` rows are always non-fixed even with a day/period in the source, and still count credits (Q-009);
 - TH registration default weeks never replace explicit timetable weeks (Q-010);
 - group `CL` vs numbered group; duplicate section rows;
 - Saturday support, Sunday config extension;
