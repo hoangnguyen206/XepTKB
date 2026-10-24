@@ -96,13 +96,16 @@ Các giá trị sau phải nhất quán ở mọi tài liệu:
 
 ## M2 evidence hiện tại
 
-- [ADR-0009 — M2 domain engine contract and schema migration](adr/ADR-0009-m2-domain-engine-schema.md) — schema `0.2.0`; G1 acknowledgement pending.
-- [M2 design handoff](evidence/M2-DESIGN-HANDOFF.md) — pure domain contract, alternatives and verification plan; `g1-blocked` until acknowledgement.
-- [M2 implementation handoff](evidence/M2-IMPLEMENTATION-HANDOFF.md) — local search/Plan/conflict/date/merge/credits implementation; readiness acknowledgement pending.
-- [M2 test report](evidence/M2-TEST-REPORT.md) — 54/54 Node tests and 5/5 synthetic fixture entries locally pass; independent G3a sign-off pending.
-- [M2 evidence envelope](evidence/M2-EVIDENCE-ENVELOPE.md) — schema migration, commands, privacy boundary and open gates.
+- [ADR-0009 — M2 domain engine contract and schema migration](adr/ADR-0009-m2-domain-engine-schema.md) — schema `0.2.0`; G1 acknowledged.
+- [M2 design handoff](evidence/M2-DESIGN-HANDOFF.md) — pure domain contract, alternatives and verification plan.
+- [M2 implementation handoff](evidence/M2-IMPLEMENTATION-HANDOFF.md) — search/Plan/conflict/date/merge/credits implementation; commit `7faccaf`.
+- [M2 test report (draft)](evidence/M2-TEST-REPORT.md) — superseded by G3a report.
+- [M2 G3a QA report](evidence/M2-G3a-QA-REPORT.md) — `qa-pass-with-follow-up`; 54/54 tests, 5/5 fixtures, 5 S2 follow-ups.
+- [M2 G3b security review](evidence/M2-G3b-SECURITY-REVIEW.md) — `security-pass-with-exception`; no S0/S1; 3 S2 inherited exceptions.
+- [M2 G3c independent review](evidence/M2-G3c-INDEPENDENT-REVIEW.md) — `review-pass-with-follow-up`; code review pass; 3 S2 informational findings.
+- [M2 evidence envelope v2](evidence/M2-EVIDENCE-ENVELOPE-v2.md) — consolidated gate decisions, commit `7faccaf`, all G3 gates passed.
 
-M2 chưa bao gồm UI/PWA, IndexedDB, export, browser interception, artifact loader, backend/admin publish hoặc real-source validation. Không claim G1/G2/G3a/G3b/G3c, dataset publish hay release từ local evidence này.
+M2 gates (G2 + G3a + G3b + G3c) đã verified; M2 sẵn sàng merge vào `main`. M2 chưa bao gồm UI/PWA, IndexedDB, export, browser interception, artifact loader, backend/admin publish hoặc real-source validation. G4a/G4b (release) vẫn require M3–M5 completion.
 ## Cách dùng
 
 - Product cập nhật PRD và roadmap.
