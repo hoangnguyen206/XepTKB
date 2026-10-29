@@ -81,3 +81,11 @@ temp/
 
 # tsbuildinfo incremental state
 *.tsbuildinfo
+
+# Web app generated/test output
+/apps/web/public/data/
+/apps/web/test-results/
+/apps/web/playwright-report/
+
+# Playwright MCP session output
+.playwright-mcp/

@@ -1,0 +1,96 @@
+import { createHash } from "node:crypto";
+import react from "@vitejs/plugin-react";
+import type { Plugin } from "vite";
+import { defineConfig } from "vitest/config";
+
+/** ADR-0010 §4. Build only: the dev server needs inline scripts for hot reload. */
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self'",
+  "img-src 'self' data: blob:",
+  "font-src 'self'",
+  "connect-src 'self'",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+].join("; ");
+
+function contentSecurityPolicy(): Plugin {
+  return {
+    name: "ky-nay-csp",
+    apply: "build",
+    transformIndexHtml(html) {
+      return html.replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`);
+    },
+  };
+}
+
+/** Files copied from `public/` that belong to the app shell (datasets live in IndexedDB instead). */
+const PUBLIC_SHELL = ["icon.svg", "manifest.webmanifest"];
+
+/** Emits `sw.js` with this build's precache list; the cache name is a hash of the list (ADR-0010 §4). */
+function serviceWorker(): Plugin {
+  return {
+    name: "ky-nay-service-worker",
+    apply: "build",
+    enforce: "post",
+    generateBundle(_options, bundle) {
+      const assets = Object.keys(bundle).filter((file) => !file.endsWith(".map") && file !== "sw.js").sort();
+      const precache = ["./", ...[...assets, ...PUBLIC_SHELL].map((file) => `./${file}`)];
+      const content = Object.values(bundle).map((item) => ("code" in item ? item.code : String(item.source))).join("");
+      // The cache name changes whenever the precache list, any bundled file or the worker code changes.
+      const version = createHash("sha256").update(precache.join("\n")).update(content).update(workerSource("", precache)).digest("hex").slice(0, 16);
+      this.emitFile({ type: "asset", fileName: "sw.js", source: workerSource(version, precache) });
+    },
+  };
+}
+
+function workerSource(version: string, precache: readonly string[]): string {
+  return `/* Kỳ Này service worker — generated at build time (ADR-0010 §4). */
+const CACHE = "ky-nay-shell-${version}";
+const PRECACHE = ${JSON.stringify(precache)};
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
+});
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => key.startsWith("ky-nay-shell-") && key !== CACHE).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim()),
+  );
+});
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") self.skipWaiting();
+});
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || url.pathname.includes("/data/")) return;
+  if (request.mode === "navigate") {
+    event.respondWith(fetch(request).catch(() => caches.open(CACHE).then((cache) => cache.match("./index.html")).then((hit) => hit || Response.error())));
+    return;
+  }
+  // Assets are content-hashed, so Vary (e.g. Origin on crossorigin module scripts) can be ignored.
+  event.respondWith(caches.open(CACHE).then((cache) => cache.match(request, { ignoreVary: true })).then((hit) => hit || fetch(request)));
+});
+`;
+}
+
+export default defineConfig({
+  base: "./",
+  plugins: [react(), contentSecurityPolicy(), serviceWorker()],
+  build: {
+    sourcemap: false,
+    target: "es2022",
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
+    restoreMocks: true,
+  },
+});

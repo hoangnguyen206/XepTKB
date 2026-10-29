@@ -1,4 +1,4 @@
-name: M0 checks
+name: CI checks
 
 on:
   push:
@@ -9,17 +9,35 @@ permissions:
   contents: read
 
 jobs:
-  foundation:
+  check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - name: Install locked dependencies
         run: npm ci
-      - name: Run M0 checks
+      - name: Lint, typecheck, unit/component tests, parser fixtures
         run: npm run check
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: npx -w @ky-nay/web playwright install --with-deps chromium
+      - name: End-to-end tests (production build, synthetic dataset)
+        run: npm run test:e2e

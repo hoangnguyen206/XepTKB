@@ -2,7 +2,7 @@
 
 > **Status:** draft / required gate  
 > **Owner:** Security Reviewer  
-> **Last reviewed:** 2026-10-20
+> **Last reviewed:** 2026-10-25
 > **Related docs:** [Architecture](ARCHITECTURE.md), [Tech stack](TECH_STACK.md), [Operations](OPERATIONS.md)
 
 > Tài liệu này là baseline kỹ thuật, không phải tư vấn pháp lý. Trước khi thu tiền, lưu account hoặc mở vendor/cross-border processing, cần rà soát với người có chuyên môn và quy định hiện hành.
@@ -34,6 +34,7 @@
 
 - Registration artifact metadata is local-only: no content hash, user-selected filename, raw HTML or identity field may enter telemetry, logs, network DTOs or shared evidence. Approved non-PII timetable inputs retain a provenance hash.
 - M1 parser package và M2 pure domain engine đã kiểm tra local bằng synthetic fixtures/unit tests; M2 không thêm network, storage, credential hoặc external-service boundary. Đây chưa phải browser/network G3b evidence. Khi app có file picker ở M3/M4, phải chạy interception test để chứng minh raw registration bytes/PII không vào request, log, analytics hoặc Sentry.
+- M3 (2026-10-25, chưa commit): web app chưa có file picker và không xử lý PII. [G3b M3](evidence/M3-G3b-SECURITY-REVIEW.md) (agent role, chưa phải sign-off của người) kết luận `security-pass-with-exception`: chỉ request GET cùng origin, không analytics/cookie/localStorage, dữ liệu dataset hiển thị như text trong UI/Word/ICS/PNG, CSP build chặn script inline. 7 finding S3 còn mở (SEC-M3-001…007: dataset thu hồi hiện lại khi offline, `%2e%2e` lọt qua kiểm tra URL, cờ build cho dữ liệu chưa công bố, giới hạn kích thước khi thiếu Content-Length, lint guard yếu, wipe chưa sạch khi nhiều tab, thiếu header khi deploy). SEC-M3-005 và SEC-M3-006 phải đóng trước G3b của M4 vì M4 sẽ lưu dữ liệu suy ra từ file đăng ký.
 - CI/repository không chứa raw source có PII, `.env`, token hoặc fixture chưa redacted.
 
 ## 3. Data-flow controls

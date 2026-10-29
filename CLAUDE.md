@@ -1,14 +1,14 @@
 # Kỳ Này — Hướng dẫn làm việc cho Claude Code và Agent
 
-> **Status:** draft / M0–M2 implementation present; app/release gates pending
+> **Status:** draft / M0–M2 implementation present; M3 web app implemented but not through G3 (uncommitted); app/release gates pending
 > **Owner:** Tech Lead  
-> **Last reviewed:** 2026-10-20
+> **Last reviewed:** 2026-10-25
 > **Source of truth:** các tài liệu trong `docs/`; bản brief chỉ là nguồn đầu vào ban đầu.
 > **Related docs:** [docs index](docs/README.md), [Agent workflow](.claude/AGENT_WORKFLOW.md)
 
 ## 1. Bối cảnh
 
-Kỳ Này (tên làm việc, chưa chốt thương hiệu) là web app/PWA giúp sinh viên UET xếp thời khóa biểu từ dữ liệu trường phát hành. MVP tập trung UET, chạy tốt trên điện thoại nhưng không bỏ qua desktop. Repository hiện có foundation, parser và M2 domain engine packages; chưa có mã nguồn ứng dụng web/PWA.
+Kỳ Này (tên làm việc, chưa chốt thương hiệu) là web app/PWA giúp sinh viên UET xếp thời khóa biểu từ dữ liệu trường phát hành. MVP tập trung UET, chạy tốt trên điện thoại nhưng không bỏ qua desktop. Repository hiện có foundation, parser, M2 domain engine, package export và web app M3 (`apps/web`, chưa commit, chưa qua G3 — xem [EVID-M3-001](docs/evidence/M3-EVIDENCE-ENVELOPE.md)); chưa có deploy, dataset publish hay release.
 
 Mốc kinh doanh/kỹ thuật cần ưu tiên là khi trường công bố TKB học kỳ II năm học 2026–2027, dự kiến tuần **09–15/11/2026**. Nếu không kịp, cắt scope theo [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), không âm thầm hạ chất lượng parser hoặc privacy.
 
@@ -81,7 +81,7 @@ Một task chỉ hoàn thành khi đạt gate tương ứng trong [Agent workflo
 - docs, changelog, rollback/monitoring và handoff được cập nhật;
 - không dùng dữ liệu thật trong CI hoặc log.
 
-Các tài liệu sản phẩm vẫn ở `draft`/`proposed`; M1 parser và M2 domain packages có local test/evidence nhưng G0–G5 chưa đạt cho tới khi có actor/date/evidence độc lập theo từng gate. Không điền giả trạng thái app build/test/release.
+Các tài liệu sản phẩm vẫn ở `draft`/`proposed`; M1 parser, M2 domain packages và web app M3 có local test/evidence nhưng G0–G5 chưa đạt (G3a/G3c của M3 đang `no-go`) cho tới khi có actor/date/evidence độc lập theo từng gate. Không điền giả trạng thái app build/test/release.
 
 ## 6. Quy tắc cho Agent
 
@@ -98,6 +98,6 @@ Các tài liệu sản phẩm vẫn ở `draft`/`proposed`; M1 parser và M2 dom
 - Kiểm tra link và tên file.
 - Đối chiếu P0 trong PRD với implementation plan, parser spec và QA matrix; coverage P0 thiếu là no-go.
 - Kiểm tra invariants: period, weeks, override precedence, PII boundary, dataset version.
-- Chạy test/lint phù hợp; không tuyên bố app build xanh khi dự án chưa có mã nguồn ứng dụng.
+- Chạy test/lint phù hợp (`npm run check`, và `npm run test:e2e` khi chạm web app); không tuyên bố build/test/gate xanh khi chưa chạy hoặc khi gate còn `no-go`.
 - Ghi rõ những gì chưa chạy, chưa chốt hoặc cần người dùng quyết định.
 - Khi contract/schema/privacy/data/parser rule đổi, reopen gate sớm nhất bị ảnh hưởng theo [Agent workflow](.claude/AGENT_WORKFLOW.md).

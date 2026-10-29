@@ -3,28 +3,34 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Ky Nay - UET timetable planner (M0 foundation: monorepo, contracts, and synthetic fixture harness). Docs: docs/README.md",
+  "description": "Ky Nay - UET timetable planner: domain/parser/export packages and the M3 web app (apps/web). Docs: docs/README.md",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "build": "tsc -b tsconfig.build.json",
-    "typecheck": "tsc -b tsconfig.build.json --pretty false",
+    "typecheck": "tsc -b tsconfig.build.json --pretty false && npm run typecheck -w @ky-nay/web",
     "lint": "node scripts/lint.mjs",
-    "test": "npm run build && node --test \"packages/*/dist/test/*.test.js\"",
+    "test": "npm run build && node scripts/run-node-tests.mjs && npm run test -w @ky-nay/web",
+    "test:e2e": "npm run build && npm run e2e -w @ky-nay/web",
     "fixtures:run": "npm run build && node packages/parser/dist/bin/run-fixtures.js fixtures --verbose",
     "check": "npm run lint && npm run typecheck && npm test && npm run fixtures:run",
-    "clean": "node -e \"import('node:fs').then(fs=>{for(const p of ['packages/domain/dist','packages/parser/dist'])fs.rmSync(p,{recursive:true,force:true})})\""
+    "dev": "npm run build && npm run dev -w @ky-nay/web",
+    "clean": "node -e \"import('node:fs').then(fs=>{for(const p of ['packages/domain/dist','packages/parser/dist','packages/export/dist','apps/web/dist'])fs.rmSync(p,{recursive:true,force:true})})\""
   },
   "devDependencies": {
     "@types/node": "22.19.17",
     "typescript": "5.9.3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.22.2"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.12",
     "fflate": "^0.8.3"
+  },
+  "overrides": {
+    "playwright-core": "1.64.0"
   }
 }
