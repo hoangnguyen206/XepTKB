@@ -7,7 +7,7 @@
 
 ## Mục đích
 
-Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ vì còn thiếu actor/sign-off độc lập ở các bước tương ứng. M1 parser và M2 domain engine đã được commit và push lên `main` với local evidence, nhưng chưa phải bằng chứng publish/release; xem [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md) cho các finding còn mở. M3 (web app) đã có code và test local nhưng chưa commit và **chưa qua G3** (1 S1 mở); xem [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md). Không được coi bộ docs này là bằng chứng build/test/deploy/release hoàn chỉnh.
+Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ vì còn thiếu actor/sign-off độc lập ở các bước tương ứng. M1 parser và M2 domain engine đã được commit và push lên `main` với local evidence, nhưng chưa phải bằng chứng publish/release; xem [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md) cho các finding còn mở. M3 (web app) đã commit trên nhánh `m3-web-app` (`82cb85b`, draft PR #1, CI GitHub xanh 29/10/2026) nhưng chưa merge vào `main` và **chưa qua G3** (1 S1 mở); xem [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md). Không được coi bộ docs này là bằng chứng build/test/deploy/release hoàn chỉnh.
 
 Đây là bản đồ tài liệu source of truth cho Kỳ Này. Bản brief `Kế hoạch sản phẩm – Tool xếp TKB cho sinh viên VNU.md` là nguồn nghiên cứu ban đầu; khi brief và tài liệu dự án khác nhau, phải mở decision/ADR hoặc hỏi Product/Tech Lead, không tự chọn theo trí nhớ.
 
@@ -115,7 +115,7 @@ M2 đã merge vào `main` (`aba04b0`) và đã push cùng fix round audit (`e41a
 
 - [M3 spec](evidence/M3-SPEC.md) (`SPEC-M3-001`, G0) — scope, AC-M3-01…13, quyết định D-M3-1…4 (đóng đề xuất cho C-08, C-02); Product chưa ghi actor/date.
 - [ADR-0010 — web app, artifact loader contract, local storage, export](adr/ADR-0010-m3-web-app-artifact-storage-export.md) và [M3 design handoff](evidence/M3-DESIGN-HANDOFF.md) (G1) — Tech Lead chưa acknowledge; ADR có mục "Status after G3" liệt kê các điểm contract còn mở.
-- [M3 implementation handoff](evidence/M3-IMPLEMENTATION-HANDOFF.md) (G2) — code chưa commit trên `4681c63`.
+- [M3 implementation handoff](evidence/M3-IMPLEMENTATION-HANDOFF.md) (G2) — viết khi code chưa commit trên `4681c63`; code nay ở `82cb85b` (nhánh `m3-web-app`).
 - [M3 G3a QA](evidence/M3-G3a-QA-REPORT.md) — `qa-no-go` (QA-M3-001 S1).
 - [M3 G3b security](evidence/M3-G3b-SECURITY-REVIEW.md) — `security-pass-with-exception` (7 × S3; exception chưa được Release Manager chấp thuận).
 - [M3 G3c review](evidence/M3-G3c-INDEPENDENT-REVIEW.md) — `review-no-go` (REV-M3-001 S1, thiếu envelope).

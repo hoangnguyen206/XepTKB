@@ -1,6 +1,6 @@
 # Kỳ Này — Hướng dẫn làm việc cho Claude Code và Agent
 
-> **Status:** draft / M0–M2 implementation present; M3 web app implemented but not through G3 (uncommitted); app/release gates pending
+> **Status:** draft / M0–M2 implementation present; M3 web app implemented but not through G3 (branch `m3-web-app`, draft PR #1, not merged); app/release gates pending
 > **Owner:** Tech Lead  
 > **Last reviewed:** 2026-10-25
 > **Source of truth:** các tài liệu trong `docs/`; bản brief chỉ là nguồn đầu vào ban đầu.
@@ -8,7 +8,7 @@
 
 ## 1. Bối cảnh
 
-Kỳ Này (tên làm việc, chưa chốt thương hiệu) là web app/PWA giúp sinh viên UET xếp thời khóa biểu từ dữ liệu trường phát hành. MVP tập trung UET, chạy tốt trên điện thoại nhưng không bỏ qua desktop. Repository hiện có foundation, parser, M2 domain engine, package export và web app M3 (`apps/web`, chưa commit, chưa qua G3 — xem [EVID-M3-001](docs/evidence/M3-EVIDENCE-ENVELOPE.md)); chưa có deploy, dataset publish hay release.
+Kỳ Này (tên làm việc, chưa chốt thương hiệu) là web app/PWA giúp sinh viên UET xếp thời khóa biểu từ dữ liệu trường phát hành. MVP tập trung UET, chạy tốt trên điện thoại nhưng không bỏ qua desktop. Repository hiện có foundation, parser, M2 domain engine, package export và web app M3 (`apps/web`, commit `82cb85b` trên nhánh `m3-web-app`/draft PR #1, chưa merge vào `main`, chưa qua G3 — xem [EVID-M3-001](docs/evidence/M3-EVIDENCE-ENVELOPE.md)); chưa có deploy, dataset publish hay release.
 
 Mốc kinh doanh/kỹ thuật cần ưu tiên là khi trường công bố TKB học kỳ II năm học 2026–2027, dự kiến tuần **09–15/11/2026**. Nếu không kịp, cắt scope theo [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), không âm thầm hạ chất lượng parser hoặc privacy.
 

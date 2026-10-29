@@ -12,14 +12,14 @@
 ## Source and traceability
 
 - Source docs: SPEC-M3-001 (G0), DESIGN-M3-001 + ADR-0010 (G1), IMPL-M3-001 (G2), TEST-M3-001 (G3a), SEC-REVIEW-M3-001 (G3b), REVIEW-M3-001 (G3c).
-- Source version: working tree **chưa commit** trên `main` @ `4681c63` (xem mục Immutable execution identity).
+- Source version: G3 ngày 2026-10-25 chạy trên working tree **chưa commit** trên `main` @ `4681c63`; từ 2026-10-29 change set nằm ở commit `82cb85b` (xem mục Immutable execution identity).
 - Requirement/AC: M3 slice của FR-01–FR-08, FR-11, AC-01, AC-06, AC-07; AC-M3-01…13 trong SPEC-M3-001.
 - P0 completeness claim: `no` — M3 là một milestone; M4 (registration UI) và M5 (admin publish, hardening, release) còn lại. Trong phạm vi M3, AC-M3-03 và AC-M3-12 **fail** ở kịch bản dataset mới đổi nhóm (QA-M3-001/REV-M3-001).
 - G0/G1: SPEC-M3-001, DESIGN-M3-001, ADR-0010 vẫn `g0/g1-blocked` về hình thức (chưa có actor/date). Implementation làm theo yêu cầu owner ngày 2026-10-25.
 
 ## Immutable execution identity
 
-- Commit/PR: **chưa có** — target là working tree chưa commit trên `4681c63`; G3 chạy trên cùng target (G3b ghi hash từng file đã review trong báo cáo của mình). Cần commit để đóng phần "target bất biến" của REV-M3-005/QA-M3-010.
+- Commit/PR: `82cb85b` trên nhánh `m3-web-app` (base `4681c63`), [draft PR #1](https://github.com/hoangnguyen206/XepTKB/pull/1), commit ngày 2026-10-29. So với target mà G3 ngày 2026-10-25 đã chạy, commit này chỉ thêm việc nâng `actions/checkout`/`actions/setup-node` từ `v4` lên `v5` trong workflow CI, không đổi code app. Kiểm tra ngày 2026-10-29: 16/16 file có hash trong G3b khớp với nội dung trong `82cb85b`; riêng `apps/web/playwright.config.ts` thì G3b ghi `4eb15909…3331a`, thực tế là `4eb1590b…3331a`, nên đây là lỗi chép tay vì file không đổi từ 25/10 02:50. Sau khi G3a kết thúc (25/10 07:18), file code duy nhất bị sửa là workflow CI. G3 ngày 2026-10-25 vẫn gắn với working tree chưa commit; lần chạy lại G3 phải dùng một commit cố định.
 - Thay đổi sau IMPL-M3-001 (trước khi G3 chạy lại lần 2): `apps/web/src/app/controller.ts` (dev server `import.meta.env.DEV` được nạp dữ liệu chưa công bố), script root `dev`, `README.md` viết lại; agent QA thêm `apps/web/src/qa-m3.test.tsx` (8 test) và `apps/web/e2e/qa-m3.spec.ts` (4 test).
 - Toolchain: Windows 10 Pro 19045, Node 22.22.2, npm 12.0.2, TypeScript 5.9.3, Vite 8.3.4, Vitest 5.0.3, Playwright 1.64.0 (Chromium headless shell 156.0.8078.4; agent QA cài thêm WebKit cho smoke).
 - Lệnh và kết quả (chạy lại 2026-10-25 sau khi G3 kết thúc, cùng working tree):
@@ -30,6 +30,7 @@
 | `npm run test:e2e` | 0 | Playwright **14/14** (10 + 4 của QA), bản build production có service worker + CSP |
 | `node scripts/bench-m3.mjs` | 0 | ~1.200 lớp: search p95 2–5 ms, conflict p95 2–5 ms (máy dev; ngân sách chính thức là M5) |
 | `npm audit` / `npm audit --omit=dev` | 0 | 0 vulnerabilities (G3b thêm `npm audit signatures`: 104 package verified) |
+| GitHub Actions trên PR #1 ([run 40907344256](https://github.com/hoangnguyen206/XepTKB/actions/runs/40907344256), 2026-10-29, merge `82cb85b` vào `4681c63`, ubuntu-24.04, Node 22.23.4, npm 10.9.9) | 0 | job `check`: lint + typecheck pass, node:test **78/78**, Vitest **39/39**, fixtures **5/5**, `npm ci` 0 vulnerabilities; job `e2e`: Playwright **14/14** |
 
 ## Data and artefact integrity
 
@@ -58,7 +59,7 @@
 | 4 | S2 | REV-M3-004 | Ghi IndexedDB lỗi (hết dung lượng) làm bỏ dataset đã kiểm tra hợp lệ và báo nhầm "Dữ liệu tải về không hợp lệ"; mở qua HTTP (không HTTPS) cũng báo nhầm như vậy (`loader.ts:119-123,151-161`) | Frontend/Coder | trước G4a | open |
 | 5 | S2 | QA-M3-004 | WebKit: banner "Có phiên bản mới" giả xuất hiện 9/12 lần mở đầu, nút "Tải lại" không làm gì (`sw-client.ts:23-25,32-33`); cần xác nhận trên iPhone thật | Frontend/Coder + owner (thiết bị thật) | trước G4a | open |
 | 6 | S2 | QA-M3-005 (+ SEC-M3-006b) | Hai tab cùng mở: ghi sau đè ghi trước, mất lớp đã chọn; xóa dữ liệu ở tab này, tab kia ghi lại Plan cũ (`controller.ts:89-108`) | Frontend/Coder | trước M4 G3b (M4 lưu dữ liệu từ file đăng ký) | open |
-| 7 | S2 (process) | REV-M3-005 = QA-M3-010 | Thiếu envelope EVID-M3-001 và target G2 chưa bất biến | Tech Lead | trước khi chạy lại G3 | **một phần**: envelope đã tạo (file này); target vẫn chưa commit |
+| 7 | S2 (process) | REV-M3-005 = QA-M3-010 | Thiếu envelope EVID-M3-001 và target G2 chưa bất biến | Tech Lead | trước khi chạy lại G3 | **một phần**: envelope đã tạo (file này); target đã commit `82cb85b` (2026-10-29), nhưng G3 phải chạy lại trên commit cố định mới đóng được |
 | 8 | S3 | SEC-M3-001 | Dataset đã bị thu hồi (`retracted`) hiện lại từ cache khi sau đó mất mạng | Frontend (loader) | trước G4b, ≤ 2026-11-08 | open |
 | 9 | S3 | SEC-M3-002 | URL artifact dạng `%2e%2e` lọt qua `isSafeRelativeUrl`, thoát khỏi `data/` (SHA-256 vẫn được kiểm tra) | Frontend | trước G4b, ≤ 2026-11-08 | open |
 | 10 | S3 | SEC-M3-003 | Cờ cho phép dữ liệu chưa công bố là cờ build; build e2e ghi vào cùng `apps/web/dist` với bản release; chính sách cờ tắt chưa có test trên trình duyệt | Frontend + Release Manager | trước G4a đầu tiên | open |
@@ -85,7 +86,7 @@
 - Owner đã chọn tự sửa sau (2026-10-25). Điều kiện chạy lại G3:
   1. sửa finding 1–2 (S1/S2) kèm regression test theo repro của QA (probe 2b/2c/7) và REV-M3-001;
   2. sửa hoặc có owner + mitigation + expiry được Release Manager chấp thuận cho finding 3–6;
-  3. commit change set M3 (đóng nốt finding 7) và cập nhật IMPL-M3-001;
+  3. commit change set M3 (đã làm: `82cb85b`, 2026-10-29) và cập nhật IMPL-M3-001 (chưa làm);
   4. Product/Tech Lead ghi actor/date cho G0 (SPEC-M3-001) và G1 (ADR-0010), chốt D-M3-1…4 và deviation (c)(d) của REV-M3-009;
   5. chạy lại `npm run check`, `npm run test:e2e`, các probe của QA/G3b; ba báo cáo G3 mới thay thế bản ngày 2026-10-25.
-- Kiểm tra thủ công còn thiếu (owner): import `.ics` vào ứng dụng lịch; xem PNG/Word/bản in; Safari iOS, Chrome Android, trình duyệt trong Zalo/Messenger; trình đọc màn hình; chạy CI trên GitHub.
+- Kiểm tra thủ công còn thiếu (owner): import `.ics` vào ứng dụng lịch; xem PNG/Word/bản in; Safari iOS, Chrome Android, trình duyệt trong Zalo/Messenger; trình đọc màn hình. CI trên GitHub đã chạy và xanh trên PR #1 (2026-10-29).

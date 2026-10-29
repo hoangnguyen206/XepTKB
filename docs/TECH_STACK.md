@@ -23,7 +23,7 @@
 | Tests | Vitest, Testing Library, Playwright, axe, fast-check | unit/domain, UI/accessibility, browser/offline/property. **M3 thực tế:** package dùng `node:test`; web dùng Vitest + Testing Library + jsdom + fake-indexeddb; e2e Playwright + `@axe-core/playwright`; fast-check chưa dùng |
 
 - **M1/M2 status:** offline parser and pure domain packages plus synthetic fixtures are implemented and locally verified; M2 search/Plan/conflict/week-date/registration-merge/credits are package-level only.
-- **M3 status (2026-10-25):** React 19 + Vite 8 app (`apps/web`), artifact loader, IndexedDB, service worker and ICS/PNG/Word/print export are implemented with the dependency set and deviations recorded in [ADR-0010](adr/ADR-0010-m3-web-app-artifact-storage-export.md); the change set is uncommitted and **not through G3** (see [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md)). Dev tooling needs Node ≥ 22.22.2. The publish path, hosting headers and PWA hardening remain M5.
+- **M3 status (2026-10-25):** React 19 + Vite 8 app (`apps/web`), artifact loader, IndexedDB, service worker and ICS/PNG/Word/print export are implemented with the dependency set and deviations recorded in [ADR-0010](adr/ADR-0010-m3-web-app-artifact-storage-export.md); the change set is committed as `82cb85b` on branch `m3-web-app` (draft PR #1, CI green on 2026-10-29, not merged into `main`) and **not through G3** (see [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md)). Dev tooling needs Node ≥ 22.22.2. The publish path, hosting headers and PWA hardening remain M5.
 
 ## 2. Boundary client/server
 
