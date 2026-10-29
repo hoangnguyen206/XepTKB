@@ -70,7 +70,7 @@ Các giá trị sau phải nhất quán ở mọi tài liệu:
 | D-005 | Browser matrix Tier 1/2 + analytics cookieless aggregate | **Closed** (Q-007/Q-008) | Product + Security 20/10/2026 |
 | D-006 | Có tài khoản/sync trong release đầu không | **Closed**: không | Product 20/10/2026 |
 | D-007 | Fixture policy: synthetic + `test:real` ngoài repo; registration file xóa PII trước khi lưu | **Closed** (Q-006) | Data Ops + Security 20/10/2026 |
-| D-008 | Lịch phát hành cụ thể ngoài cửa sổ 09–15/11/2026 | Open | Product theo thông báo trường |
+| D-008 | Lịch phát hành cụ thể ngoài cửa sổ 09–15/11/2026 | **Một phần** (Q-011, 29/10/2026): tháng 11/2026 là beta nội bộ chỉ M3, không public; ngày public còn mở | Product theo thông báo trường |
 | D-009 | Plan slots P0: 1 draft + 1 final (từ file đăng ký); nhiều nháp P1 | **Closed** (Q-005) | Product 20/10/2026 |
 | D-010 | Export: `.doc` HTML + PNG + ICS + print CSS; không PDF generator | **Closed** (Q-002) | Product 20/10/2026 |
 | D-011 | Week 1 fixture HK II = 15/02/2027 (HK I giữ fixture riêng) | **Closed** (Q-001) | Product 20/10/2026 |
@@ -122,7 +122,7 @@ M2 đã merge vào `main` (`aba04b0`) và đã push cùng fix round audit (`e41a
 - [M3 evidence envelope](evidence/M3-EVIDENCE-ENVELOPE.md) (`EVID-M3-001`) — lệnh/kết quả, sổ 21 finding đã gộp trùng (1 S1, 6 S2, 14 S3), điều kiện chạy lại G3.
 - [Ảnh màn hình 360/768/1280](evidence/m3-screens/) — dữ liệu mẫu.
 
-M3 chưa được sang G4a/G4b. Owner sẽ tự sửa các finding; mọi sửa đổi mở lại G2/G3a/G3c (và G3b nếu chạm loader, storage, CSP hoặc service worker).
+M3 chưa được sang G4a/G4b. Owner sẽ tự sửa các finding; mọi sửa đổi mở lại G2/G3a/G3c (và G3b nếu chạm loader, storage, CSP hoặc service worker). Ngày 29/10/2026 đã sửa finding 1–2 (S1/S2, chờ G3 chạy lại) và chốt C-09 bằng sample thật ([REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md)).
 
 ## Cách dùng
 

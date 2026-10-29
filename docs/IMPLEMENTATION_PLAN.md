@@ -40,7 +40,7 @@ Thứ tự phụ thuộc cứng: M0 → M1 → M2 → M3 → M4 → M5. Trong t�
 
 ### Fallback
 
-Nếu không kịp cửa sổ tháng 11/2026, giữ core cho beta nội bộ và nhắm kỳ phụ 31/05–06/06/2027 hoặc năm học 2027–2028 05–11/07/2027. Không phát hành public bằng dataset chưa review chỉ để giữ ngày.
+Nếu không kịp cửa sổ tháng 11/2026, giữ core cho beta nội bộ và nhắm kỳ phụ 31/05–06/06/2027 hoặc năm học 2027–2028 05–11/07/2027. **Đã chọn (Q-011, 29/10/2026):** cửa sổ tháng 11/2026 là beta nội bộ chỉ với M3, không public. Không phát hành public bằng dataset chưa review chỉ để giữ ngày.
 
 ## 3. Workstreams
 
@@ -180,6 +180,7 @@ Tất cả 8 quyết định đã được Product Owner approve. Chi tiết s�
 | --- | --- | --- | --- | --- |
 | Q-009 | Lớp ghi `ONL` hiển thị thế nào? | **Có trong app, tính tín chỉ, không hiện trên TKB tuần.** Lớp `ONL` học tự do theo từng giảng viên: parser `uet-xlsx` và adapter registration luôn tạo session `fixedTime=false` (warning `NON_FIXED_TIME`), bỏ qua thứ/tiết nếu nguồn có ghi; môn vẫn tìm, chọn, merge đăng ký và cộng tín chỉ được, không chiếm ô grid, không tính conflict | Product (owner) | [PRD §4 #4, FR-06, FR-08](PRD.md), [PARSER_SPEC §5](PARSER_SPEC.md), [DOMAIN_MODEL §3](DOMAIN_MODEL.md) |
 | Q-010 | Default TH `[2..teachingWeeks]` khi merge registration có ghi đè tuần explicit của TKB không? | **Không — TKB thắng.** Default TH chỉ áp khi tuần của session TKB cũng là default (`weekOrigin=parser-default`) | Product (owner) | [ADR-0006 amendment](adr/ADR-0006-default-th-weeks.md), [ADR-0009 amendment](adr/ADR-0009-m2-domain-engine-schema.md), [DOMAIN_MODEL §7](DOMAIN_MODEL.md) |
+| Q-011 (29/10/2026) | Làm gì trong cửa sổ TKB HK II 09–15/11/2026 khi M4/M5 chưa có? | **Beta nội bộ, không public.** Khi trường công bố TKB HK II: nạp và Data Reviewer duyệt dataset thật, cho một nhóm nhỏ dùng tính năng M3 (tìm/chọn lớp, kiểm tra trùng, lịch tuần, xuất file) qua link không công khai, ghi rõ là bản thử. Không có nhập file đăng ký (M4). Public release vẫn chờ M4 + M5 và G3/G4 theo §2; fallback public giữ mốc 31/05–06/06/2027 nếu M4/M5 trễ. Điều kiện trước khi mời người dùng beta: M3 chạy lại G3 không còn S1, S2 #3–6 đã sửa hoặc có owner/mitigation/expiry được Release Manager chấp thuận, dataset thật có provenance và được review, có hosting với header bảo mật (SEC-M3-007) | Product (owner) | §2 Fallback, [docs/README D-008](README.md), [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md) |
 
 ### Mâu thuẫn/gap đã ghi nhận — trạng thái sau decisions
 
