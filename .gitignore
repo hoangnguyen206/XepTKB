@@ -75,9 +75,23 @@ temp/
 /fixtures/raw/
 /fixtures/private/
 /fixtures/real/
+# Real student registration exports (PII) dropped into the repo by mistake
+ket-qua-dang-ky*
+/*.doc
+/*.htm
+/*.html
 /uploads/
 /quarantine/
 /artifacts/local/
 
 # tsbuildinfo incremental state
 *.tsbuildinfo
+
+# Web app generated/test output
+/apps/web/public/data/
+/apps/web/dist-e2e/
+/apps/web/test-results/
+/apps/web/playwright-report/
+
+# Playwright MCP session output
+.playwright-mcp/

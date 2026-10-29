@@ -107,7 +107,9 @@ function applyField(session: Session, field: Override["field"], value: unknown, 
 
 function candidateSessions(registration: Session, timetable: readonly Session[]): Session[] {
   const registrationGroup = normalizeGroup(registration.group);
-  const byKindGroup = timetable.filter((candidate) => candidate.kind === registration.kind && (registrationGroup === undefined || normalizeGroup(candidate.group) === registrationGroup || normalizeGroup(candidate.group) === "CL"));
+  // The portal export has no session-kind column (C-09), so its sessions arrive as OTHER and are matched by day/periods.
+  const kindMatches = (candidate: Session) => registration.kind === "OTHER" || candidate.kind === registration.kind;
+  const byKindGroup = timetable.filter((candidate) => kindMatches(candidate) && (registrationGroup === undefined || normalizeGroup(candidate.group) === registrationGroup || normalizeGroup(candidate.group) === "CL"));
   if (byKindGroup.length <= 1) return byKindGroup;
   const byDay = isFixedSession(registration) ? byKindGroup.filter((candidate) => isFixedSession(candidate) && candidate.day === registration.day) : byKindGroup;
   if (byDay.length <= 1) return byDay;
@@ -152,7 +154,9 @@ function hasDefaultWeeks(session: Session): boolean {
 
 /** ADR-0006 + Q-010: the TH default applies only when the timetable weeks are a parser default too; explicit timetable weeks win. */
 function registrationWeeks(session: Session, base: Session, teachingWeeks: number): { session: Session; defaulted: boolean } {
-  if (session.kind !== "TH" || !hasDefaultWeeks(session) || base.weekOrigin !== "parser-default") return { session, defaulted: false };
+  // A portal row has no kind (OTHER); the matched timetable session tells whether it is TH.
+  const kind = session.kind === "OTHER" ? base.kind : session.kind;
+  if (kind !== "TH" || !hasDefaultWeeks(session) || base.weekOrigin !== "parser-default") return { session, defaulted: false };
   const next = cloneSession(session);
   next.weeks = Array.from({ length: Math.max(0, teachingWeeks - 1) }, (_, index) => index + 2);
   next.weekOrigin = "registration-default";
@@ -211,9 +215,15 @@ function applyExistingOverrides(session: Session, sectionId: string, overrides: 
   return { session: next, issues };
 }
 
-function registrationPick(timetable: Section, registration: Section): PlanPick {
-  // The group comes only from the registration rows; a missing or multi-valued group is left for resolvePlanPicks to report.
-  const groups = [...new Set(registration.sessions.map((session) => normalizeGroup(session.group)).filter((group): group is string => group !== undefined && group !== "CL"))];
+function nonClassGroups(sessions: readonly Session[]): string[] {
+  return [...new Set(sessions.map((session) => normalizeGroup(session.group)).filter((group): group is string => group !== undefined && group !== "CL"))];
+}
+
+function registrationPick(timetable: Section, registration: Section, pairs: readonly { timetable: Session }[]): PlanPick {
+  // The group comes from the registration rows. The portal export has no group column (C-09), so its group is the one of
+  // the timetable sessions it matched uniquely; a missing or multi-valued group is left for resolvePlanPicks to report.
+  const fromRows = nonClassGroups(registration.sessions);
+  const groups = fromRows.length > 0 ? fromRows : nonClassGroups(pairs.map((pair) => pair.timetable));
   return groups.length === 1 ? { sectionId: timetable.id, group: groups[0]! } : { sectionId: timetable.id };
 }
 
@@ -258,8 +268,8 @@ export function mergeRegistration(input: RegistrationMergeInput): RegistrationMe
   const picks: PlanPick[] = [];
   for (const { timetable, rows } of registered.values()) {
     const registration: Section = rows.length === 1 ? rows[0]! : { ...rows[0]!, sessions: rows.flatMap((row) => row.sessions) };
-    picks.push(registrationPick(timetable, registration));
     const matchedSessions = matchSessions(registration, timetable);
+    picks.push(registrationPick(timetable, registration, matchedSessions.pairs));
     issues.push(...matchedSessions.issues);
     const nextSessions: Session[] = [];
     for (const baseSession of timetable.sessions) {

@@ -38,8 +38,10 @@ export function validateSession(s: Session, maxPeriod: number, teachingWeeks: nu
     if (!Number.isInteger(s.startPeriod) || !Number.isInteger(s.endPeriod) || s.startPeriod < 1 || s.endPeriod > maxPeriod || s.startPeriod > s.endPeriod) {
       out.push(issue({ code: "INVALID_DAY_OR_PERIOD", severity: "error", field: "periods", rawValue: `${s.startPeriod}-${s.endPeriod}`, message: `periods must satisfy 1 <= start <= end <= ${maxPeriod}` }));
     }
-  } else if (s.kind !== "ONL") {
-    out.push(issue({ code: "INVALID_DAY_OR_PERIOD", severity: "error", field: "fixedTime", message: "only online/non-fixed sessions may omit fixed time" }));
+  } else if (s.kind !== "ONL" && s.kind !== "OTHER") {
+    // Q-009 (ONL) and Q-012 (untimed project/thesis rows of a file without a kind column, kind OTHER) may omit fixed time;
+    // a session that says LT/TH/BT must have a day and periods.
+    out.push(issue({ code: "INVALID_DAY_OR_PERIOD", severity: "error", field: "fixedTime", message: "only online or untimed (OTHER) sessions may omit fixed time" }));
   }
   out.push(...validWeeks(s.weeks, teachingWeeks));
   if (!s.source || !s.source.artifactId) {

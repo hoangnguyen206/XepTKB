@@ -84,3 +84,12 @@ test("non-fixed online sessions are valid without day or periods", () => {
   assert.equal(validateSection(section, 12, 15).length, 0);
 });
 
+test("an untimed OTHER session is valid (Q-012) but an untimed LT session is not", () => {
+  const section = structuredClone(baseSection);
+  const untimed = { id: "project", fixedTime: false as const, frame: "uet-default", weeks: [1, 2], kind: "OTHER" as const, lecturers: [], source: { artifactId: "a1", sourceType: "timetable" as const }, confidence: "deterministic" as const };
+  section.sessions = [untimed];
+  assert.equal(validateSection(section, 12, 15).length, 0);
+  section.sessions = [{ ...untimed, kind: "LT" }];
+  assert.ok(validateSection(section, 12, 15).some((issue) => issue.code === "INVALID_DAY_OR_PERIOD" && issue.field === "fixedTime"));
+});
+

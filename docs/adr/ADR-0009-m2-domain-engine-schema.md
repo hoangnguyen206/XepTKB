@@ -60,3 +60,26 @@ Source: [audit M0–M2](../evidence/M0-M2-AUDIT-2026-10-25.md). Decision 8 is re
 9. Q-009 (2026-10-25): `ONL` classes reach the engine as non-fixed sessions (`fixedTime: false`) from both `uet-xlsx` and `vnu-registration-html`. They match into the final Plan, count toward credits and never produce conflicts or grid cells.
 
 Re-entry: this amendment reopens G1 (acknowledgement), G2 and G3a/G3c for M2 per [Agent workflow §6](../../.claude/AGENT_WORKFLOW.md).
+
+## Amendment 2026-10-29 — portal rows without kind or group (C-09)
+
+Source: [REVIEW-C09-001](../evidence/C09-REGISTRATION-SAMPLE-REVIEW.md). The real portal export has no session-kind or group column, so its sessions reach the merge as `kind: "OTHER"` without `group`. Schema stays `0.2.0`.
+
+- **(10)** A registration session of kind `OTHER` matches timetable sessions of any kind; day and periods narrow the candidates as before. Zero or several candidates still give `REGISTRATION_OVERRIDE_UNMATCHED`/`_AMBIGUOUS`.
+- **(11)** Item 2 above is refined: when no registration row carries a group, the pick's group is the single non-`CL` group of the timetable sessions the rows matched uniquely. Several or none → no group, `resolvePlanPicks` reports `GROUP_REQUIRED`. The draft's group is still never used.
+- **(12)** The ADR-0006 TH default (item 8 above) uses the matched timetable session's kind when the registration kind is `OTHER`.
+
+Re-entry: G1 acknowledgement and G3a/G3c for the merge, together with the M4 registration UI.
+
+## Amendment 2026-10-29 — unresolved picks (REV-M3-001, REV-M3-003)
+
+Source: [EVID-M3-001](../evidence/M3-EVIDENCE-ENVELOPE.md) findings 1–2. Schema stays `0.2.0`.
+
+- **(13)** `sessionsForPick` returns the common sessions (no group or `CL`) together with the `GROUP_REQUIRED`/`GROUP_NOT_FOUND` error, instead of no sessions. Every group attends them, so conflicts, grid and exports keep them; only the group-specific sessions stay unknown. Callers must treat the error as "partially resolved".
+- **(14)** `addPlanPick` rejects a pick only when an error concerns the new pick's section (or has no section). Errors of earlier picks are returned but no longer block an unrelated pick.
+
+Re-entry: G1 acknowledgement for this ADR; G3a/G3c for M2 and M3.
+
+## Amendment 2026-10-30 — untimed sessions of kind OTHER (Q-012, ADR-0011)
+
+- **(15)** `validateSession` accepts a non-fixed session of kind `OTHER` as well as `ONL`. The real HK I 2026–27 timetable lists projects and theses with no day or shift in a file without a kind column. A session that says `LT`, `TH` or `BT` still needs a day and periods. Non-fixed `OTHER` sessions behave like `ONL` ones: no grid cell, no conflict, credits counted. `Section.online` stays `false` unless the source marks the class as online.

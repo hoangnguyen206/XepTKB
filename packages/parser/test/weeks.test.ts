@@ -2,10 +2,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseNote } from "../src/weeks.js";
 
-test("empty note → default weeks + warnings", () => {
+test("empty note → default weeks recorded as parser-default, no warning (Q-012)", () => {
   const r = parseNote(undefined, 15);
   assert.deepEqual(r.weeks, Array.from({ length: 15 }, (_, i) => i + 1));
-  assert.ok(r.issues.some((i) => i.code === "DEFAULT_WEEKS_APPLIED"));
+  assert.equal(r.weekOrigin, "parser-default");
+  assert.deepEqual(r.issues, []);
 });
 
 test("'Học tuần 11-15' → [11..15]", () => {
@@ -48,16 +49,17 @@ test("weekOrigin separates explicit weeks from parser defaults", () => {
   assert.equal(parseNote("Học tuần 11-15", 15).weekOrigin, "explicit");
 });
 
-test("period-only note keeps default weeks without UNPARSED_NOTE", () => {
+test("period-only note keeps default weeks", () => {
   const r = parseNote("Học tiết 9-12", 15);
   assert.deepEqual(r.periodOverride, { startPeriod: 9, endPeriod: 12 });
   assert.equal(r.weekOrigin, "parser-default");
-  assert.equal(r.issues.some((i) => i.code === "UNPARSED_NOTE"), false);
-  assert.ok(r.issues.some((i) => i.code === "DEFAULT_WEEKS_APPLIED"));
+  assert.deepEqual(r.issues, []);
 });
 
-test("unrecognized note → UNPARSED_NOTE warning + default weeks", () => {
-  const r = parseNote("Nhóm 1", 15);
-  assert.deepEqual(r.weeks, Array.from({ length: 15 }, (_, i) => i + 1));
-  assert.ok(r.issues.some((i) => i.code === "UNPARSED_NOTE"));
+test("a note without a week pattern is information only: default weeks, no warning (Q-012)", () => {
+  for (const note of ["Nhóm 1", "Học 1 ca/15 tuần, thi đợt 2"]) {
+    const r = parseNote(note, 15);
+    assert.deepEqual(r.weeks, Array.from({ length: 15 }, (_, i) => i + 1), note);
+    assert.deepEqual(r.issues, [], note);
+  }
 });

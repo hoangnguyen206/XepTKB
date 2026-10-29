@@ -1,0 +1,16 @@
+{
+  "manifestVersion": "1",
+  "schemaVersion": "0.2.0",
+  "context": { "term": "2026-2027-h1", "teachingWeeks": 15 },
+  "fixtures": [
+    {
+      "id": "registration-portal-format-redacted",
+      "family": "vnu-registration-html",
+      "adapter": "vnu-registration-html",
+      "input": "portal-format.doc",
+      "dataClass": "redacted",
+      "quirk": "Markup of a real portal export (C-09, HK I 2026-2027) with every value replaced: Word HTML with numeric entities and &nbsp; cell prefixes, 'Mã môn học'/'Lớp môn học' headers, no kind/group column, two rows pairing days with period ranges by position and concatenated rooms, course code with an inner space, 'Tổng' summary row, identity fields and signature. Review: docs/evidence/C09-REGISTRATION-SAMPLE-REVIEW.md",
+      "expected": { "sections": 7, "sessions": 9 }
+    }
+  ]
+}

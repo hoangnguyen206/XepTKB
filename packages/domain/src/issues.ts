@@ -33,6 +33,9 @@ export const WARNING_CODES = [
   "NON_FIXED_TIME",
   "CREDITS_MISSING",
   "PERIOD_OVERRIDE_APPLIED",
+  "SECTION_CANCELLED",
+  "SHIFT_RANGE_INTERPRETED",
+  "FORMAT_UNRECOGNIZED",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

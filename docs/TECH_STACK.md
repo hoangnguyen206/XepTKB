@@ -2,7 +2,7 @@
 
 > **Status:** proposed  
 > **Owner:** Tech Lead  
-> **Last reviewed:** 2026-10-20
+> **Last reviewed:** 2026-10-25
 > **Related docs:** [Architecture](ARCHITECTURE.md), [Domain model](DOMAIN_MODEL.md), [Security & privacy](SECURITY_PRIVACY.md)
 
 ## 1. Quyết định stack đề xuất cho MVP
@@ -11,18 +11,19 @@
 | --- | --- | --- |
 | Language | TypeScript, strict mode | Chia sẻ type giữa parser/domain/UI; giảm lỗi field/mã dữ liệu |
 | Web app | React + Vite | SPA/PWA nhẹ, parser chạy trong browser, không cần SSR cho MVP |
-| UI | Tailwind CSS + component primitives nội bộ | mobile-first, responsive tokens, không khóa vào design vendor |
-| PWA | `vite-plugin-pwa` + Workbox | precache app shell, runtime cache dataset có version, offline Plan |
-| Local storage | IndexedDB qua Dexie | lưu Plan, user overrides, parser index; dễ version/migrate |
+| UI | Tailwind CSS + component primitives nội bộ | mobile-first, responsive tokens, không khóa vào design vendor. **M3 thực tế:** CSS thuần với custom properties (ADR-0010 §1) |
+| PWA | `vite-plugin-pwa` + Workbox | precache app shell, runtime cache dataset có version, offline Plan. **M3 thực tế:** service worker tự viết + plugin Vite nhỏ sinh danh sách precache; dataset nằm trong IndexedDB (ADR-0010 §4); hardening ở M5 |
+| Local storage | IndexedDB qua Dexie | lưu Plan, user overrides, parser index; dễ version/migrate. **M3 thực tế:** wrapper IndexedDB tự viết + envelope `schemaVersion`/migration (ADR-0010 §3) |
 | Static data | JSON artifacts trên Cloudflare CDN/R2 | tải nhanh, immutable version/hash, không chứa PII |
 | Parser | `fflate` + `@xmldom/xmldom` for bounded local OOXML/HTML parsing in M1; M2 domain engine is pure TypeScript with no parser/network dependency; browser `DOMParser`/future reviewed adapter as appropriate; pdf.js (P1/P2) | deterministic local parser/domain boundary; no formula/external-link execution; dependency audit and browser spike required before production |
-| Export | `.doc` HTML-based (Word), browser Canvas/html-to-image (PNG), tự tạo RFC 5545 `.ics`; **không** PDF generator — “In / Lưu PDF” = print CSS A4 ngang | không cần server; ICS là ưu tiên tương thích iPhone |
+| Export | `.doc` HTML-based (Word), browser Canvas (PNG; M3 vẽ trực tiếp, không dùng html-to-image), tự tạo RFC 5545 `.ics` (package `@ky-nay/export`); **không** PDF generator — “In / Lưu PDF” = print CSS A4 ngang | không cần server; ICS là ưu tiên tương thích iPhone |
 | Backend optional | Supabase Postgres + Auth + Edge Functions | **deferred post-MVP**: Q-003/Q-004 chọn static artifact + CLI admin; share P1 dùng client-side URL encoding; Supabase chỉ quay lại nếu account/sync được approve |
 | Hosting | Cloudflare Pages + versioned static artifact CDN/R2 cho web và dataset | MVP không có Supabase control plane; vendor/data-region/legal review vẫn là gate mở |
 | Observability | privacy-safe aggregate counters và scrubbed client errors theo policy; vendor cụ thể deferred | không GA/tracker bên thứ ba; cookieless, no user ID/IP, privacy notice + opt-out; legal review trước per-user |
-| Tests | Vitest, Testing Library, Playwright, axe, fast-check | unit/domain, UI/accessibility, browser/offline/property |
+| Tests | Vitest, Testing Library, Playwright, axe, fast-check | unit/domain, UI/accessibility, browser/offline/property. **M3 thực tế:** package dùng `node:test`; web dùng Vitest + Testing Library + jsdom + fake-indexeddb; e2e Playwright + `@axe-core/playwright`; fast-check chưa dùng |
 
-- **M1/M2 status:** offline parser and pure domain packages plus synthetic fixtures are implemented and locally verified; M2 search/Plan/conflict/week-date/registration-merge/credits are package-level only. React/Vite app, browser integration, IndexedDB, export, artifact loader and publish path remain deferred to later milestones.
+- **M1/M2 status:** offline parser and pure domain packages plus synthetic fixtures are implemented and locally verified; M2 search/Plan/conflict/week-date/registration-merge/credits are package-level only.
+- **M3 status (2026-10-25):** React 19 + Vite 8 app (`apps/web`), artifact loader, IndexedDB, service worker and ICS/PNG/Word/print export are implemented with the dependency set and deviations recorded in [ADR-0010](adr/ADR-0010-m3-web-app-artifact-storage-export.md); the change set is committed as `82cb85b` on branch `m3-web-app` (draft PR #1, CI green on 2026-10-29, not merged into `main`) and **not through G3** (see [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md)). Dev tooling needs Node ≥ 22.22.2. The publish path, hosting headers and PWA hardening remain M5.
 
 ## 2. Boundary client/server
 
@@ -115,3 +116,4 @@ Mỗi spike trả `decision`, `evidence`, `known limits`, `follow-up ADR`; khôn
 | ADR-0007 | Static artifact + CLI admin (Supabase deferred post-MVP) | accepted per Q-003/Q-004 |
 | ADR-0008 | M1 deterministic parser dependencies + local registration provenance | ready; G1 acknowledgement pending |
 | ADR-0009 | M2 pure domain engine contract and schema migration `0.2.0` | ready; G1 acknowledgement pending |
+| ADR-0010 | M3 web app, artifact loader contract, local storage, service worker and export | ready; G1 acknowledgement pending; G3 open items |

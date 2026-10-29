@@ -1,0 +1,12 @@
+{
+  "name": "Kỳ Này — xếp thời khóa biểu",
+  "short_name": "Kỳ Này",
+  "description": "Công cụ xếp thời khóa biểu độc lập của sinh viên, không phải sản phẩm của nhà trường.",
+  "lang": "vi",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#0842a0",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

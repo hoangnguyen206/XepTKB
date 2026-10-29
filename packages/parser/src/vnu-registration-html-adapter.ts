@@ -3,6 +3,7 @@ import {
   SCHEMA_VERSION,
   validateArtifact,
   validateSection,
+  type DayNo,
   type ImportArtifact,
   type ParseIssue,
   type Section,
@@ -11,19 +12,19 @@ import {
 import type { ParserAdapter, ParseResult, SourceInput } from "./adapter.js";
 import {
   detectCampus,
-  normalizeDisplay,
   normalizeCode,
   normalizeGroup,
   normalizeKind,
   normalizeLecturers,
   normalizeRoom,
-  normalizeSectionId,
-  parseDays,
+  parseDay,
   parsePeriodRanges,
+  sectionIdFromCourse,
+  type PeriodRange,
 } from "./normalize.js";
 
 const ADAPTER_ID = "vnu-registration-html";
-const ADAPTER_VERSION = "0.1.0";
+const ADAPTER_VERSION = "0.2.0";
 const DEFAULT_MAX_BYTES = 2 * 1024 * 1024;
 
 function localName(node: any): string {
@@ -72,10 +73,11 @@ function normalizedHeader(value: string): string {
   return value.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[Đđ]/g, "d").toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+// The portal export (C-09 sample, 2026-10-29) uses "Mã môn học", "Môn học" and "Lớp môn học".
 const HEADER_SYNONYMS: Record<string, string[]> = {
-  courseCode: ["ma hp", "ma mon", "ma hoc phan", "ma hoc phan"],
-  courseName: ["mon", "ten hoc phan", "ten mon", "hoc phan"],
-  sectionId: ["ma lhp", "ma lop hoc phan", "lop hoc phan", "ma lop"],
+  courseCode: ["ma hp", "ma mon", "ma hoc phan", "ma mon hoc"],
+  courseName: ["mon", "ten hoc phan", "ten mon", "hoc phan", "mon hoc"],
+  sectionId: ["ma lhp", "ma lop hoc phan", "lop hoc phan", "ma lop", "lop mon hoc"],
   group: ["nhom", "to"],
   kind: ["loai buoi", "loai"],
   day: ["thu", "ngay"],
@@ -123,39 +125,105 @@ function splitRows(table: string[][]): { headers: string[]; rows: string[][] } |
   return { headers: table[headerIndex]!, rows: table.slice(headerIndex + 1).filter((row) => row.some(Boolean)) };
 }
 
-function safeCandidateSection(row: Record<string, string>, source: { artifactId: string; sourceType: "registration"; sourceRow: number }, teachingWeeks: number): Section {
-  const sectionId = row.sectionId ? normalizeSectionId(row.sectionId) : `REGISTRATION ROW ${source.sourceRow}`;
-  const courseCode = row.courseCode ? normalizeCode(row.courseCode) : "UNKNOWN";
+/** Day tokens in source order; undefined when any token is not a day. */
+function parseDayList(value: string | undefined): DayNo[] | undefined {
+  const days = (value ?? "").split(/[;,|/]+/).map((token) => token.trim()).filter(Boolean).map(parseDay);
+  return days.every((day): day is DayNo => day !== undefined) ? days : undefined;
+}
+
+type Slot = { day: DayNo; range: PeriodRange };
+
+/**
+ * C-09 sample: a row with several days lists one period range per day in the same order
+ * (`T2,T6` + `4 - 6,1 - 3` is T2 4–6 and T6 1–3). A single day or a single range is shared;
+ * any other count mismatch is ambiguous and yields no slot.
+ */
+function pairSlots(days: DayNo[], ranges: PeriodRange[]): Slot[] | undefined {
+  if (days.length === 0 || ranges.length === 0) return [];
+  if (days.length === ranges.length) return days.map((day, index) => ({ day, range: ranges[index]! }));
+  if (days.length === 1) return ranges.map((range) => ({ day: days[0]!, range }));
+  if (ranges.length === 1) return days.map((day) => ({ day, range: ranges[0]! }));
+  return undefined;
+}
+
+const ROOM_TOKEN = /^\d{3}-[A-ZĐ][A-ZĐ0-9]*$/u;
+
+/**
+ * Rooms of a multi-slot row are concatenated with no separator (`301-B306-B`). A row is split only
+ * when exactly one segmentation into `count` room tokens exists; one room token is shared by every slot.
+ */
+function splitRooms(value: string | undefined, count: number): (string | undefined)[] | undefined {
+  const room = normalizeRoom(value);
+  if (count <= 1 || room === undefined || ROOM_TOKEN.test(room)) return Array.from({ length: count }, () => room);
+  const separated = room.split(/[\s,;|]+/).filter(Boolean);
+  if (separated.length === count && separated.every((token) => ROOM_TOKEN.test(token))) return separated;
+  const found: string[][] = [];
+  const visit = (rest: string, pieces: string[]): void => {
+    if (found.length > 1) return;
+    if (pieces.length === count - 1) {
+      if (ROOM_TOKEN.test(rest)) found.push([...pieces, rest]);
+      return;
+    }
+    for (let end = 1; end < rest.length; end += 1) {
+      const head = rest.slice(0, end);
+      if (ROOM_TOKEN.test(head)) visit(rest.slice(end), [...pieces, head]);
+    }
+  };
+  visit(room, []);
+  return found.length === 1 ? found[0] : undefined;
+}
+
+function safeCandidateSection(row: Record<string, string>, source: { artifactId: string; sourceType: "registration"; sourceRow: number }, teachingWeeks: number, issues: ParseIssue[]): Section | undefined {
+  if (!row.courseCode || !row.sectionId) {
+    issues.push(issue("REGISTRATION_OVERRIDE_UNMATCHED", "warning", "registration schedule row could not produce a complete local candidate", { sourceRow: source.sourceRow }));
+    return undefined;
+  }
+  const courseCode = normalizeCode(row.courseCode);
+  const sectionId = sectionIdFromCourse(row.sectionId, courseCode);
   const sectionSource = { ...source };
-  const days = parseDays(row.day);
-  const ranges = parsePeriodRanges(row.periodText);
   const kind = normalizeKind(row.kind);
   const weeks = Array.from({ length: teachingWeeks }, (_, index) => index + 1);
   const group = normalizeGroup(row.group);
-  const room = normalizeRoom(row.room);
-  const campus = detectCampus(row.room);
-  const sessionBase = {
-    frame: "uet-default",
-    weeks,
-    weekOrigin: "parser-default" as const,
-    kind,
-    ...(group ? { group } : {}),
-    ...(room ? { room } : {}),
-    ...(campus ? { campus } : {}),
-    lecturers: normalizeLecturers(row.lecturer),
-    source: sectionSource,
-    confidence: "deterministic" as const,
+  const sessionBase = (room: string | undefined) => {
+    const campus = detectCampus(room);
+    return {
+      frame: "uet-default",
+      weeks,
+      weekOrigin: "parser-default" as const,
+      kind,
+      ...(group ? { group } : {}),
+      ...(room ? { room } : {}),
+      ...(campus ? { campus } : {}),
+      lecturers: normalizeLecturers(row.lecturer),
+      source: sectionSource,
+      confidence: "deterministic" as const,
+    };
   };
-  // Q-009: an ONL class has no fixed slot; one non-fixed session lets it match the timetable and count for credits.
-  const sessions: Session[] = kind === "ONL"
-    ? [{ id: `${sectionId}:${source.sourceRow}:non-fixed`, fixedTime: false, ...sessionBase }]
-    : days.flatMap((day) => ranges.map((range) => ({
-      id: `${sectionId}:${source.sourceRow}:${day}:${range.startPeriod}-${range.endPeriod}`,
-      day,
-      startPeriod: range.startPeriod,
-      endPeriod: range.endPeriod,
-      ...sessionBase,
-    })));
+  let sessions: Session[];
+  if (kind === "ONL") {
+    // Q-009: an ONL class has no fixed slot; one non-fixed session lets it match the timetable and count for credits.
+    sessions = [{ id: `${sectionId}:${source.sourceRow}:non-fixed`, fixedTime: false, ...sessionBase(normalizeRoom(row.room)) }];
+  } else {
+    const days = parseDayList(row.day);
+    const slots = days ? pairSlots(days, parsePeriodRanges(row.periodText)) : undefined;
+    if (slots === undefined) {
+      issues.push(issue("REGISTRATION_OVERRIDE_UNMATCHED", "warning", "registration row lists days and period ranges that cannot be paired", { sourceRow: source.sourceRow, field: "periodText" }));
+      return undefined;
+    }
+    const rooms = splitRooms(row.room, slots.length);
+    if (!rooms) issues.push(issue("REGISTRATION_OVERRIDE_UNMATCHED", "warning", "registration rooms cannot be split per session; the timetable rooms are kept", { sourceRow: source.sourceRow, field: "room" }));
+    sessions = slots.map((slot, index) => ({
+      id: `${sectionId}:${source.sourceRow}:${slot.day}:${slot.range.startPeriod}-${slot.range.endPeriod}`,
+      day: slot.day,
+      startPeriod: slot.range.startPeriod,
+      endPeriod: slot.range.endPeriod,
+      ...sessionBase(rooms?.[index]),
+    }));
+  }
+  if (sessions.length === 0) {
+    issues.push(issue("REGISTRATION_OVERRIDE_UNMATCHED", "warning", "registration schedule row could not produce a complete local candidate", { sourceRow: source.sourceRow }));
+    return undefined;
+  }
   return {
     id: sectionId,
     courseCode,
@@ -237,13 +305,11 @@ export const vnuRegistrationHtmlAdapter: ParserAdapter = {
       const values = table.rows[rowIndex]!;
       const row: Record<string, string> = {};
       for (const [canonical, index] of columns) row[canonical] = values[index] ?? "";
+      // Summary rows (the portal's "Tổng" credit/fee total) carry no course or section.
+      if (!row.courseCode && !row.sectionId) continue;
       const sourceRow = rowIndex + 1;
-      const section = safeCandidateSection(row, { artifactId: artifact.id, sourceType: "registration", sourceRow }, teachingWeeks);
-      if (!row.courseCode || !row.sectionId || section.sessions.length === 0) {
-        issues.push(issue("REGISTRATION_OVERRIDE_UNMATCHED", "warning", "registration schedule row could not produce a complete local candidate", { sourceRow }));
-        continue;
-      }
-      sections.push(section);
+      const section = safeCandidateSection(row, { artifactId: artifact.id, sourceType: "registration", sourceRow }, teachingWeeks, issues);
+      if (section) sections.push(section);
     }
     for (const section of sections) issues.push(...validateSection(section, 12, teachingWeeks));
     if (sections.length === 0) issues.push(issue("NO_VALID_SECTION_ROWS", "error", "registration table contains no usable schedule rows"));
