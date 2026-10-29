@@ -118,7 +118,12 @@ Không được suy luận tuần 10 từ “thi đợt 1” nếu không có co
 ## 7. Registration `.doc` local adapter
 
 1. Kiểm tra extension nhưng quyết định parser theo magic/content (`text/html`/table), giới hạn size.
-2. Tìm bảng môn/lớp và tách multi-value: `T2,T6`, `4 - 6,1 - 3`, phòng dính liền.
+2. Tìm bảng môn/lớp và tách multi-value: `T2,T6`, `4 - 6,1 - 3`, phòng dính liền. Quy tắc từ sample thật C-09 ([REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md), adapter `0.2.0`):
+   - header của cổng: `Mã môn học`, `Môn học`, `Lớp môn học`, `Thứ`, `Tiết`, `Giảng đường` (cùng `STT`, `Số tín chỉ`, `Trạng thái`, `Học phí` không đọc); không có cột loại buổi hay nhóm;
+   - thứ và khoảng tiết ghép **theo vị trí** (`T2,T6` + `4 - 6,1 - 3` = T2 4–6, T6 1–3); một thứ hoặc một khoảng tiết thì dùng chung; số lượng lệch khác → bỏ dòng, warning `REGISTRATION_OVERRIDE_UNMATCHED` (`field=periodText`);
+   - phòng của dòng nhiều buổi dính liền (`301-B306-B`): chỉ tách khi có đúng một cách tách thành các token `ddd-X…` (hoặc dấu phân cách cho đúng số lượng); một token thì dùng chung; còn lại để phòng TKB, warning `field=room`;
+   - mã môn có khoảng trắng (`AAA 9999`) chuẩn hóa thành `AAA9999`, mã lớp dựng lại thành `AAA9999 <suffix>`;
+   - dòng không có mã môn và mã lớp (dòng `Tổng`) bị bỏ qua.
 3. Chuẩn hóa periods; đối chiếu danh sách phòng từ TKB nếu có.
 4. Loại field họ tên, ngày sinh, mã sinh viên ngay sau extraction; không ghi raw HTML vào telemetry. Adapter M1 phải trả artifact `localOnly=true`, không có `sha256`/`fileName`; mọi issue chỉ dùng row/field an toàn.
 5. **M1 boundary:** the adapter only extracts schedule candidates, never mutates a `Plan`, and does not create overrides. M2's pure domain layer performs deterministic Section/Session matching, field-level `Override` creation and a separate final Plan; user confirmation and IndexedDB persistence remain deferred to M4. M1 returns schedule candidates only.
@@ -189,7 +194,7 @@ Không gửi file registration, mã sinh viên, họ tên, ngày sinh hoặc raw
 | UET XLSX HK I 2026–27 | header row 1, 17 cột, ca có khoảng trắng, T7, code alias |
 | UET XLSX HK II chính thức | header row 4, 18 cột, 151 merged ranges, PCGD, 10-week class |
 | UET PDF dự kiến | repeated header/page, 17 cột, khác session INT2213 |
-| Registration HTML `.doc` | 7 lớp, multi-day/multi-period, 3 room overrides, PII fields |
+| Registration HTML `.doc` | 7 lớp, multi-day/multi-period, 3 room overrides, PII fields — markup thật đã thay toàn bộ giá trị: `fixtures/redacted-registration/` ([REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md)) |
 | Exam PDF | merged lecturer/room cells, predicted vs official dates |
 | Study plan | cohort-specific week 1, typo dates after week 1 |
 | Synthetic adversarial | unknown header, duplicate row, ambiguous note, invalid period |

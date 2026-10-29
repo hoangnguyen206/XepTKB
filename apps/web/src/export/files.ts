@@ -48,7 +48,11 @@ export function wordFile(plan: Plan, view: PlanView, catalog: AppCatalog, now: D
     ],
     sessions: view.sessions,
     frame: catalog.frame,
-    notes: [creditsLine(view), ...view.conflicts.map((conflict) => describeConflict(conflict))],
+    notes: [
+      creditsLine(view),
+      ...(view.unresolved.length > 0 ? [`Thiếu buổi học của ${view.unresolved.length} lớp chưa xác định nhóm hoặc không còn trong dữ liệu: ${view.unresolved.map((entry) => entry.sectionId).join(", ")}`] : []),
+      ...view.conflicts.map((conflict) => describeConflict(conflict)),
+    ],
     disclaimer: exportDisclaimer(catalog.entry),
   });
   // Byte-order mark helps Word detect UTF-8 when opening the HTML-based .doc file.

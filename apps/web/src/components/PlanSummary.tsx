@@ -3,13 +3,23 @@ import { canonicalSectionId, type Plan } from "@ky-nay/domain";
 import { describeConflict, formatDate } from "@ky-nay/export";
 import { courseOf, sectionOf, type AppCatalog } from "../model/catalog.js";
 import { describeCampus } from "../model/picker.js";
-import { missingPicks, type PlanView } from "../model/plan-view.js";
+import { rebasePreview, type PlanView } from "../model/plan-view.js";
 import { Notice } from "./common.js";
 import { Week1Fields, type Week1Choice } from "./Onboarding.js";
 
+/** Per-pick explanation of an unresolved pick (REV-M3-001). */
+const PICK_ISSUE_TEXT: Record<string, string> = {
+  GROUP_REQUIRED: "Chưa chọn nhóm — mở môn trong mục Tìm môn để chọn. Mới kiểm tra trùng lịch cho buổi chung của lớp.",
+  GROUP_NOT_FOUND: "Nhóm đã chọn không còn trong dữ liệu — hãy chọn lại nhóm. Mới kiểm tra trùng lịch cho buổi chung của lớp.",
+  SECTION_NOT_FOUND: "Lớp không có trong dữ liệu đang dùng.",
+  DUPLICATE_PLAN_PICK: "Lớp bị chọn hai lần — hãy bỏ một lần chọn.",
+  DUPLICATE_COURSE_SELECTION: "Môn này đã có lớp khác trong phương án — hãy bỏ một lớp.",
+};
+
 export function StalePlanNotice(props: { plan: Plan; catalog: AppCatalog; onRebase: () => void }) {
   const [confirming, setConfirming] = useState(false);
-  const missing = missingPicks(props.plan, props.catalog);
+  const preview = confirming ? rebasePreview(props.plan, props.catalog) : undefined;
+  const unchanged = preview !== undefined && preview.removed.length === 0 && preview.groupCleared.length === 0 && preview.needsGroup.length === 0;
   return (
     <Notice
       tone="warning"
@@ -17,9 +27,12 @@ export function StalePlanNotice(props: { plan: Plan; catalog: AppCatalog; onReba
       action={confirming ? null : <button type="button" className="button secondary" onClick={() => setConfirming(true)}>Cập nhật phương án</button>}
     >
       <p>Phương án được tạo với dữ liệu {props.plan.datasetVersion}; dữ liệu đang dùng là {props.catalog.entry.datasetVersion}. Hãy kiểm tra lại phòng/giờ các lớp đã chọn.</p>
-      {confirming ? (
+      {preview ? (
         <div>
-          <p>{missing.length === 0 ? "Mọi lớp đã chọn vẫn còn trong dữ liệu mới." : `Các lớp không còn trong dữ liệu mới sẽ bị bỏ khỏi phương án: ${missing.join(", ")}.`}</p>
+          {unchanged ? <p>Mọi lớp và nhóm đã chọn vẫn còn trong dữ liệu mới.</p> : null}
+          {preview.removed.length > 0 ? <p>Các lớp không còn trong dữ liệu mới sẽ bị bỏ khỏi phương án: {preview.removed.join(", ")}.</p> : null}
+          {preview.groupCleared.length > 0 ? <p>Nhóm đã chọn không còn trong dữ liệu mới, sẽ bỏ nhóm của: {preview.groupCleared.join(", ")}.</p> : null}
+          {preview.needsGroup.length > 0 ? <p className="field-error">Sau khi cập nhật cần chọn lại nhóm cho: {preview.needsGroup.join(", ")}.</p> : null}
           <div className="actions">
             <button type="button" className="button primary" onClick={props.onRebase}>Xác nhận cập nhật</button>
             <button type="button" className="button secondary" onClick={() => setConfirming(false)}>Hủy</button>
@@ -72,8 +85,7 @@ export function PlanSummary(props: { plan: Plan; view: PlanView; catalog: AppCat
                   {pick.group ? ` · nhóm ${pick.group}` : ""}
                   {course ? ` · ${course.credits === undefined ? "chưa rõ tín chỉ" : `${course.credits} TC`}` : ""}
                   {section?.online ? " · trực tuyến" : ""}
-                  {issues.some((issue) => issue.code === "GROUP_REQUIRED") ? <p className="field-error">Chưa chọn nhóm — mở môn trong mục Tìm môn để chọn.</p> : null}
-                  {issues.some((issue) => issue.code === "SECTION_NOT_FOUND") ? <p className="field-error">Lớp không có trong dữ liệu đang dùng.</p> : null}
+                  {[...new Set(issues.map((issue) => issue.code))].filter((code) => PICK_ISSUE_TEXT[code]).map((code) => <p key={code} className="field-error">⚠ {PICK_ISSUE_TEXT[code]}</p>)}
                 </div>
                 <button type="button" className="button secondary small" onClick={() => props.onUnpick(pick.sectionId)} aria-label={`Bỏ chọn lớp ${pick.sectionId}`}>Bỏ chọn</button>
               </li>
@@ -82,10 +94,11 @@ export function PlanSummary(props: { plan: Plan; view: PlanView; catalog: AppCat
         </ul>
       )}
 
-      {view.conflicts.length > 0 || view.campusWarnings.length > 0 ? (
+      {view.conflicts.length > 0 || view.campusWarnings.length > 0 || view.unresolved.length > 0 ? (
         <div className="conflict-summary">
           <h3>Cần kiểm tra</h3>
           <ul>
+            {view.unresolved.length > 0 ? <li className="conflict-text">⚠ Chưa kiểm tra đủ trùng lịch: {view.unresolved.length} lớp cần xử lý ({view.unresolved.map((entry) => entry.sectionId).join(", ")}).</li> : null}
             {view.conflicts.map((conflict) => <li key={`${conflict.left.sessionId}|${conflict.right.sessionId}`} className="conflict-text">⚠ {describeConflict(conflict, undefined, lookup)}</li>)}
             {view.campusWarnings.map((warning) => <li key={`c|${warning.left.sessionId}|${warning.right.sessionId}`} className="campus-text">ⓘ {describeCampus(warning)}</li>)}
           </ul>

@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { isFixedSession, normalizeGroup, type Plan, type Section, type Session } from "@ky-nay/domain";
+import { isFixedSession, normalizeGroup, sessionsForPick, type Plan, type Section, type Session } from "@ky-nay/domain";
 import { dayLabel, formatPeriods, formatWeeks, kindLabel, periodTimes } from "@ky-nay/export";
 import type { AppCatalog } from "../model/catalog.js";
 import { groupOptions, isPicked, pickForCourse, previewPick } from "../model/picker.js";
@@ -22,6 +22,8 @@ export function SectionCard(props: { section: Section; plan: Plan; catalog: AppC
   const { section, plan, catalog } = props;
   const groups = groupOptions(section);
   const picked = isPicked(plan, section);
+  // A picked group can stop existing after a dataset revision (REV-M3-001).
+  const pickedNeedsGroup = picked !== undefined && sessionsForPick(section, picked).issues.length > 0;
   const sameCourse = pickForCourse(plan, catalog, section);
   const [group, setGroup] = useState<string | undefined>(() => normalizeGroup(picked?.group));
   const needsGroup = groups.length > 0 && group === undefined;
@@ -39,6 +41,7 @@ export function SectionCard(props: { section: Section; plan: Plan; catalog: AppC
         <Heading id={`${id}-title`}>Lớp {section.id}</Heading>
         <div className="badges">
           {picked ? <span className="badge badge-picked">✓ Đã chọn{picked.group ? ` · nhóm ${picked.group}` : ""}</span> : null}
+          {pickedNeedsGroup ? <span className="badge badge-conflict">⚠ Cần chọn lại nhóm</span> : null}
           {online ? <span className="badge badge-online">Trực tuyến · không xếp lịch tuần</span> : null}
           {conflicting ? <span className="badge badge-conflict">⚠ Trùng lịch</span> : null}
         </div>

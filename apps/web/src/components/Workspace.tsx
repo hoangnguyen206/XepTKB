@@ -107,6 +107,7 @@ export function Workspace(props: { plan: Plan; catalog: AppCatalog; onPlanChange
           <p className="muted">
             {catalog.term.name} · {plan.picks.length} lớp · {view.credits.knownTotal} tín chỉ
             {view.conflicts.length > 0 ? <strong className="conflict-count"> · ⚠ {view.conflicts.length} chỗ trùng lịch</strong> : null}
+            {view.unresolved.length > 0 ? <strong className="conflict-count"> · ⚠ {view.unresolved.length} lớp cần xử lý</strong> : null}
           </p>
         </div>
         {view.stale ? <StalePlanNotice plan={plan} catalog={catalog} onRebase={() => props.onPlanChange(rebasePlan(plan, catalog, now()))} /> : null}

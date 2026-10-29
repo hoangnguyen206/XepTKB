@@ -30,6 +30,7 @@
 | `npm run test:e2e` | 0 | Playwright **14/14** (10 + 4 của QA), bản build production có service worker + CSP |
 | `node scripts/bench-m3.mjs` | 0 | ~1.200 lớp: search p95 2–5 ms, conflict p95 2–5 ms (máy dev; ngân sách chính thức là M5) |
 | `npm audit` / `npm audit --omit=dev` | 0 | 0 vulnerabilities (G3b thêm `npm audit signatures`: 104 package verified) |
+| Fix round 2026-10-29 (findings 1–2 + C-09), local Windows Node 22.22.2: `npm run check`, `npm run test:e2e` | 0 / 0 | node:test **84/84**, Vitest **43/43**, fixtures **6/6**; Playwright **15/15** (thêm test REV-M3-001/003). CI của commit fix: xem PR #1 |
 | GitHub Actions trên PR #1 ([run 40907344256](https://github.com/hoangnguyen206/XepTKB/actions/runs/40907344256), 2026-10-29, merge `82cb85b` vào `4681c63`, ubuntu-24.04, Node 22.23.4, npm 10.9.9) | 0 | job `check`: lint + typecheck pass, node:test **78/78**, Vitest **39/39**, fixtures **5/5**, `npm ci` 0 vulnerabilities; job `e2e`: Playwright **14/14** |
 
 ## Data and artefact integrity
@@ -53,8 +54,8 @@
 
 | # | Severity | ID gốc | Tóm tắt | Owner đề xuất | Hạn đề xuất | Trạng thái |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | **S1** | QA-M3-001 = REV-M3-001 | Dataset mới đổi tên nhóm hoặc bắt buộc chọn nhóm cho lớp đã chọn → lớp đó (kể cả buổi CL) rơi khỏi kiểm tra trùng lịch, lưới, danh sách ngày và mọi file xuất, trong khi app báo "✓ Không có lớp nào trùng lịch" và rebase báo "Mọi lớp đã chọn vẫn còn". Gốc: `packages/domain/src/plan.ts:46,50` trả `sessions: []`; `apps/web/src/model/plan-view.ts` bỏ qua `resolution.issues`; `missingPicks` chỉ kiểm tra lớp còn tồn tại; `PlanSummary.tsx` chỉ hiện GROUP_REQUIRED/SECTION_NOT_FOUND | Frontend/Coder + Tech Lead (quyết định contract cho pick không giải được) | trước khi chạy lại G3 | open |
-| 2 | S2 | QA-M3-002 = REV-M3-003 | Một pick không giải được chặn mọi lần chọn lớp sau; thông báo đổ lỗi cho lớp đang chọn (`picker.ts:92-99` → domain `addPlanPick` từ chối khi có bất kỳ lỗi nào) | Frontend/Coder | cùng finding 1 | open |
+| 1 | **S1** | QA-M3-001 = REV-M3-001 | Dataset mới đổi tên nhóm hoặc bắt buộc chọn nhóm cho lớp đã chọn → lớp đó (kể cả buổi CL) rơi khỏi kiểm tra trùng lịch, lưới, danh sách ngày và mọi file xuất, trong khi app báo "✓ Không có lớp nào trùng lịch" và rebase báo "Mọi lớp đã chọn vẫn còn". Gốc: `packages/domain/src/plan.ts:46,50` trả `sessions: []`; `apps/web/src/model/plan-view.ts` bỏ qua `resolution.issues`; `missingPicks` chỉ kiểm tra lớp còn tồn tại; `PlanSummary.tsx` chỉ hiện GROUP_REQUIRED/SECTION_NOT_FOUND | Frontend/Coder + Tech Lead (quyết định contract cho pick không giải được) | trước khi chạy lại G3 | **fixed, chờ G3 chạy lại** (2026-10-29): contract ở [ADR-0009 amendment](../adr/ADR-0009-m2-domain-engine-schema.md) (13), UI theo khuyến nghị REV-M3-001 (1)–(4); test domain/model/e2e theo repro của G3c — xem [IMPL-M3-001 fix round](M3-IMPLEMENTATION-HANDOFF.md) |
+| 2 | S2 | QA-M3-002 = REV-M3-003 | Một pick không giải được chặn mọi lần chọn lớp sau; thông báo đổ lỗi cho lớp đang chọn (`picker.ts:92-99` → domain `addPlanPick` từ chối khi có bất kỳ lỗi nào) | Frontend/Coder | cùng finding 1 | **fixed, chờ G3 chạy lại** (2026-10-29): [ADR-0009 amendment](../adr/ADR-0009-m2-domain-engine-schema.md) (14) |
 | 3 | S2 | QA-M3-003 = REV-M3-002 | "Xóa dữ liệu trên máy" xóa cache service worker, worker không precache lại → offline hỏng tới lần deploy sau (`local-data.ts:26-31`, `vite.config.ts`) | Frontend/Coder | trước G4a | open |
 | 4 | S2 | REV-M3-004 | Ghi IndexedDB lỗi (hết dung lượng) làm bỏ dataset đã kiểm tra hợp lệ và báo nhầm "Dữ liệu tải về không hợp lệ"; mở qua HTTP (không HTTPS) cũng báo nhầm như vậy (`loader.ts:119-123,151-161`) | Frontend/Coder | trước G4a | open |
 | 5 | S2 | QA-M3-004 | WebKit: banner "Có phiên bản mới" giả xuất hiện 9/12 lần mở đầu, nút "Tải lại" không làm gì (`sw-client.ts:23-25,32-33`); cần xác nhận trên iPhone thật | Frontend/Coder + owner (thiết bị thật) | trước G4a | open |
@@ -84,7 +85,7 @@
 
 - Gate decision tổng hợp: **M3 chưa qua G3** — G3a `qa-no-go`, G3b `security-pass-with-exception`, G3c `review-no-go`. Không được chuyển sang G4a/G4b.
 - Owner đã chọn tự sửa sau (2026-10-25). Điều kiện chạy lại G3:
-  1. sửa finding 1–2 (S1/S2) kèm regression test theo repro của QA (probe 2b/2c/7) và REV-M3-001;
+  1. sửa finding 1–2 (S1/S2) kèm regression test theo repro của QA (probe 2b/2c/7) và REV-M3-001 (đã làm 2026-10-29, chờ G3 xác nhận; probe gốc của QA/G3c nằm trong scratchpad của họ, chưa chạy lại);
   2. sửa hoặc có owner + mitigation + expiry được Release Manager chấp thuận cho finding 3–6;
   3. commit change set M3 (đã làm: `82cb85b`, 2026-10-29) và cập nhật IMPL-M3-001 (chưa làm);
   4. Product/Tech Lead ghi actor/date cho G0 (SPEC-M3-001) và G1 (ADR-0010), chốt D-M3-1…4 và deviation (c)(d) của REV-M3-009;

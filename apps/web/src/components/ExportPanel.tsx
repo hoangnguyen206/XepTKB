@@ -61,6 +61,11 @@ export function ExportPanel(props: { plan: Plan; view: PlanView; catalog: AppCat
         </Notice>
       ) : null}
       {!view.week1 ? <Notice tone="warning">Chưa xác định được tuần 1 nên chưa xuất được file lịch (.ics). Hãy sửa tuần 1 ở mục Thiết lập.</Notice> : null}
+      {view.unresolved.length > 0 ? (
+        <Notice tone="warning" title="File xuất sẽ thiếu buổi học">
+          {view.unresolved.length} lớp chưa xác định đủ buổi học ({view.unresolved.map((entry) => entry.sectionId).join(", ")}): file chỉ gồm các buổi đã xác định. Hãy xử lý các lớp này ở mục Phương án trước khi xuất.
+        </Notice>
+      ) : null}
       <div className="export-buttons">
         <button type="button" className="button primary" disabled={empty || !view.week1} onClick={() => void exportIcs()}>Tải lịch (.ics)</button>
         <button type="button" className="button secondary" disabled={empty} onClick={() => void exportPng()}>Tải ảnh (.png)</button>

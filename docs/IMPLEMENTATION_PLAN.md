@@ -193,7 +193,7 @@ Tất cả 8 quyết định đã được Product Owner approve. Chi tiết s�
 | C-06 | QA hardcode “1.025 sections” | **Resolved** — QA §4 đã nói manifest là authority; `test:real` asserts counts ngoài repo |
 | C-07 | Admin endpoints phụ thuộc backend | **Resolved** — ADR-0007 static+CLI; API_CONTRACTS đánh dấu `post-MVP` |
 | C-08 | Onboarding cohort vs ngày | **Đề xuất trong M3 (D-M3-1), chờ Product xác nhận** — onboarding có 2 đường: chọn khóa (week1 từ `Term.starts[]`) hoặc tự nhập ngày Thứ Hai của tuần 1 |
-| C-09 | Format registration file thật chưa confirm | **Open** — M1 phải có sample `.doc` redacted trước khi freeze adapter contract |
+| C-09 | Format registration file thật chưa confirm | **Resolved (pending Data Reviewer verification), 29/10/2026** — owner cung cấp 1 file thật HK I 2026–27 (giữ ngoài repo); fixture markup thật đã thay toàn bộ giá trị ở `fixtures/redacted-registration/`; adapter `0.1.0` đọc file thật ra 0 lớp, `0.2.0` ghép theo vị trí; xem [REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md). Còn mở: chỉ 1 mẫu (chưa thấy dòng học lại/hủy/ONL/3 thứ) |
 | C-10 | Thứ tự ưu tiên export | **Resolved** — Q-002: cut order PDF→DOCX; giữ ICS+PNG |
 
 ## 11. Traceability update sau decisions (đã thực hiện)

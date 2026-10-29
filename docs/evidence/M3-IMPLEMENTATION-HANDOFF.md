@@ -96,7 +96,17 @@ No change to `@ky-nay/domain` or `@ky-nay/parser` source in M3. Domain schema st
 - G3a [TEST-M3-001](M3-G3a-QA-REPORT.md): `qa-no-go`. G3b [SEC-REVIEW-M3-001](M3-G3b-SECURITY-REVIEW.md): `security-pass-with-exception`. G3c [REVIEW-M3-001](M3-G3c-INDEPENDENT-REVIEW.md): `review-no-go`. All three by agent roles, not human sign-off.
 - Consolidated register (1 S1, 6 S2, 14 S3) and re-run conditions: [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md). The acceptance mapping above was corrected after G3 (REV-M3-008: the original table overstated coverage).
 
+## Fix round 2026-10-29 (findings 1–2 of EVID-M3-001)
+
+- Domain `packages/domain/src/plan.ts`: `sessionsForPick` keeps common sessions on group errors; `addPlanPick` rejects only on the new pick's own errors ([ADR-0009 amendment 2026-10-29](../adr/ADR-0009-m2-domain-engine-schema.md)).
+- Web `apps/web/src/model/plan-view.ts`: `PlanView.unresolved`, `rebasePreview`, `rebasePlan` clears groups that no longer exist. UI: `PlanSummary.tsx` (per-pick messages for every error code, rebase confirmation lists, no "✓" while unresolved), `Workspace.tsx` (plan bar count), `ExportPanel.tsx` + `export/files.ts` (warning, Word note), `SectionCard.tsx` ("⚠ Cần chọn lại nhóm").
+- Tests: domain `plan.test.ts` (3), web `model.test.ts` (4: group renamed, rebase preview/after, group added, unrelated pick on a stale Plan), e2e `REV-M3-001/003 — a revision that renames a picked group…` following the G3c repro.
+- Same change set: C-09 registration adapter 0.2.0 and merge changes ([REVIEW-C09-001](C09-REGISTRATION-SAMPLE-REVIEW.md)); no M3 UI uses them yet.
+- Local: `npm run check` exit 0 (node:test 84/84, Vitest 43/43, fixtures 6/6), `npm run test:e2e` exit 0 (15/15). Commit and CI run IDs are recorded in [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md).
+- Not addressed in this round: findings 3–21 (S2 QA-M3-003…005, REV-M3-004 and the S3 items).
+
 ## Handoff decision
 
-- Recommendation: `g2-blocked` until the S1/S2 findings are fixed (owner will fix later); implementer does not self-approve.
+- Recommendation (2026-10-29): `ready-for-verification` for findings 1–2 only; M3 stays `g2-blocked` overall until findings 3–6 are fixed or accepted. The implementer does not self-approve.
+- Earlier recommendation (2026-10-25): `g2-blocked` until the S1/S2 findings are fixed (owner will fix later).
 - Next owners: Owner/Frontend (fixes), Tech Lead (unresolvable-pick contract, ADR-0010 G1 acknowledgement, commit/freeze the target), Product (SPEC-M3-001 G0, D-M3-1…4), Release Manager (G3b exception), then Tester/Security/Reviewer re-run G3.

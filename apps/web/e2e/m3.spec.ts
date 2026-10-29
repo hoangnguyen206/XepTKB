@@ -251,11 +251,10 @@ test("AC-M3-07 — a tampered artifact is rejected before it reaches the UI", as
   await expect(page.getByText("Giải tích X")).toHaveCount(0);
 });
 
-test("AC-M3-07/12 — a new dataset version marks the Plan stale and rebases it after confirmation", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await startPlan(page);
-  await pick(page, "kien truc", "SYN2003 1");
-  await pick(page, "SYN1002", "SYN1002 1");
+type SyntheticSection = { id: string; sessions: { group?: string }[] };
+
+/** Serves a new version of the HK II dataset whose sections are `mutate(current sections)`. */
+async function publishRevision(page: Page, mutate: (sections: SyntheticSection[]) => SyntheticSection[]): Promise<void> {
   const manifest = await (await page.request.get("/data/manifest.json")).json();
   const entry = manifest.datasets.find((item: { term: string }) => item.term === "2026-2027-h2");
   const base = entry.artifacts[0].url.split("/").slice(0, -1).join("/");
@@ -263,7 +262,7 @@ test("AC-M3-07/12 — a new dataset version marks the Plan stale and rebases it 
   const timetable = await (await page.request.get(`/data/${base}/timetable.json`)).json();
   const metadata = await (await page.request.get(`/data/${base}/metadata.json`)).json();
   timetable.datasetVersion = next;
-  timetable.sections = timetable.sections.filter((section: { id: string }) => section.id !== "SYN2003 1").map((section: object) => ({ ...section, datasetVersion: next }));
+  timetable.sections = mutate(timetable.sections).map((section) => ({ ...section, datasetVersion: next }));
   metadata.datasetVersion = next;
   const bodies = new Map<string, string>([[`timetable`, JSON.stringify(timetable)], [`metadata`, JSON.stringify(metadata)]]);
   const nextBase = base.replace(entry.datasetVersion, next);
@@ -279,11 +278,45 @@ test("AC-M3-07/12 — a new dataset version marks the Plan stale and rebases it 
   await page.route(`**/data/${nextBase}/*.json`, (route) => route.fulfill({ contentType: "application/json", body: bodies.get(route.request().url().endsWith("timetable.json") ? "timetable" : "metadata")! }));
   await page.reload();
   await expect(page.getByText("Dữ liệu thời khóa biểu đã có phiên bản khác")).toBeVisible();
+}
+
+test("AC-M3-07/12 — a new dataset version marks the Plan stale and rebases it after confirmation", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await startPlan(page);
+  await pick(page, "kien truc", "SYN2003 1");
+  await pick(page, "SYN1002", "SYN1002 1");
+  await publishRevision(page, (sections) => sections.filter((section) => section.id !== "SYN2003 1"));
   await page.getByRole("button", { name: "Cập nhật phương án" }).click();
   await expect(page.getByText(/sẽ bị bỏ khỏi phương án: SYN2003 1/)).toBeVisible();
   await page.getByRole("button", { name: "Xác nhận cập nhật" }).click();
   await expect(page.getByText("Dữ liệu thời khóa biểu đã có phiên bản khác")).toHaveCount(0);
   await expect(page.getByText(/1 lớp · 3 tín chỉ/)).toBeVisible();
+});
+
+test("REV-M3-001/003 — a revision that renames a picked group keeps the conflict, asks for a new group and does not block other picks", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await startPlan(page);
+  await pick(page, "SYN1001", "SYN1001 1", { group: "2" });
+  await pick(page, "SYN1003", "SYN1003 1", { button: /^Vẫn chọn/ });
+  const bar = page.locator(".plan-bar");
+  await expect(bar.getByText(/1 chỗ trùng lịch/)).toBeVisible();
+  await publishRevision(page, (sections) => sections.map((section) => (section.id === "SYN1001 1"
+    ? { ...section, sessions: section.sessions.map((session) => (session.group === "2" ? { ...session, group: "3" } : session)) }
+    : section)));
+  // Before the rebase: the common Monday session still conflicts and the pick is flagged.
+  await expect(bar.getByText(/1 chỗ trùng lịch/)).toBeVisible();
+  await expect(bar.getByText(/1 lớp cần xử lý/)).toBeVisible();
+  await page.getByRole("button", { name: "Cập nhật phương án" }).click();
+  await expect(page.getByText(/sẽ bỏ nhóm của: SYN1001 1/)).toBeVisible();
+  await expect(page.getByText(/cần chọn lại nhóm cho: SYN1001 1/)).toBeVisible();
+  await page.getByRole("button", { name: "Xác nhận cập nhật" }).click();
+  await expect(bar.getByText(/1 chỗ trùng lịch/)).toBeVisible();
+  await expect(bar.getByText(/1 lớp cần xử lý/)).toBeVisible();
+  await expect(page.getByText("✓ Không có lớp nào trùng lịch.")).toHaveCount(0);
+  // An unrelated class can still be picked while SYN1001 1 waits for a group.
+  await pick(page, "SYN2004", "SYN2004 1");
+  await pick(page, "SYN1001", "SYN1001 1", { group: "3", button: /^Đổi nhóm/ });
+  await expect(bar.getByText(/lớp cần xử lý/)).toHaveCount(0);
 });
 
 test("AC-M3-08/13 — provenance, CSP, same-origin requests only and inert dataset text", async ({ page, baseURL }) => {
