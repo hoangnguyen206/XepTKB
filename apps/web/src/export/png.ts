@@ -121,12 +121,14 @@ export function renderPng(input: PngInput): Promise<Blob> {
         context.stroke();
       }
     }
+    // The conflict text leads the first line so even a one-period block shows it in words, not only by colour (REV-M3-010).
     const lines = [
-      { text: block.session.courseCode, font: `bold 15px ${FONT}` },
+      block.conflict
+        ? { text: `⚠ TRÙNG LỊCH · ${block.session.courseCode}`, font: `bold 14px ${FONT}` }
+        : { text: block.session.courseCode, font: `bold 15px ${FONT}` },
       { text: block.session.courseName, font: `13px ${FONT}` },
       { text: `${kindLabel(kind)}${block.session.group && block.session.group !== "CL" ? ` · nhóm ${block.session.group}` : ""}`, font: `13px ${FONT}` },
       { text: block.session.room ?? "", font: `13px ${FONT}` },
-      ...(block.conflict ? [{ text: "⚠ TRÙNG LỊCH", font: `bold 13px ${FONT}` }] : []),
     ];
     let lineY = y + 5;
     for (const line of lines) {

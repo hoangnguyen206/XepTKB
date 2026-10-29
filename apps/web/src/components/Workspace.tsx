@@ -105,7 +105,9 @@ export function Workspace(props: { plan: Plan; catalog: AppCatalog; onPlanChange
         <div className="plan-bar">
           <h2>{plan.name}</h2>
           <p className="muted">
-            {catalog.term.name} · {plan.picks.length} lớp · {view.credits.knownTotal} tín chỉ
+            {/* AC-M3-11: unknown credits are "chưa rõ", never counted as 0 (QA-M3-008). */}
+            {catalog.term.name} · {plan.picks.length} lớp · {view.credits.knownTotal === 0 && view.credits.unknownCourseCodes.length > 0 ? "chưa rõ" : view.credits.knownTotal} tín chỉ
+            {view.credits.unknownCourseCodes.length > 0 && view.credits.knownTotal > 0 ? ` + ${view.credits.unknownCourseCodes.length} môn chưa rõ tín chỉ` : ""}
             {view.conflicts.length > 0 ? <strong className="conflict-count"> · ⚠ {view.conflicts.length} chỗ trùng lịch</strong> : null}
             {view.unresolved.length > 0 ? <strong className="conflict-count"> · ⚠ {view.unresolved.length} lớp cần xử lý</strong> : null}
           </p>

@@ -18,6 +18,7 @@ const ERROR_TEXT: Record<ArtifactError["code"], string> = {
   SCHEMA_UNSUPPORTED: "Dữ liệu dùng định dạng mà phiên bản ứng dụng này chưa hỗ trợ.",
   DOMAIN_INVALID: "Dữ liệu vi phạm quy tắc thời khóa biểu nên đã bị từ chối.",
   TOO_LARGE: "Dữ liệu tải về vượt giới hạn kích thước.",
+  INSECURE_CONTEXT: "Trình duyệt không kiểm tra được dữ liệu vì trang không được mở qua HTTPS. Hãy mở bằng địa chỉ https://.",
 };
 
 function DatasetBanners(props: { ready: Ready; online: boolean }) {
@@ -26,7 +27,8 @@ function DatasetBanners(props: { ready: Ready; online: boolean }) {
   return (
     <>
       {isSynthetic(entry) ? <Notice tone="warning" title="Dữ liệu mẫu">{SYNTHETIC_NOTE}</Notice> : null}
-      {entry.status !== "published" && !isSynthetic(entry) ? (
+      {/* ADR-0010 §2 rule 4: every unpublished dataset says so, synthetic ones included (REV-M3-009d). */}
+      {entry.status !== "published" ? (
         <Notice tone="warning" title="Dữ liệu chưa được công bố">Bộ dữ liệu này đang ở trạng thái “{statusLabel(entry.status)}”, chỉ dùng để thử nghiệm.</Notice>
       ) : null}
       {!props.online || cached?.reason === "offline" ? (

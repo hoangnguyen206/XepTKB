@@ -21,6 +21,10 @@ const MAX_ARTIFACT_BYTES = 20 * 1024 * 1024;
 export type DatasetCacheLike = {
   get(term: string): Promise<LoadedDataset | undefined>;
   put(dataset: LoadedDataset): Promise<void>;
+  /** Drops a cached dataset that the manifest has since retracted (SEC-M3-001). */
+  delete(term: string): Promise<void>;
+  /** Every cached dataset, so offline use can switch between the terms already on the device (QA-M3-006). */
+  all(): Promise<LoadedDataset[]>;
 };
 
 export type LoaderOptions = {
@@ -36,7 +40,8 @@ export type LoaderOptions = {
 export type TermOption = { term: string; termName: string; datasetVersion: string; status: DatasetStatus; sourceType: SourceType };
 
 export type LoadResult =
-  | { kind: "fresh"; dataset: LoadedDataset; terms: TermOption[] }
+  /** `notCached`: the verified dataset is used but could not be stored for offline use (storage full/blocked). */
+  | { kind: "fresh"; dataset: LoadedDataset; terms: TermOption[]; notCached?: true }
   | { kind: "cached"; reason: "offline" | "invalid"; error: ArtifactError; dataset: LoadedDataset; terms: TermOption[] }
   | { kind: "unavailable"; error: ArtifactError; terms: TermOption[] };
 
@@ -60,6 +65,8 @@ function termOption(entry: DatasetEntry): TermOption {
 }
 
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
+  // crypto.subtle exists only in secure contexts; over plain HTTP say so instead of reporting corrupt data (REV-M3-004).
+  if (typeof crypto === "undefined" || !crypto.subtle) throw new ArtifactError("INSECURE_CONTEXT", "WebCrypto is unavailable outside a secure context");
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
@@ -84,9 +91,32 @@ async function fetchBytes(fetchImpl: typeof fetch, url: string, limit: number, i
   if (!response.ok) throw new ArtifactError("MANIFEST_UNAVAILABLE", `${url} returned HTTP ${response.status}`);
   const declared = Number(response.headers.get("content-length") ?? "0");
   if (declared > limit) throw new ArtifactError("TOO_LARGE", `${url} exceeds the size limit`);
-  const bytes = await response.arrayBuffer();
-  if (bytes.byteLength > limit) throw new ArtifactError("TOO_LARGE", `${url} exceeds the size limit`);
-  return bytes;
+  if (!response.body) {
+    const bytes = await response.arrayBuffer();
+    if (bytes.byteLength > limit) throw new ArtifactError("TOO_LARGE", `${url} exceeds the size limit`);
+    return bytes;
+  }
+  // Count while streaming so a response without Content-Length is cut at the limit, not read whole (SEC-M3-004).
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limit) {
+      await reader.cancel().catch(() => undefined);
+      throw new ArtifactError("TOO_LARGE", `${url} exceeds the size limit`);
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes.buffer;
 }
 
 function sameArtifacts(left: DatasetEntry, right: DatasetEntry): boolean {
@@ -134,30 +164,45 @@ export async function loadDataset(term: string | undefined, options: LoaderOptio
   } catch (error) {
     const reason = error instanceof NetworkUnavailable ? "offline" : "invalid";
     const failure = asArtifactError(error);
-    const cached = term ? await options.cache.get(term) : undefined;
-    return cached && isStatusAllowed(cached.entry.status, options.allowUnpublished)
-      ? { kind: "cached", reason, error: failure, dataset: cached, terms: [termOption(cached.entry)] }
+    const available = (await options.cache.all().catch(() => [])).filter((dataset) => isStatusAllowed(dataset.entry.status, options.allowUnpublished));
+    const cached = available.find((dataset) => dataset.entry.term === term) ?? (term === undefined ? available[0] : undefined);
+    return cached
+      ? { kind: "cached", reason, error: failure, dataset: cached, terms: available.map((dataset) => termOption(dataset.entry)) }
       : { kind: "unavailable", error: failure, terms: [] };
   }
   const entries = currentEntries(manifest, options.allowUnpublished);
   const terms = entries.map(termOption);
   const entry = entries.find((candidate) => candidate.term === term) ?? (term === undefined ? entries[0] : undefined);
   if (!entry) {
+    // A reachable manifest that retracts the cached version also removes it from the device, so it cannot reappear offline.
+    const stale = term ? await options.cache.get(term) : undefined;
+    if (stale && isRetracted(manifest, stale)) await options.cache.delete(stale.entry.term).catch(() => undefined);
     return { kind: "unavailable", error: new ArtifactError("NO_DATASET", term ? `không có dữ liệu được phép dùng cho kỳ ${term}` : "chưa có dữ liệu nào được công bố"), terms };
   }
   const cached = await options.cache.get(entry.term);
   // Same version and hashes: reuse the cached payload but take status/review dates from the manifest.
   if (cached && sameArtifacts(cached.entry, entry)) return { kind: "fresh", dataset: { ...cached, entry }, terms };
+  let dataset: LoadedDataset;
   try {
-    const dataset = await fetchDataset(entry, options);
-    await options.cache.put(dataset);
-    return { kind: "fresh", dataset, terms };
+    dataset = await fetchDataset(entry, options);
   } catch (error) {
     const failure = asArtifactError(error);
-    const retracted = cached ? manifest.datasets.some((item) => item.datasetVersion === cached.entry.datasetVersion && item.status === "retracted") : false;
+    const retracted = cached ? isRetracted(manifest, cached) : false;
+    if (cached && retracted) await options.cache.delete(cached.entry.term).catch(() => undefined);
     if (cached && !retracted && isStatusAllowed(cached.entry.status, options.allowUnpublished)) {
       return { kind: "cached", reason: error instanceof NetworkUnavailable ? "offline" : "invalid", error: failure, dataset: cached, terms };
     }
     return { kind: "unavailable", error: failure, terms };
   }
+  // A failed write (quota, private mode) must not discard data that has just been verified (REV-M3-004).
+  try {
+    await options.cache.put(dataset);
+  } catch {
+    return { kind: "fresh", dataset, terms, notCached: true };
+  }
+  return { kind: "fresh", dataset, terms };
+}
+
+function isRetracted(manifest: DatasetManifest, cached: LoadedDataset): boolean {
+  return manifest.datasets.some((item) => item.datasetVersion === cached.entry.datasetVersion && item.status === "retracted");
 }

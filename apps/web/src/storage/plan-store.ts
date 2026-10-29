@@ -4,7 +4,7 @@
  * so the user can download or delete them — they are never sent anywhere.
  */
 import { SCHEMA_VERSION, type Override, type Plan, type PlanPick } from "@ky-nay/domain";
-import { idbDelete, idbEntries, idbMoveToBackup, idbPut } from "./db.js";
+import { idbDelete, idbEntries, idbMoveToBackup, idbPut, idbPutIfUnchanged } from "./db.js";
 
 export const PLAN_RECORD_VERSION = SCHEMA_VERSION;
 const KNOWN_VERSIONS = ["0.1.0", "0.2.0"] as const;
@@ -78,9 +78,12 @@ export function isPlanShape(value: unknown): value is Plan {
 }
 
 /** 0.1.0 had no `datasetVersion` and untargeted overrides (ADR-0009 compatibility section). */
-function migrateFrom010(plan: Json): { plan: Json; notes: string[] } {
+/** Undefined when `planKind` and `final` contradict each other: ADR-0009 rejects such a record (REV-M3-009c). */
+function migrateFrom010(plan: Json): { plan: Json; notes: string[] } | undefined {
   const notes: string[] = [];
-  const planKind = plan.planKind === "final" || plan.planKind === "draft" ? plan.planKind : plan.final === true ? "final" : "draft";
+  const declared = plan.planKind === "final" || plan.planKind === "draft" ? plan.planKind : undefined;
+  if (declared !== undefined && typeof plan.final === "boolean" && (declared === "final") !== plan.final) return undefined;
+  const planKind = declared ?? (plan.final === true ? "final" : "draft");
   const overrides = Array.isArray(plan.overrides) ? plan.overrides : [];
   const kept = overrides.filter(isTargetedOverride);
   if (kept.length !== overrides.length) notes.push(`${overrides.length - kept.length} chỉnh sửa cũ không gắn với buổi học cụ thể đã bị bỏ`);
@@ -96,7 +99,11 @@ export function migratePlanRecord(record: unknown): MigrationResult {
   }
   let plan: Json = record.plan;
   let notes: string[] = [];
-  if (version === "0.1.0") ({ plan, notes } = migrateFrom010(plan));
+  if (version === "0.1.0") {
+    const migrated = migrateFrom010(plan);
+    if (!migrated) return { kind: "invalid", reason: "phương án cũ ghi loại (nháp/chính thức) mâu thuẫn" };
+    ({ plan, notes } = migrated);
+  }
   if (!isPlanShape(plan)) return { kind: "invalid", reason: "dữ liệu phương án không hợp lệ sau khi chuyển đổi" };
   return { kind: "ok", plan, migrated: version !== PLAN_RECORD_VERSION, notes };
 }
@@ -132,6 +139,18 @@ export async function loadPlans(db: IDBDatabase, now: () => string = () => new D
 
 export async function savePlan(db: IDBDatabase, plan: Plan, now: () => string = () => new Date().toISOString()): Promise<void> {
   await idbPut(db, "plans", planRecord(plan, now()), plan.id);
+}
+
+/**
+ * Saves `plan` unless the stored copy changed since this tab read it. `expectedUpdatedAt` is the `updatedAt` this tab
+ * last read or wrote (undefined: the Plan was never stored). A copy changed or deleted by another tab is not overwritten.
+ */
+export async function savePlanIfUnchanged(db: IDBDatabase, plan: Plan, expectedUpdatedAt: string | undefined, now: () => string = () => new Date().toISOString()): Promise<boolean> {
+  return idbPutIfUnchanged(db, "plans", plan.id, planRecord(plan, now()), (current) => {
+    if (current === undefined) return expectedUpdatedAt === undefined;
+    const stored = migratePlanRecord(current);
+    return stored.kind === "ok" && stored.plan.updatedAt === expectedUpdatedAt;
+  });
 }
 
 export async function listBackups(db: IDBDatabase): Promise<{ key: IDBValidKey; value: BackupRecord }[]> {

@@ -60,6 +60,24 @@ export async function idbDelete(db: IDBDatabase, store: StoreName, key: IDBValid
   await completed(transaction);
 }
 
+/**
+ * Writes `value` only while `unchanged(current)` holds, read and write in one readwrite transaction: another tab's
+ * write to the same store cannot land in between (QA-M3-005). Resolves to whether the value was written.
+ */
+export async function idbPutIfUnchanged(db: IDBDatabase, store: StoreName, key: IDBValidKey, value: unknown, unchanged: (current: unknown) => boolean): Promise<boolean> {
+  const transaction = db.transaction(store, "readwrite");
+  const objectStore = transaction.objectStore(store);
+  let written = false;
+  const request = objectStore.get(key);
+  request.onsuccess = () => {
+    if (!unchanged(request.result)) return;
+    objectStore.put(value, key);
+    written = true;
+  };
+  await completed(transaction);
+  return written;
+}
+
 /** Moves a record to `backups` and deletes the original in one transaction. */
 export async function idbMoveToBackup(db: IDBDatabase, store: StoreName, key: IDBValidKey, backup: unknown): Promise<void> {
   const transaction = db.transaction([store, "backups"], "readwrite");

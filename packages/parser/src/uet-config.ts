@@ -79,8 +79,30 @@ export const COLUMN_SYNONYMS: Record<string, string[]> = {
   examRound: ["đợt thi", "dot thi"],
 };
 
-/** Required canonical columns (PARSER_SPEC §4 "yes"). */
-export const REQUIRED_COLUMNS = ["courseCode", "courseName", "sectionId", "kind"];
+/**
+ * Required canonical columns (PARSER_SPEC §4 "yes"); a `shift` or `periodText` column is required as well.
+ * `kind` is optional: the HK I 2026–27 timetable has no LT/TH column.
+ */
+export const REQUIRED_COLUMNS = ["courseCode", "courseName", "sectionId", "day"];
+
+/** Columns that may repeat in a header; their values are joined (the HK II layout has two "Ghi chú" columns). */
+export const REPEATABLE_COLUMNS = ["note"];
+
+/** Folded words of worksheet names that list cancelled sections ("Các lớp hủy"); such a sheet is never imported. */
+export const CANCELLED_SHEET_WORDS = ["huy"];
+
+/** Folded room text of a self-paced online class when the file has no kind column ("Học Online"). */
+export const ONLINE_ROOM_WORDS = ["online"];
+
+/**
+ * Column sets already reviewed (format fingerprints). Any other set imports as `hold` with FORMAT_UNRECOGNIZED,
+ * so a new layout is looked at before publication instead of being trusted silently.
+ */
+export const KNOWN_FORMATS: { id: string; columns: string[] }[] = [
+  { id: "uet-hk1-2026-27-portal", columns: ["courseCode", "courseName", "credits", "day", "group", "lecturer", "room", "sectionId", "shift"] },
+  { id: "uet-official-with-kind-and-notes", columns: ["courseCode", "courseName", "credits", "day", "group", "homeClass", "kind", "lecturer", "note", "room", "sectionId", "shift"] },
+  { id: "uet-official-with-periods", columns: ["courseCode", "courseName", "credits", "day", "group", "homeClass", "kind", "lecturer", "note", "periodText", "room", "sectionId", "shift"] },
+];
 
 /** Kind value → canonical SessionKind (configured aliases only, no guessing). */
 export const KIND_ALIASES: Record<string, "LT" | "TH" | "BT" | "ONL" | "OTHER"> = {

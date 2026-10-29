@@ -9,11 +9,12 @@ function sessionText(session: Session, catalog: AppCatalog): string {
   const groupText = group && group !== "CL" ? ` · nhóm ${group}` : "";
   const place = session.campus && !(session.room ?? "").includes(session.campus) ? [session.room, session.campus].filter(Boolean).join(" · ") : session.room ?? "";
   const lecturers = session.lecturers.length > 0 ? ` · GV ${session.lecturers.join(", ")}` : "";
+  const note = session.rawNote ? ` · Ghi chú: ${session.rawNote}` : "";
   if (!isFixedSession(session)) {
-    return `Không có giờ cố định (${kindLabel(session.kind)})${groupText} · tuần ${formatWeeks(session.weeks)}${lecturers}`;
+    return `Không có giờ cố định (${kindLabel(session.kind)})${groupText} · tuần ${formatWeeks(session.weeks)}${place ? ` · ${place}` : ""}${lecturers}${note}`;
   }
   const times = periodTimes(catalog.frame, session.startPeriod, session.endPeriod);
-  return `${dayLabel(session.day)}, ${formatPeriods(session.startPeriod, session.endPeriod)}${times ? ` (${times.start}–${times.end})` : ""} · ${kindLabel(session.kind)}${groupText} · tuần ${formatWeeks(session.weeks)}${place ? ` · ${place}` : ""}${lecturers}`;
+  return `${dayLabel(session.day)}, ${formatPeriods(session.startPeriod, session.endPeriod)}${times ? ` (${times.start}–${times.end})` : ""} · ${kindLabel(session.kind)}${groupText} · tuần ${formatWeeks(session.weeks)}${place ? ` · ${place}` : ""}${lecturers}${note}`;
 }
 
 export function SectionCard(props: { section: Section; plan: Plan; catalog: AppCatalog; onPick: (sectionId: string, group?: string) => void; onUnpick: (sectionId: string) => void; headingLevel: "h3" | "h4" }) {
@@ -28,11 +29,12 @@ export function SectionCard(props: { section: Section; plan: Plan; catalog: AppC
   const [group, setGroup] = useState<string | undefined>(() => normalizeGroup(picked?.group));
   const needsGroup = groups.length > 0 && group === undefined;
   const pickedSameGroup = picked !== undefined && normalizeGroup(picked.group) === group;
-  const preview = !needsGroup && !pickedSameGroup ? previewPick(plan, catalog, group ? { sectionId: section.id, group } : { sectionId: section.id }) : undefined;
+  // A picked card keeps showing its conflicts (QA-M3-007): previewing the current pick resolves to the Plan itself.
+  const preview = !needsGroup ? previewPick(plan, catalog, group ? { sectionId: section.id, group } : { sectionId: section.id }) : undefined;
   const conflicting = (preview?.conflictTexts.length ?? 0) > 0;
-  const online = section.online || section.sessions.every((session) => !isFixedSession(session));
+  const untimed = section.sessions.every((session) => !isFixedSession(session));
   const action = pickedSameGroup ? "Bỏ chọn lớp này"
-    : picked ? "Đổi nhóm"
+    : picked ? (conflicting ? "Vẫn đổi nhóm (đang trùng lịch)" : "Đổi nhóm")
       : sameCourse ? (conflicting ? "Vẫn đổi sang lớp này (đang trùng lịch)" : `Đổi từ ${sameCourse.sectionId} sang lớp này`)
         : conflicting ? "Vẫn chọn lớp này (đang trùng lịch)" : "Chọn lớp này";
   return (
@@ -42,7 +44,8 @@ export function SectionCard(props: { section: Section; plan: Plan; catalog: AppC
         <div className="badges">
           {picked ? <span className="badge badge-picked">✓ Đã chọn{picked.group ? ` · nhóm ${picked.group}` : ""}</span> : null}
           {pickedNeedsGroup ? <span className="badge badge-conflict">⚠ Cần chọn lại nhóm</span> : null}
-          {online ? <span className="badge badge-online">Trực tuyến · không xếp lịch tuần</span> : null}
+          {section.online ? <span className="badge badge-online">Trực tuyến · không xếp lịch tuần</span>
+            : untimed ? <span className="badge badge-online">Không có lịch cố định</span> : null}
           {conflicting ? <span className="badge badge-conflict">⚠ Trùng lịch</span> : null}
         </div>
       </header>

@@ -52,6 +52,20 @@ describe("onboarding (AC-M3-01, C-08)", () => {
   });
 });
 
+describe("plan bar credits (AC-M3-11, QA-M3-008)", () => {
+  it("says the credits are unknown instead of showing 0", async () => {
+    const user = userEvent.setup();
+    await startPlan(user);
+    await openCourse(user, "seminar", "SYN4001");
+    await user.click(within(screen.getByRole("article", { name: "Lớp SYN4001 1" })).getByRole("button", { name: "Chọn lớp này" }));
+    expect(await screen.findByText(/1 lớp · chưa rõ tín chỉ/)).toBeTruthy();
+    expect(screen.queryByText(/1 lớp · 0 tín chỉ/)).toBeNull();
+    await openCourse(user, "giai tich", "SYN1001");
+    await user.click(within(screen.getByRole("article", { name: "Lớp SYN1001 2" })).getByRole("button", { name: /Chọn lớp này/ }));
+    expect(await screen.findByText(/2 lớp · 4 tín chỉ \+ 1 môn chưa rõ tín chỉ/)).toBeTruthy();
+  });
+});
+
 describe("picker and plan (AC-M3-02, AC-M3-03, AC-M3-11, AC-M3-13)", () => {
   it("requires a group, explains conflicts and updates credits", async () => {
     const user = userEvent.setup();

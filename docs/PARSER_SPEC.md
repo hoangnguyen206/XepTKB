@@ -49,21 +49,29 @@ PDF scan/image không nằm trong MVP; nếu dùng OCR/LLM, output là candidate
 | Canonical | Synonyms / examples | Required |
 | --- | --- | --- |
 | `homeClass` | `Lớp`, `Lớp khóa`, `Lop` | recommended |
-| `courseCode` | `Mã HP`, `Mã môn`, `Ma hoc phan` | yes |
-| `courseName` | `Môn`, `Tên học phần`, `Ten mon` | yes |
-| `credits` | `TC`, `Tín chỉ` | recommended |
+| `courseCode` | `Mã HP`, `Mã môn`, `Mã học phần`, `Ma hoc phan` | yes |
+| `courseName` | `Môn`, `Học phần`, `Tên học phần`, `Ten mon` | yes |
+| `credits` | `TC`, `Số TC`, `Tín chỉ` | recommended |
 | `sectionId` | `Mã LHP`, `Mã lớp học phần` | yes |
 | `group` | `Nhóm`, `Nhom` | recommended |
-| `kind` | `LT/TH`, `BT/TH`, `LT+BT/TH`, `Loại buổi` | yes |
-| `day` | `Thứ`, `Thu` | conditional |
-| `shift` | `Ca`, `C`, `Sáng`, `Chiều` | conditional |
-| `periodText` | `Tiết`, `Tiết học` | conditional |
+| `kind` | `LT/TH`, `BT/TH`, `LT+BT/TH`, `Loại buổi` | optional (uet-xlsx 0.2.0; TKB HK I 2026–27 không có cột này) |
+| `day` | `Thứ`, `Thu` | yes |
+| `shift` | `Ca`, `C`, `Sáng`, `Chiều` | yes — `shift` hoặc `periodText` |
+| `periodText` | `Tiết`, `Tiết học` | yes — `shift` hoặc `periodText` |
 | `room` | `GĐ`, `Giảng đường`, `Phòng` | optional |
 | `lecturer` | `GV`, `Giảng viên` | optional |
-| `note` | `Ghi chú`, `Ghi chú học`, `Tuần học` | optional |
+| `note` | `Ghi chú`, `Ghi chú học`, `Tuần học` | optional; có thể lặp (2 cột `Ghi chú`), giá trị được nối bằng ` · ` |
 | `examRound` | `Đợt thi` | optional |
 
-Unknown columns được giữ trong raw metadata nhưng không được tự gán canonical field. Header recognition dùng normalized Unicode/case/whitespace, không dùng index cột.
+Unknown columns được giữ trong raw metadata nhưng không được tự gán canonical field. Header recognition dùng normalized Unicode/case/whitespace, không dùng index cột. Thiếu cột bắt buộc → `MISSING_REQUIRED_COLUMN` nêu tên cột.
+
+### Định dạng thay đổi giữa các kỳ ([ADR-0011](adr/ADR-0011-timetable-format-variability.md))
+
+- Một adapter `uet-xlsx` cho mọi kỳ; không viết adapter theo kỳ.
+- **Dấu vân tay định dạng:** tập canonical field của header. Tập đã review nằm trong `KNOWN_FORMATS` (`uet-config.ts`); tập lạ → artifact `status: "hold"` + warning `FORMAT_UNRECOGNIZED`, không được publish trước khi Data Reviewer xem và thêm vào danh sách.
+- **Import profile** (`SourceInput.profile`, JSON đi kèm file, được ghi vào báo cáo nạp): `sheet`, `cancelledSheetPatterns`, `shiftRange`. Cách ghi lạ được sửa bằng profile đã review, không sửa code.
+- **Sheet lớp hủy:** sheet có tên chứa từ `hủy` không bao giờ được nạp; mã lớp trong đó bị loại khỏi sheet chính kèm `SECTION_CANCELLED`.
+- **Độ phủ (`ParseResult.coverage`):** mọi dòng có mã lớp phải thành `parsed`, `skipped` (có lý do) hoặc `error`; `npm run test:real -- <file>` báo `unaccounted` khác 0 là lỗi.
 
 ## 5. Normalization rules
 
@@ -71,14 +79,15 @@ Unknown columns được giữ trong raw metadata nhưng không được tự g�
 
 - trim, Unicode normalize, uppercase;
 - bỏ dấu sao `*` và whitespace thừa;
-- giữ mapping giữa `PES 1075`/`PES1075`, `UET.MAT1051`/`MAT1051` trong alias;
+- giữ mapping giữa `PES 1075`/`PES1075`, `UET.MAT1051`/`MAT1051` trong alias; mã lớp được dựng lại từ mã môn đã chuẩn hóa (`EMA 3062 1` → `EMA3062 1`);
+- `#` là một phần của mã môn, **không** bỏ: TKB HK I 2026–27 có cả `AIT3003#` và `AIT3003`;
 - không bỏ prefix nếu collision; lưu cả canonical và alt code;
 - `sectionId` phải có course code + suffix hợp lệ; row thiếu Mã LHP bị loại hoặc warning tùy source.
 
 ### Day/period
 
 - map `T2..T7`, `Thứ 2..7`, `CN` thành 2..8;
-- map `Ca 1..4`, `1-2`, `1 - 2`, `Sáng/Chiều` qua TimeFrame;
+- map `Ca 1..4`, `Sáng/Chiều` qua TimeFrame; trong cột `Ca`, `Tiết a-b` là tiết, còn `a - b` không có chữ `Tiết` là **ca a đến ca b** (`1 - 2` → tiết 1–6), kèm warning `SHIFT_RANGE_INTERPRETED`; profile `shiftRange: "periods"` đổi cách đọc. Chờ owner/Data Reviewer xác nhận với nhà trường (C-10);
 - parse `Tiết 9-12`, `9 – 12`, `9,10,11,12` thành range/explicit periods;
 - note period override thắng shift/cột Ca và phải ghi warning trace.
 
@@ -88,7 +97,7 @@ Unknown columns được giữ trong raw metadata nhưng không được tự g�
 - canonical kind: `LT`, `TH`, `BT`, `ONL`, `OTHER`;
 - `CL` là group đặc biệt “cả lớp”; nhóm số giữ string để không mất leading zero;
 - Dòng có kind `ONL` (gồm alias chứa `online`) luôn thành session `fixedTime=false` với `Section.online=true`, kèm warning `NON_FIXED_TIME` theo `sourceRow`; thứ/tiết trong nguồn (nếu có) không được dùng (Q-009: học tự do theo giảng viên). Course và tín chỉ vẫn được tạo; adapter registration tạo một session non-fixed cho dòng `ONL` để merge được vào Plan chính thức.
-- Đồ án, thực tập/LMS không có fixed period thì session `fixedTime=false`, không chiếm grid. **Chưa** có rule nhận diện cho các dòng này; cần dữ liệu thật và quyết định trước khi thêm từ khóa (không nới validator). Hiện dòng thiếu thứ/tiết vẫn là error.
+- Đồ án, thực tập/LMS không có fixed period thì session `fixedTime=false`, không chiếm grid. Rule (Q-012, dữ liệu thật HK I 2026–27): khi file **không có cột loại buổi** và dòng trống cả thứ, ca và tiết, dòng thành session non-fixed kind `OTHER` (`NON_FIXED_TIME`); nếu phòng có chữ `online` (`Học Online`) thì kind `ONL`, `Section.online=true`. Dòng ghi rõ LT/TH/BT mà thiếu thứ/tiết vẫn là error.
 
 ### Room/campus/lecturer
 
@@ -106,10 +115,10 @@ Parser tuần phải trả `weeks: number[]`, không giữ range string làm log
 | `Học tuần 11-15` | `[11..15]` |
 | `Học từ tuần 14` | `[14..teachingWeeks]` |
 | `Học tuần 4,7,10,14,15` | explicit list |
-| `Học 1 ca/10 tuần` | candidate + warning, cần rule source/round |
+| `Học 1 ca/10 tuần`, `thi đợt 2` và mọi ghi chú khác không có pattern tuần | default `[1..teachingWeeks]`, `weekOrigin=parser-default`, **không warning**; nội dung giữ ở `rawNote` và hiển thị cho sinh viên (Q-012) |
 | date range `2/3 - 19/4` | quy đổi theo `Term.week1`, timezone, cần test |
 | `Học tiết 9-12` | period override 9..12 |
-| không ghi tuần | default `[1..teachingWeeks]`, warning, `weekOrigin=parser-default` |
+| không ghi tuần | default `[1..teachingWeeks]`, `weekOrigin=parser-default`, không warning (Q-012) |
 | pattern tuần khớp nhưng số ngoài `1..teachingWeeks` hoặc đảo ngược (`Học tuần 11-20`, `15-11`) | error `INVALID_DAY_OR_PERIOD`, không default |
 | TH từ tuần 2 khi merge registration | `[2..teachingWeeks]` theo approved rule, chỉ khi tuần TKB của session đó cũng là default; tuần explicit của TKB thắng (Q-010) |
 
@@ -152,8 +161,11 @@ M2 bổ sung matching/merge thuần trong `packages/domain`: candidate registrat
 ### Warnings — cần review/hiển thị
 
 - `UNKNOWN_COLUMN`
-- `UNPARSED_NOTE`
-- `DEFAULT_WEEKS_APPLIED`
+- `UNPARSED_NOTE` — không còn phát từ 2026-10-30 (Q-012: ghi chú chỉ là thông tin); giữ trong taxonomy để tương thích
+- `DEFAULT_WEEKS_APPLIED` — parser không còn phát (Q-012); tuần mặc định được ghi bằng `weekOrigin=parser-default`
+- `SECTION_CANCELLED` — lớp nằm trong sheet lớp hủy, không nạp
+- `SHIFT_RANGE_INTERPRETED` — `a - b` trong cột `Ca` được đọc theo profile `shiftRange`
+- `FORMAT_UNRECOGNIZED` — bộ cột chưa review, artifact `hold`
 - `GROUP_MISSING`
 - `ROOM_CAMPUS_UNKNOWN`
 - `LECTURER_ALIAS_UNMATCHED`
@@ -191,7 +203,7 @@ Không gửi file registration, mã sinh viên, họ tên, ngày sinh hoặc raw
 
 | Fixture family | Cases tối thiểu |
 | --- | --- |
-| UET XLSX HK I 2026–27 | header row 1, 17 cột, ca có khoảng trắng, T7, code alias |
+| UET XLSX HK I 2026–27 | header row 1, 17 cột, ca có khoảng trắng, T7, code alias; **định dạng thật** (file "TKB HKI 2026-2027 SAU ĐKH 04.09.2026", ngoài repo): header row 6, 10 cột, sheet "Các lớp hủy", `Ca` dạng `1 - 2`/`Tiết 1-2`, mã có khoảng trắng/`#`, đồ án và `Học Online` không có giờ — bản tổng hợp cùng bố cục trong `uet-xlsx.test.ts`; file thật chạy bằng `npm run test:real` |
 | UET XLSX HK II chính thức | header row 4, 18 cột, 151 merged ranges, PCGD, 10-week class |
 | UET PDF dự kiến | repeated header/page, 17 cột, khác session INT2213 |
 | Registration HTML `.doc` | 7 lớp, multi-day/multi-period, 3 room overrides, PII fields — markup thật đã thay toàn bộ giá trị: `fixtures/redacted-registration/` ([REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md)) |

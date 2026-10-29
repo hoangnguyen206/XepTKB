@@ -16,16 +16,25 @@ function publish(apply: (() => void) | undefined): void {
 export function registerServiceWorker(): void {
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
   let updateRequested = false;
+  // Only a page that an older worker already controlled at load can have an update. On a first install WebKit can
+  // report the new worker as "installed"/waiting while it is activating, which showed a false banner (QA-M3-004).
+  const loadedUnderWorker = navigator.serviceWorker.controller !== null;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (updateRequested) window.location.reload();
   });
   void navigator.serviceWorker.register("./sw.js").then((registration) => {
     const offer = () => {
       const waiting = registration.waiting;
-      if (!waiting || !navigator.serviceWorker.controller) return;
+      if (!loadedUnderWorker || !waiting || waiting.state !== "installed" || !navigator.serviceWorker.controller) return;
       publish(() => {
+        const current = registration.waiting;
+        // The worker may have activated in the meantime; then a plain reload already loads the new version.
+        if (!current) {
+          window.location.reload();
+          return;
+        }
         updateRequested = true;
-        waiting.postMessage("SKIP_WAITING");
+        current.postMessage("SKIP_WAITING");
       });
     };
     const watch = (worker: ServiceWorker | null) => {

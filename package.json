@@ -15,6 +15,7 @@
     "test": "npm run build && node scripts/run-node-tests.mjs && npm run test -w @ky-nay/web",
     "test:e2e": "npm run build && npm run e2e -w @ky-nay/web",
     "fixtures:run": "npm run build && node packages/parser/dist/bin/run-fixtures.js fixtures --verbose",
+    "test:real": "npm run build && node scripts/test-real.mjs",
     "check": "npm run lint && npm run typecheck && npm test && npm run fixtures:run",
     "dev": "npm run build && npm run dev -w @ky-nay/web",
     "clean": "node -e \"import('node:fs').then(fs=>{for(const p of ['packages/domain/dist','packages/parser/dist','packages/export/dist','apps/web/dist'])fs.rmSync(p,{recursive:true,force:true})})\""

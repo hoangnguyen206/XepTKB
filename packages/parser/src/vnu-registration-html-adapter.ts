@@ -17,9 +17,9 @@ import {
   normalizeKind,
   normalizeLecturers,
   normalizeRoom,
-  normalizeSectionId,
   parseDay,
   parsePeriodRanges,
+  sectionIdFromCourse,
   type PeriodRange,
 } from "./normalize.js";
 
@@ -173,26 +173,13 @@ function splitRooms(value: string | undefined, count: number): (string | undefin
   return found.length === 1 ? found[0] : undefined;
 }
 
-/** `SYN 1007 5` for course `SYN1007` becomes `SYN1007 5`, the id shape the timetable adapter emits. */
-function sectionIdFor(rawSection: string, courseCode: string): string {
-  const normalized = normalizeSectionId(rawSection);
-  let index = 0;
-  for (const char of courseCode) {
-    while (normalized[index] === " ") index += 1;
-    if (normalized[index] !== char) return normalized;
-    index += 1;
-  }
-  const suffix = normalized.slice(index);
-  return /^ \S/.test(suffix) ? `${courseCode} ${suffix.trim()}` : normalized;
-}
-
 function safeCandidateSection(row: Record<string, string>, source: { artifactId: string; sourceType: "registration"; sourceRow: number }, teachingWeeks: number, issues: ParseIssue[]): Section | undefined {
   if (!row.courseCode || !row.sectionId) {
     issues.push(issue("REGISTRATION_OVERRIDE_UNMATCHED", "warning", "registration schedule row could not produce a complete local candidate", { sourceRow: source.sourceRow }));
     return undefined;
   }
   const courseCode = normalizeCode(row.courseCode);
-  const sectionId = sectionIdFor(row.sectionId, courseCode);
+  const sectionId = sectionIdFromCourse(row.sectionId, courseCode);
   const sectionSource = { ...source };
   const kind = normalizeKind(row.kind);
   const weeks = Array.from({ length: teachingWeeks }, (_, index) => index + 1);

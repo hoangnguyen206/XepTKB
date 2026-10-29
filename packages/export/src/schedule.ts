@@ -29,6 +29,8 @@ export type ScheduledSession = {
   room?: string;
   campus?: string;
   lecturers: readonly string[];
+  /** The timetable's "Ghi chú" text, shown to the student as information (Q-012). */
+  note?: string;
 };
 
 export type Occurrence = ScheduledSession & {
@@ -70,6 +72,7 @@ export function scheduledSessions(picks: readonly ResolvedPlanPick[], courses: r
         ...(session.room !== undefined ? { room: session.room } : {}),
         ...(session.campus !== undefined ? { campus: session.campus } : {}),
         lecturers: [...session.lecturers],
+        ...(session.rawNote !== undefined ? { note: session.rawNote } : {}),
       };
       out.push(isFixedSession(session)
         ? { ...base, fixed: true, day: session.day, startPeriod: session.startPeriod, endPeriod: session.endPeriod }

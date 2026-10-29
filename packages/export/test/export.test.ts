@@ -111,6 +111,11 @@ test("grid layout places overlapping blocks in lanes and marks conflicts per wee
   assert.equal(describeConflict(conflicts[0]!, "SYN1002 1", (id) => id === "SYN1001 1" ? { courseName: "Giải tích" } : undefined), "Trùng lịch với SYN1001 1 (Giải tích): Thứ 3, tiết 5–6, tuần 3");
 });
 
+test("the timetable note reaches the schedule as information (Q-012)", () => {
+  const noted = scheduledSessions([{ pick: { sectionId: "X 1" }, section: section("X 1", "SYN1001", []), sessions: [fixed("s", { rawNote: "Học 1 ca/15 tuần, thi đợt 2" }), fixed("t", {})] }], courses);
+  assert.deepEqual(noted.map((session) => session.note), ["Học 1 ca/15 tuần, thi đợt 2", undefined]);
+});
+
 test("Sunday sessions add a CN column", () => {
   const sunday = scheduledSessions([{ pick: { sectionId: "X 1" }, section: section("X 1", "SYN1001", []), sessions: [fixed("s", { day: 8 })] }], courses);
   assert.deepEqual(buildGridLayout(sunday, { maxPeriod: 12 }).days, [2, 3, 4, 5, 6, 7, 8]);

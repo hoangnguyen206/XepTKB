@@ -89,6 +89,7 @@ ket-qua-dang-ky*
 
 # Web app generated/test output
 /apps/web/public/data/
+/apps/web/dist-e2e/
 /apps/web/test-results/
 /apps/web/playwright-report/
 

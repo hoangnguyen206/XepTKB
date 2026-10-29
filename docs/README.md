@@ -114,6 +114,7 @@ M2 đã merge vào `main` (`aba04b0`) và đã push cùng fix round audit (`e41a
 ## M3 evidence hiện tại
 
 - [M3 spec](evidence/M3-SPEC.md) (`SPEC-M3-001`, G0) — scope, AC-M3-01…13, quyết định D-M3-1…4 (đóng đề xuất cho C-08, C-02); Product chưa ghi actor/date.
+- [ADR-0011 — TKB đổi bộ cột theo kỳ: một adapter, import profile, dấu vân tay định dạng](adr/ADR-0011-timetable-format-variability.md) — ready, G1 chờ acknowledgement.
 - [ADR-0010 — web app, artifact loader contract, local storage, export](adr/ADR-0010-m3-web-app-artifact-storage-export.md) và [M3 design handoff](evidence/M3-DESIGN-HANDOFF.md) (G1) — Tech Lead chưa acknowledge; ADR có mục "Status after G3" liệt kê các điểm contract còn mở.
 - [M3 implementation handoff](evidence/M3-IMPLEMENTATION-HANDOFF.md) (G2) — viết khi code chưa commit trên `4681c63`; code nay ở `82cb85b` (nhánh `m3-web-app`).
 - [M3 G3a QA](evidence/M3-G3a-QA-REPORT.md) — `qa-no-go` (QA-M3-001 S1).
@@ -122,7 +123,7 @@ M2 đã merge vào `main` (`aba04b0`) và đã push cùng fix round audit (`e41a
 - [M3 evidence envelope](evidence/M3-EVIDENCE-ENVELOPE.md) (`EVID-M3-001`) — lệnh/kết quả, sổ 21 finding đã gộp trùng (1 S1, 6 S2, 14 S3), điều kiện chạy lại G3.
 - [Ảnh màn hình 360/768/1280](evidence/m3-screens/) — dữ liệu mẫu.
 
-M3 chưa được sang G4a/G4b. Owner sẽ tự sửa các finding; mọi sửa đổi mở lại G2/G3a/G3c (và G3b nếu chạm loader, storage, CSP hoặc service worker). Ngày 29/10/2026 đã sửa finding 1–2 (S1/S2, chờ G3 chạy lại) và chốt C-09 bằng sample thật ([REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md)).
+M3 chưa được sang G4a/G4b. Owner sẽ tự sửa các finding; mọi sửa đổi mở lại G2/G3a/G3c (và G3b nếu chạm loader, storage, CSP hoặc service worker). Ngày 29/10/2026 đã sửa finding 1–2 (S1/S2, chờ G3 chạy lại) và chốt C-09 bằng sample thật ([REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md)). Ngày 30/10/2026: sửa S2 #3–6 và 13/14 S3 (một số một phần, xem envelope), parser TKB đọc được file TKB HK I thật theo [ADR-0011](adr/ADR-0011-timetable-format-variability.md), quyết định Q-012 (ghi chú chỉ là thông tin).
 
 ## Cách dùng
 

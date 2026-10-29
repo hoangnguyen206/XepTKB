@@ -39,5 +39,7 @@ export function syntheticXlsx(sheets: SyntheticSheet[]): Uint8Array {
     "xl/_rels/workbook.xml.rels": strToU8(`<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relationships}</Relationships>`),
   };
   sheets.forEach((sheet, index) => { files[`xl/worksheets/sheet${index + 1}.xml`] = strToU8(sheetXml(sheet)); });
-  return zipSync(files);
+  // A fixed local timestamp keeps the bytes, and so every hash derived from them, the same on every build and
+  // in every time zone (QA-M3-009): ZIP stores local date/time fields.
+  return zipSync(files, { mtime: "2026-01-01T00:00:00" });
 }

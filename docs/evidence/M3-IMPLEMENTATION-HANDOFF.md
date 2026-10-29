@@ -105,8 +105,41 @@ No change to `@ky-nay/domain` or `@ky-nay/parser` source in M3. Domain schema st
 - Local: `npm run check` exit 0 (node:test 84/84, Vitest 43/43, fixtures 6/6), `npm run test:e2e` exit 0 (15/15). Commit and CI run IDs are recorded in [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md).
 - Not addressed in this round: findings 3–21 (S2 QA-M3-003…005, REV-M3-004 and the S3 items).
 
+## Fix round 2026-10-30 (S2 findings 3–6, 13 of 14 S3, C-10, Q-012)
+
+- **Timetable parser** (`uet-xlsx@0.2.0`, [ADR-0011](../adr/ADR-0011-timetable-format-variability.md)):
+  - optional kind column; required day + shift/period;
+  - cancelled-classes sheet excluded;
+  - section ids rebuilt from the course code;
+  - `#` kept in codes;
+  - bare `Ca a - b` read as shifts;
+  - untimed rows become non-fixed;
+  - repeated `Ghi chú` columns joined;
+  - format fingerprint → `hold`; import profile; row coverage;
+  - `npm run test:real`.
+  The real HK I 2026–27 file imports with 0 errors.
+- **Notes** (Q-012): no note warnings; `rawNote` shown on section cards, the untimed list and the day list.
+- **S2 fixes:**
+  - wipe unregisters the service worker (#3);
+  - loader keeps verified data on a cache-write failure and reports `INSECURE_CONTEXT` (#4);
+  - SW update offer only under an older worker (#5);
+  - compare-and-put save plus `BroadcastChannel` between tabs (#6).
+- **S3 fixes:**
+  - SEC-M3-001/002/004/005/006a fixed; SEC-M3-003 and -007 partly (e2e build in `dist-e2e`, generated `_headers`);
+  - QA-M3-006/007/008/009;
+  - REV-M3-009 (c)(d);
+  - REV-M3-010;
+  - REV-M3-008 partly.
+- Local results: `npm run check` exit 0 (node:test 89/89, Vitest 52/52, fixtures 6/6); `npm run test:e2e` exit 0 (17/17); WebKit probe 0/24 false banners, and a genuine update is still offered and applied.
+- Not done:
+  - real iPhone check (#5);
+  - browser test with the unpublished flag off (SEC-M3-003);
+  - host choice and real response headers (SEC-M3-007);
+  - campus-warning and keyboard-to-export tests (REV-M3-008).
+
 ## Handoff decision
 
+- Recommendation (2026-10-30): `ready-for-verification` for findings 1–6 and the S3 items marked fixed; the G3 re-run must use the commit that contains this round. The implementer does not self-approve.
 - Recommendation (2026-10-29): `ready-for-verification` for findings 1–2 only; M3 stays `g2-blocked` overall until findings 3–6 are fixed or accepted. The implementer does not self-approve.
 - Earlier recommendation (2026-10-25): `g2-blocked` until the S1/S2 findings are fixed (owner will fix later).
 - Next owners: Owner/Frontend (fixes), Tech Lead (unresolvable-pick contract, ADR-0010 G1 acknowledgement, commit/freeze the target), Product (SPEC-M3-001 G0, D-M3-1…4), Release Manager (G3b exception), then Tester/Security/Reviewer re-run G3.

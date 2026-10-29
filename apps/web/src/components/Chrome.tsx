@@ -73,17 +73,19 @@ function BackupList(props: { db: IDBDatabase }) {
 export function Footer(props: { db?: IDBDatabase; onWipe: () => Promise<void> }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Remounting the list after a wipe reloads it, so deleted backups are no longer offered (SEC-M3-006a).
+  const [generation, setGeneration] = useState(0);
   return (
     <footer className="app-footer">
       <p><strong>{INDEPENDENCE_NOTE}</strong> {VERIFY_NOTE}</p>
       <p>{PRIVACY_NOTE}</p>
       <details className="local-data">
         <summary>Dữ liệu trên máy</summary>
-        {props.db ? <BackupList db={props.db} /> : null}
+        {props.db ? <BackupList key={generation} db={props.db} /> : null}
         {confirming ? (
           <div className="actions">
             <p>Xóa phương án, dữ liệu thời khóa biểu đã lưu và bộ nhớ đệm của ứng dụng trên thiết bị này? Không thể hoàn tác.</p>
-            <button type="button" className="button danger" disabled={busy} onClick={() => { setBusy(true); void props.onWipe().finally(() => { setBusy(false); setConfirming(false); }); }}>Xác nhận xóa</button>
+            <button type="button" className="button danger" disabled={busy} onClick={() => { setBusy(true); void props.onWipe().finally(() => { setBusy(false); setConfirming(false); setGeneration((value) => value + 1); }); }}>Xác nhận xóa</button>
             <button type="button" className="button secondary" onClick={() => setConfirming(false)}>Hủy</button>
           </div>
         ) : (

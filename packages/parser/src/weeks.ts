@@ -22,11 +22,14 @@ const WEEK_FROM = /học\s+từ\s+tuần\s+(\d+)/i;
 const WEEK_LIST = /học\s+tuần\s+(\d[\d,\s]*)/i;
 const PERIOD_OVERRIDE = /học\s+tiết\s+(\d+)\s*[-–]\s*(\d+)/i;
 
-/** teachingWeeks is config (Term.teachingWeeks); never hardcoded per DOMAIN_MODEL §7. */
+/**
+ * teachingWeeks is config (Term.teachingWeeks); never hardcoded per DOMAIN_MODEL §7.
+ * Q-012: a note is information for the student. Only an explicit week/period pattern changes the session; any other
+ * text is kept as `rawNote` without a warning, and missing week info is recorded by `weekOrigin: "parser-default"`.
+ */
 export function parseNote(note: string | undefined, teachingWeeks: number): NoteParse {
   const issues: ParseIssue[] = [];
   if (!note || !note.trim()) {
-    issues.push({ code: "DEFAULT_WEEKS_APPLIED", severity: "warning", message: `no week info — default [1..${teachingWeeks}]` });
     return { weeks: range(1, teachingWeeks), weekOrigin: "parser-default", issues };
   }
   const n = note.normalize("NFC");
@@ -76,10 +79,6 @@ export function parseNote(note: string | undefined, teachingWeeks: number): Note
 
   let weekOrigin: WeekOrigin = "explicit";
   if (!weeks) {
-    if (!periodOverride) {
-      issues.push({ code: "UNPARSED_NOTE", severity: "warning", field: "note", rawValue: note, message: "note did not match any known week pattern — default applied" });
-    }
-    issues.push({ code: "DEFAULT_WEEKS_APPLIED", severity: "warning", message: `default weeks [1..${teachingWeeks}]` });
     weeks = range(1, teachingWeeks);
     weekOrigin = "parser-default";
   }

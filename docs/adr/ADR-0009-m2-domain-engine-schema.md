@@ -79,3 +79,7 @@ Source: [EVID-M3-001](../evidence/M3-EVIDENCE-ENVELOPE.md) findings 1–2. Schem
 - **(14)** `addPlanPick` rejects a pick only when an error concerns the new pick's section (or has no section). Errors of earlier picks are returned but no longer block an unrelated pick.
 
 Re-entry: G1 acknowledgement for this ADR; G3a/G3c for M2 and M3.
+
+## Amendment 2026-10-30 — untimed sessions of kind OTHER (Q-012, ADR-0011)
+
+- **(15)** `validateSession` accepts a non-fixed session of kind `OTHER` as well as `ONL`. The real HK I 2026–27 timetable lists projects and theses with no day or shift in a file without a kind column. A session that says `LT`, `TH` or `BT` still needs a day and periods. Non-fixed `OTHER` sessions behave like `ONL` ones: no grid cell, no conflict, credits counted. `Section.online` stays `false` unless the source marks the class as online.

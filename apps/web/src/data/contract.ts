@@ -63,7 +63,9 @@ export type ArtifactErrorCode =
   | "HASH_MISMATCH"
   | "SCHEMA_UNSUPPORTED"
   | "DOMAIN_INVALID"
-  | "TOO_LARGE";
+  | "TOO_LARGE"
+  /** WebCrypto is missing (page opened over plain HTTP): integrity cannot be checked, so nothing is loaded. */
+  | "INSECURE_CONTEXT";
 
 export class ArtifactError extends Error {
   constructor(readonly code: ArtifactErrorCode, message: string) {
@@ -115,7 +117,8 @@ function isInstant(value: unknown): value is string {
 export function isSafeRelativeUrl(url: unknown): url is string {
   if (!isNonEmptyString(url)) return false;
   if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith("/") || url.startsWith("//")) return false;
-  if (/[\\?#]/.test(url) || /[\u0000-\u001f]/.test(url)) return false;
+  // `%` is refused outright: an encoded `%2e%2e` segment would otherwise leave data/ once the URL is resolved (SEC-M3-002).
+  if (/[\\?#%]/.test(url) || /[\u0000-\u001f]/.test(url)) return false;
   return url.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
 }
 

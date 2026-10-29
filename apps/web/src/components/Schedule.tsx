@@ -97,7 +97,7 @@ export function NonFixedList(props: { sessions: readonly ScheduledSession[] }) {
       <ul>
         {props.sessions.map((session) => (
           <li key={session.key}>
-            <strong>{session.courseCode}</strong> {session.courseName} — lớp {session.sectionId} · {kindLabel(session.kind)} · tuần {formatWeeks(session.weeks)}
+            <strong>{session.courseCode}</strong> {session.courseName} — lớp {session.sectionId} · {kindLabel(session.kind)} · tuần {formatWeeks(session.weeks)}{session.note ? ` · Ghi chú: ${session.note}` : ""}
           </li>
         ))}
       </ul>
@@ -125,7 +125,7 @@ export function DayList(props: { sessions: readonly ScheduledSession[]; frame: T
                     return (
                       <li key={session.key} className={props.conflictKeys.has(session.key) ? "is-conflict" : undefined}>
                         <span className="time">{times ? `${times.start}–${times.end}` : formatPeriods(session.startPeriod!, session.endPeriod!)}</span>
-                        <span><strong>{session.courseCode}</strong> {session.courseName} · {kindLabel(session.kind)} · {session.room ?? "chưa có phòng"} · tuần {formatWeeks(session.weeks)}</span>
+                        <span><strong>{session.courseCode}</strong> {session.courseName} · {kindLabel(session.kind)} · {session.room ?? "chưa có phòng"} · tuần {formatWeeks(session.weeks)}{session.note ? ` · Ghi chú: ${session.note}` : ""}</span>
                         {props.conflictKeys.has(session.key) ? <span className="flag">⚠ Trùng lịch</span> : null}
                       </li>
                     );
@@ -155,7 +155,7 @@ export function DayList(props: { sessions: readonly ScheduledSession[]; frame: T
                 {items.map((item) => (
                   <li key={item.key} className={props.conflictKeys.has(item.key) ? "is-conflict" : undefined}>
                     <span className="time">{item.startTime}–{item.endTime}</span>
-                    <span><strong>{item.courseCode}</strong> {item.courseName} · {kindLabel(item.kind)}{item.group && item.group !== "CL" ? ` nhóm ${item.group}` : ""} · {item.room ?? "chưa có phòng"}</span>
+                    <span><strong>{item.courseCode}</strong> {item.courseName} · {kindLabel(item.kind)}{item.group && item.group !== "CL" ? ` nhóm ${item.group}` : ""} · {item.room ?? "chưa có phòng"}{item.note ? ` · Ghi chú: ${item.note}` : ""}</span>
                     {props.conflictKeys.has(item.key) ? <span className="flag">⚠ Trùng lịch</span> : null}
                   </li>
                 ))}

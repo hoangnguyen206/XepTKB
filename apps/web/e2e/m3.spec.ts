@@ -11,6 +11,8 @@ const SCREENSHOTS = process.env.M3_SCREENSHOT_DIR;
 const VIEWPORTS = [
   { name: "360", width: 360, height: 780 },
   { name: "768", width: 768, height: 1024 },
+  // 1200 is the two-column breakpoint itself (REV-M3-008).
+  { name: "1200", width: 1200, height: 900 },
   { name: "1280", width: 1280, height: 900 },
 ];
 
@@ -239,6 +241,59 @@ test("AC-M3-06 — 'Xóa dữ liệu trên máy' removes the Plan", async ({ pag
   await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
 });
 
+test("REV-M3-002 — after 'Xóa dữ liệu trên máy' the next online visit makes the app work offline again", async ({ page, context }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await startPlan(page);
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  await page.locator("summary", { hasText: "Dữ liệu trên máy" }).click();
+  await page.getByRole("button", { name: "Xóa dữ liệu trên máy" }).click();
+  await page.getByRole("button", { name: "Xác nhận xóa" }).click();
+  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
+  // Online visits: the worker installs again and precaches the shell.
+  await page.reload();
+  await startPlan(page);
+  await pick(page, "mang may tinh", "SYN2004 1");
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByText("Đang ngoại tuyến")).toBeVisible();
+  await expect(page.getByText(/1 lớp · 3 tín chỉ/)).toBeVisible();
+  await context.setOffline(false);
+});
+
+test("QA-M3-005 — two tabs never overwrite each other's Plan, and a wipe in one tab resets the other", async ({ context }) => {
+  const first = await context.newPage();
+  await first.setViewportSize({ width: 1280, height: 900 });
+  await startPlan(first);
+  await pick(first, "mang may tinh", "SYN2004 1");
+  const second = await context.newPage();
+  await second.setViewportSize({ width: 1280, height: 900 });
+  await second.goto("/");
+  await expect(second.getByText(/1 lớp · 3 tín chỉ/)).toBeVisible();
+  // The second tab adds a class; the first tab is told and shows it without reloading.
+  await pick(second, "SYN1002", "SYN1002 1");
+  await expect(first.getByText(/2 lớp · 6 tín chỉ/)).toBeVisible();
+  // The first tab keeps working from the up-to-date copy, so nothing picked in the second tab is lost.
+  await pick(first, "kien truc", "SYN2003 1");
+  await expect(second.getByText(/3 lớp · 9 tín chỉ/)).toBeVisible();
+  await first.reload();
+  await expect(first.getByText(/3 lớp · 9 tín chỉ/)).toBeVisible();
+  // A wipe in one tab resets the other, which must not write its old Plan back.
+  await second.locator("summary", { hasText: "Dữ liệu trên máy" }).click();
+  await second.getByRole("button", { name: "Xóa dữ liệu trên máy" }).click();
+  await second.getByRole("button", { name: "Xác nhận xóa" }).click();
+  await expect(first.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await first.reload();
+  await expect(first.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+});
+
 test("AC-M3-07 — a tampered artifact is rejected before it reaches the UI", async ({ page }) => {
   await page.route("**/timetable.json", async (route) => {
     const response = await route.fetch();
@@ -315,19 +370,26 @@ test("REV-M3-001/003 — a revision that renames a picked group keeps the confli
   await expect(page.getByText("✓ Không có lớp nào trùng lịch.")).toHaveCount(0);
   // An unrelated class can still be picked while SYN1001 1 waits for a group.
   await pick(page, "SYN2004", "SYN2004 1");
-  await pick(page, "SYN1001", "SYN1001 1", { group: "3", button: /^Đổi nhóm/ });
+  // The common Monday session still overlaps SYN1003 1, so the button says so (QA-M3-007).
+  await pick(page, "SYN1001", "SYN1001 1", { group: "3", button: /^Vẫn đổi nhóm \(đang trùng lịch\)/ });
   await expect(bar.getByText(/lớp cần xử lý/)).toHaveCount(0);
 });
 
-test("AC-M3-08/13 — provenance, CSP, same-origin requests only and inert dataset text", async ({ page, baseURL }) => {
+test("AC-M3-08/13 — provenance, CSP, same-origin requests only and inert dataset text", async ({ page, context, baseURL }) => {
   const requests: { url: string; method: string }[] = [];
-  page.on("request", (request) => requests.push({ url: request.url(), method: request.method() }));
+  // Context-level capture also sees the service worker's own requests (SEC-M3-005).
+  context.on("request", (request) => requests.push({ url: request.url(), method: request.method() }));
   await page.setViewportSize({ width: 1280, height: 900 });
   await startPlan(page);
-  await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveAttribute("content", /script-src 'self'/);
+  const meta = page.locator('meta[http-equiv="Content-Security-Policy"]');
+  await expect(meta).toHaveAttribute("content", /script-src 'self'/);
+  // SEC-M3-007: the generated host headers carry the same CSP plus what only a header can enforce.
+  const headers = await (await page.request.get("/_headers")).text();
+  expect(headers).toContain(`Content-Security-Policy: ${await meta.getAttribute("content")}; frame-ancestors 'none'`);
+  for (const line of ["X-Frame-Options: DENY", "X-Content-Type-Options: nosniff", "Referrer-Policy: no-referrer", "Strict-Transport-Security: max-age=31536000"]) expect(headers).toContain(line);
   await page.getByRole("button", { name: /Dữ liệu mẫu \(tổng hợp\) · synthetic-uet-2026-2027-h2\.1/ }).click();
   const provenance = page.getByRole("region", { name: "Nguồn và phiên bản dữ liệu" });
-  for (const text of ["Dữ liệu mẫu (tổng hợp)", "SYNTHETIC-M3-WORKBOOK", "uet-xlsx@0.1.0", "chưa duyệt", "Mã kiểm tra (SHA-256)"]) await expect(provenance.getByText(text, { exact: false }).first()).toBeVisible();
+  for (const text of ["Dữ liệu mẫu (tổng hợp)", "SYNTHETIC-M3-WORKBOOK", "uet-xlsx@0.2.0", "chưa duyệt", "Mã kiểm tra (SHA-256)"]) await expect(provenance.getByText(text, { exact: false }).first()).toBeVisible();
   await expect(page.getByText("không phải sản phẩm của nhà trường").first()).toBeVisible();
   await pick(page, "kiem thu", "SYN9999 1");
   await expect(page.getByText(/<img src=x onerror=/).first()).toBeVisible();
