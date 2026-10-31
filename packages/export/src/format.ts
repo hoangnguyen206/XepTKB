@@ -13,6 +13,14 @@ export function kindLabel(kind: SessionKind): string {
   return KIND_LABEL[kind];
 }
 
+/**
+ * The kind as students should read it: empty for `OTHER`, which only means the source has no LT/TH column
+ * (HK I 2026–27) and would otherwise print "Khác" on every session. Callers drop the separator when it is empty.
+ */
+export function kindText(kind: SessionKind): string {
+  return kind === "OTHER" ? "" : KIND_LABEL[kind];
+}
+
 /** Compact a sorted week list: [1..15] → "1–15", [1, 3, 5] → "1, 3, 5". */
 export function formatWeeks(weeks: readonly number[]): string {
   const sorted = [...new Set(weeks)].sort((a, b) => a - b);

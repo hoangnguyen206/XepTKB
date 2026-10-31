@@ -11,6 +11,9 @@ for (const pkg of readdirSync("packages")) {
   if (!existsSync(dir)) continue;
   for (const name of readdirSync(dir)) if (name.endsWith(".test.js")) files.push(join(dir, name));
 }
+// Tests of the repository scripts (dataset pipeline) run as plain ESM, without a build.
+const scriptTests = join("scripts", "test");
+if (existsSync(scriptTests)) for (const name of readdirSync(scriptTests)) if (name.endsWith(".test.mjs")) files.push(join(scriptTests, name));
 if (files.length === 0) {
   console.error("run-node-tests: no compiled tests found; run the build first");
   process.exit(1);

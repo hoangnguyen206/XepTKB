@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { isFixedSession, normalizeGroup, sessionsForPick, type Plan, type Section, type Session } from "@ky-nay/domain";
-import { dayLabel, formatPeriods, formatSessionExtras, formatWeeks, kindLabel, periodTimes } from "@ky-nay/export";
+import { dayLabel, formatPeriods, formatSessionExtras, formatWeeks, kindText, periodTimes } from "@ky-nay/export";
 import type { AppCatalog } from "../model/catalog.js";
 import { groupOptions, isPicked, pickForCourse, previewPick } from "../model/picker.js";
 
@@ -12,10 +12,10 @@ function sessionText(session: Session, catalog: AppCatalog): string {
   const extras = formatSessionExtras(session.rawNote, session.info);
   const note = extras ? ` · ${extras}` : "";
   if (!isFixedSession(session)) {
-    return `Không có giờ cố định (${kindLabel(session.kind)})${groupText} · tuần ${formatWeeks(session.weeks)}${place ? ` · ${place}` : ""}${lecturers}${note}`;
+    return `Không có giờ cố định${kindText(session.kind) ? ` (${kindText(session.kind)})` : ""}${groupText} · tuần ${formatWeeks(session.weeks)}${place ? ` · ${place}` : ""}${lecturers}${note}`;
   }
   const times = periodTimes(catalog.frame, session.startPeriod, session.endPeriod);
-  return `${dayLabel(session.day)}, ${formatPeriods(session.startPeriod, session.endPeriod)}${times ? ` (${times.start}–${times.end})` : ""} · ${kindLabel(session.kind)}${groupText} · tuần ${formatWeeks(session.weeks)}${place ? ` · ${place}` : ""}${lecturers}${note}`;
+  return `${dayLabel(session.day)}, ${formatPeriods(session.startPeriod, session.endPeriod)}${times ? ` (${times.start}–${times.end})` : ""}${kindText(session.kind) ? ` · ${kindText(session.kind)}` : ""}${groupText} · tuần ${formatWeeks(session.weeks)}${place ? ` · ${place}` : ""}${lecturers}${note}`;
 }
 
 export function SectionCard(props: { section: Section; plan: Plan; catalog: AppCatalog; onPick: (sectionId: string, group?: string) => void; onUnpick: (sectionId: string) => void; headingLevel: "h3" | "h4" }) {

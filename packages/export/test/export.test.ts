@@ -11,6 +11,7 @@ import {
   escapeText,
   foldLine,
   formatSessionExtras,
+  kindText,
   formatWeeks,
   occurrencesForWeek,
   scheduledSessions,
@@ -117,6 +118,13 @@ test("the timetable note reaches the schedule as information (Q-012)", () => {
   assert.deepEqual(noted.map((session) => session.note), ["Học 1 ca/15 tuần, thi đợt 2", undefined]);
   assert.equal(formatSessionExtras(noted[0]!.note, noted[0]!.info), "Ghi chú: Học 1 ca/15 tuần, thi đợt 2 · SS: 60");
   assert.equal(formatSessionExtras(noted[1]!.note, noted[1]!.info), "");
+});
+
+test("an unknown session kind prints nothing instead of 'Khác'", () => {
+  assert.equal(kindText("OTHER"), "");
+  assert.equal(kindText("TH"), "Thực hành");
+  const html = buildWordDoc({ title: "T", meta: [], sessions: scheduledSessions([{ pick: { sectionId: "X 1" }, section: section("X 1", "SYN1001", []), sessions: [fixed("s", { kind: "OTHER" })] }], courses), frame, notes: [], disclaimer: "d" });
+  assert.equal(html.includes("Khác"), false);
 });
 
 test("Sunday sessions add a CN column", () => {

@@ -6,7 +6,7 @@ import {
   formatPeriods,
   formatSessionExtras,
   formatWeeks,
-  kindLabel,
+  kindText,
   occurrencesForWeek,
   periodTimes,
   weekRange,
@@ -15,6 +15,12 @@ import {
 } from "@ky-nay/export";
 import type { DayNo, TimeFrame } from "@ky-nay/domain";
 import type { WeekChoice } from "./common.js";
+
+/** ` · Lý thuyết`, or nothing when the source has no kind column. */
+function kindPart(kind: ScheduledSession["kind"]): string {
+  const text = kindText(kind);
+  return text ? ` · ${text}` : "";
+}
 
 /** Note and extra columns of the timetable, as information after the session text (Q-012, ADR-0011 §8). */
 function extrasText(session: Pick<ScheduledSession, "note" | "info">): string {
@@ -28,7 +34,7 @@ function blockDescription(session: ScheduledSession, frame: TimeFrame, conflict:
   return [
     `${session.courseCode} ${session.courseName}`,
     `lớp ${session.sectionId}${session.group && session.group !== "CL" ? ` nhóm ${session.group}` : ""}`,
-    kindLabel(session.kind),
+    kindText(session.kind),
     `${period}${times ? ` (${times.start}–${times.end})` : ""}`,
     session.room ? `phòng ${session.room}` : "",
     `tuần ${formatWeeks(session.weeks)}`,
@@ -81,7 +87,7 @@ export function WeekGrid(props: { layout: GridLayout; frame: TimeFrame; week1: s
                     <li key={block.session.key} className={`block kind-${block.session.kind}${block.conflict ? " is-conflict" : ""}${block.lanes > 1 ? " is-split" : ""}`} style={position} title={description}>
                       <span className="visually-hidden">{description}</span>
                       <span aria-hidden="true" className="block-code">{block.session.courseCode}</span>
-                      <span aria-hidden="true" className="block-meta">{kindLabel(block.session.kind)}{block.session.group && block.session.group !== "CL" ? ` N${block.session.group}` : ""}</span>
+                      <span aria-hidden="true" className="block-meta">{[kindText(block.session.kind), block.session.group && block.session.group !== "CL" ? `N${block.session.group}` : ""].filter(Boolean).join(" ")}</span>
                       {block.session.room ? <span aria-hidden="true" className="block-meta">{block.session.room}</span> : null}
                       {block.conflict ? <span aria-hidden="true" className="block-flag">⚠ Trùng</span> : null}
                     </li>
@@ -104,7 +110,7 @@ export function NonFixedList(props: { sessions: readonly ScheduledSession[] }) {
       <ul>
         {props.sessions.map((session) => (
           <li key={session.key}>
-            <strong>{session.courseCode}</strong> {session.courseName} — lớp {session.sectionId} · {kindLabel(session.kind)} · tuần {formatWeeks(session.weeks)}{extrasText(session)}
+            <strong>{session.courseCode}</strong> {session.courseName} — lớp {session.sectionId}{kindPart(session.kind)} · tuần {formatWeeks(session.weeks)}{extrasText(session)}
           </li>
         ))}
       </ul>
@@ -132,7 +138,7 @@ export function DayList(props: { sessions: readonly ScheduledSession[]; frame: T
                     return (
                       <li key={session.key} className={props.conflictKeys.has(session.key) ? "is-conflict" : undefined}>
                         <span className="time">{times ? `${times.start}–${times.end}` : formatPeriods(session.startPeriod!, session.endPeriod!)}</span>
-                        <span><strong>{session.courseCode}</strong> {session.courseName} · {kindLabel(session.kind)} · {session.room ?? "chưa có phòng"} · tuần {formatWeeks(session.weeks)}{extrasText(session)}</span>
+                        <span><strong>{session.courseCode}</strong> {session.courseName}{kindPart(session.kind)} · {session.room ?? "chưa có phòng"} · tuần {formatWeeks(session.weeks)}{extrasText(session)}</span>
                         {props.conflictKeys.has(session.key) ? <span className="flag">⚠ Trùng lịch</span> : null}
                       </li>
                     );
@@ -162,7 +168,7 @@ export function DayList(props: { sessions: readonly ScheduledSession[]; frame: T
                 {items.map((item) => (
                   <li key={item.key} className={props.conflictKeys.has(item.key) ? "is-conflict" : undefined}>
                     <span className="time">{item.startTime}–{item.endTime}</span>
-                    <span><strong>{item.courseCode}</strong> {item.courseName} · {kindLabel(item.kind)}{item.group && item.group !== "CL" ? ` nhóm ${item.group}` : ""} · {item.room ?? "chưa có phòng"}{extrasText(item)}</span>
+                    <span><strong>{item.courseCode}</strong> {item.courseName}{kindPart(item.kind)}{item.group && item.group !== "CL" ? ` nhóm ${item.group}` : ""} · {item.room ?? "chưa có phòng"}{extrasText(item)}</span>
                     {props.conflictKeys.has(item.key) ? <span className="flag">⚠ Trùng lịch</span> : null}
                   </li>
                 ))}

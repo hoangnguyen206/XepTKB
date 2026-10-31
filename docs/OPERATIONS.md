@@ -23,7 +23,7 @@ Cấu hình project Pages (Git integration với `hoangnguyen206/XepTKB`):
 | Mục | Giá trị |
 | --- | --- |
 | Framework preset | None |
-| Build command | `npm run build:web` |
+| Build command | `npm run build:web` (copies `data/published` into the site, [ADR-0012](adr/ADR-0012-dataset-publish-pipeline.md); dev/e2e use synthetic data) |
 | Build output directory | `apps/web/dist` |
 | Node | `.node-version` = 22 (repo root) |
 | Production branch | `main`, **tắt automatic production deployments** cho tới G4a đầu tiên |

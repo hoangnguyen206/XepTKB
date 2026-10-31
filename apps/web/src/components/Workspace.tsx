@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Plan } from "@ky-nay/domain";
-import { buildGridLayout, conflictKeys, dayLabel, formatDate, formatPeriods, formatWeeks, kindLabel, nonFixedSessions, periodTimes } from "@ky-nay/export";
+import { buildGridLayout, conflictKeys, dayLabel, formatDate, formatPeriods, formatWeeks, kindText, nonFixedSessions, periodTimes } from "@ky-nay/export";
 import type { AppCatalog } from "../model/catalog.js";
 import { exportDisclaimer, provenanceLine } from "../model/labels.js";
 import { applyPick, unpick } from "../model/picker.js";
@@ -44,7 +44,7 @@ function PrintSheet(props: { plan: Plan; view: PlanView; catalog: AppCatalog; we
                 <td>{formatPeriods(session.startPeriod!, session.endPeriod!)}{times ? ` (${times.start}–${times.end})` : ""}</td>
                 <td>{session.courseCode} {session.courseName}</td>
                 <td>{session.sectionId}{session.group && session.group !== "CL" ? ` · nhóm ${session.group}` : ""}</td>
-                <td>{kindLabel(session.kind)}</td>
+                <td>{kindText(session.kind)}</td>
                 <td>{session.room ?? ""}</td>
                 <td>{formatWeeks(session.weeks)}</td>
               </tr>

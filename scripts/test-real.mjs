@@ -4,33 +4,26 @@
 // Prints counts, issue codes and row coverage only; never cell values of a registration file.
 // Exit 0 = importable, 1 = errors or unaccounted rows, 2 = importable but the column set needs review (hold).
 import { readFileSync } from "node:fs";
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { assertOutsideRepo, parseArgs, repoRoot } from "./lib/cli.mjs";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const IGNORED_REAL_DIRS = ["fixtures/real", "fixtures/raw", "fixtures/private", "data/raw", "data/private"];
-
-// `npm run` on Windows hands arguments over cmd.exe caret-escaped (`^C:\a^ b.xlsx^`); undo that, nothing else.
-const unescapeCmd = (arg) => (process.platform === "win32" && arg.startsWith("^") ? arg.replace(/\^(.)/g, "$1").replace(/\^$/, "") : arg);
-const args = process.argv.slice(2).map(unescapeCmd);
-const option = (name) => {
-  const index = args.indexOf(`--${name}`);
-  return index >= 0 ? args.splice(index, 2)[1] : undefined;
-};
-const adapterId = option("adapter") ?? "uet-xlsx";
-const profilePath = option("profile");
-const term = option("term") ?? "real-check";
-const teachingWeeks = Number(option("weeks") ?? 15);
-const file = args[0];
+const { options, positional } = parseArgs(process.argv.slice(2));
+const adapterId = options.adapter ?? "uet-xlsx";
+const profilePath = options.profile;
+const term = options.term ?? "real-check";
+const teachingWeeks = Number(options.weeks ?? 15);
+const file = positional[0];
 if (!file) {
   console.error("usage: npm run test:real -- <file> [--adapter uet-xlsx|vnu-registration-html] [--profile profile.json] [--term id] [--weeks 15]");
   process.exit(1);
 }
 
-const path = resolve(file);
-const inRepo = relative(repoRoot, path);
-if (!inRepo.startsWith("..") && !isAbsolute(inRepo) && !IGNORED_REAL_DIRS.some((dir) => inRepo.split(sep).join("/").startsWith(`${dir}/`))) {
-  console.error(`test:real: ${file} is inside the repository. Keep real files outside it or under ${IGNORED_REAL_DIRS.join(", ")}.`);
+let path;
+try {
+  path = assertOutsideRepo(file);
+} catch (error) {
+  console.error(`test:real: ${error.message}`);
   process.exit(1);
 }
 

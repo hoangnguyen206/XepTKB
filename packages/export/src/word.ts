@@ -1,6 +1,6 @@
 /** Word export as an HTML document saved with a `.doc` extension (Q-002: no DOCX generator). */
 import type { TimeFrame } from "@ky-nay/domain";
-import { dayLabel, formatPeriods, formatWeeks, kindLabel } from "./format.js";
+import { dayLabel, formatPeriods, formatWeeks, kindText } from "./format.js";
 import { periodTimes, type ScheduledSession } from "./schedule.js";
 
 export type WordInput = {
@@ -31,7 +31,7 @@ export function buildWordDoc(input: WordInput): string {
       cell(times ? `${when} (${times.start}–${times.end})` : when),
       cell(`${session.courseCode} ${session.courseName}`),
       cell(`${session.sectionId}${session.group ? ` · nhóm ${session.group}` : ""}`),
-      cell(kindLabel(session.kind)),
+      cell(kindText(session.kind)),
       cell([session.room, session.campus].filter(Boolean).join(" · ")),
       cell(formatWeeks(session.weeks)),
       cell(session.lecturers.join(", ")),
@@ -39,7 +39,7 @@ export function buildWordDoc(input: WordInput): string {
   });
   const nonFixed = input.sessions.filter((session) => !session.fixed);
   const nonFixedList = nonFixed.length === 0 ? "" : `<h2>Không có giờ cố định (không xếp vào lưới)</h2><ul>${nonFixed
-    .map((session) => `<li>${escapeHtml(`${session.courseCode} ${session.courseName} — lớp ${session.sectionId} (${kindLabel(session.kind)}), tuần ${formatWeeks(session.weeks)}`)}</li>`)
+    .map((session) => `<li>${escapeHtml(`${session.courseCode} ${session.courseName} — lớp ${session.sectionId}${kindText(session.kind) ? ` (${kindText(session.kind)})` : ""}, tuần ${formatWeeks(session.weeks)}`)}</li>`)
     .join("")}</ul>`;
   return [
     "<!DOCTYPE html>",

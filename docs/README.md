@@ -115,6 +115,7 @@ M2 đã merge vào `main` (`aba04b0`) và đã push cùng fix round audit (`e41a
 
 - [M3 spec](evidence/M3-SPEC.md) (`SPEC-M3-001`, G0) — scope, AC-M3-01…13, quyết định D-M3-1…4 (đóng đề xuất cho C-08, C-02); Product chưa ghi actor/date.
 - [ADR-0011 — TKB đổi bộ cột theo kỳ: một adapter, import profile, dấu vân tay định dạng](adr/ADR-0011-timetable-format-variability.md) — ready, G1 chờ acknowledgement.
+- [ADR-0012 — Quy trình nạp/publish dữ liệu: CLI, `data/published` trong repo, deploy cùng site](adr/ADR-0012-dataset-publish-pipeline.md) — ready, G1 chờ acknowledgement; cách dùng ở [runbook §12](DATA_INGESTION_RUNBOOK.md).
 - [ADR-0010 — web app, artifact loader contract, local storage, export](adr/ADR-0010-m3-web-app-artifact-storage-export.md) và [M3 design handoff](evidence/M3-DESIGN-HANDOFF.md) (G1) — Tech Lead chưa acknowledge; ADR có mục "Status after G3" liệt kê các điểm contract còn mở.
 - [M3 implementation handoff](evidence/M3-IMPLEMENTATION-HANDOFF.md) (G2) — viết khi code chưa commit trên `4681c63`; code nay ở `82cb85b` (nhánh `m3-web-app`).
 - [M3 G3a QA](evidence/M3-G3a-QA-REPORT.md) — `qa-no-go` (QA-M3-001 S1).

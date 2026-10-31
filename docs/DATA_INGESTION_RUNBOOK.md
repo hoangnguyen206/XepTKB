@@ -109,3 +109,24 @@ Mỗi handoff phải có parser version, known quirks, fixture metadata, release
 ## 11. Report bắt buộc
 
 Dùng `.claude/templates/DATA_IMPORT_REPORT.md`, gồm intake, parser summary, issue counts, diff, reviewer, decision, artifact/version, rollback point và follow-up.
+
+## 12. Quy trình bằng CLI ([ADR-0012](adr/ADR-0012-dataset-publish-pipeline.md), từ 01/11/2026)
+
+File nguồn để **ngoài repo** (ví dụ `Downloads`). Mỗi lệnh dưới đây chạy ở thư mục repo; sau mỗi bước có thay đổi thì commit + push.
+
+1. **Thử trước (không ghi gì):** `npm run test:real -- "<file.xlsx>" --term 2026-2027-h2`. Phải là exit 0: không lỗi, `unaccounted 0`, định dạng "reviewed". Exit 2 nghĩa là bộ cột mới, cần xem lại ([ADR-0011](adr/ADR-0011-timetable-format-variability.md)).
+2. **Nạp:**
+
+   ```
+   npm run dataset -- import "<file.xlsx>" --term 2026-2027-h2 --term-name "Học kỳ II năm học 2026–2027" \
+     --source-type official-timetable --document-ref "<tên tài liệu/thông báo, không PII>" \
+     --published-by "<đơn vị phát hành>" --actor "<người nạp>" --weeks 15 \
+     --start "K67,K68,K69,K70=<thứ Hai tuần 1>" [--start "K71=<thứ Hai tuần 1 của K71>"]
+   ```
+
+   Lệnh tạo entry `candidate`, artifact, báo cáo `data/reports/<version>.md` (có diff với bản trước) và dòng audit. Lệnh từ chối nếu có lỗi chặn, dòng chưa giải thích, file trùng hoặc bộ cột chưa duyệt. Sau đó commit + push → Cloudflare dựng preview.
+3. **Duyệt trên preview** (`https://m3-web-app.xeptkb-63v.pages.dev` hoặc URL nhánh): Data Reviewer đi checklist trong báo cáo, xem vài môn trên điện thoại.
+4. **Xác nhận:** `npm run dataset -- validate <version> --reviewer "<người duyệt>" [--note "..."]`. Người duyệt phải khác người nạp; nếu dự án chỉ có một người thì thêm `--accept-single-reviewer "<lý do>"`, ngoại lệ được ghi vào audit và báo cáo.
+5. **Công bố:** `npm run dataset -- publish <version> --by "<Release Manager>"` → commit + push. Bản production (`main`) chỉ hiện dữ liệu `published`, sau khi G4a cho phép deploy production.
+6. **Rollback:** `npm run dataset -- retract <version> --by "<RM>" --reason "<lý do>"` → commit + push; app quay về bản `published` trước đó của kỳ.
+7. **Kiểm tra bất kỳ lúc nào:** `npm run dataset -- status`, `npm run dataset -- check` (cũng chạy trong `npm run check`/CI).

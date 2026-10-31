@@ -2,7 +2,7 @@
  * RFC 5545 calendar export. One VEVENT per fixed session per teaching week; times are converted
  * from Asia/Ho_Chi_Minh (fixed UTC+7, no daylight saving) to UTC so every client agrees.
  */
-import { formatPeriods, formatWeeks, kindLabel } from "./format.js";
+import { formatPeriods, formatWeeks, kindText } from "./format.js";
 import type { Occurrence } from "./schedule.js";
 
 export const VIETNAM_UTC_OFFSET_MINUTES = 7 * 60;
@@ -78,7 +78,7 @@ export function buildIcs(input: IcsInput): string {
   ];
   for (const occurrence of input.occurrences) {
     const details = [
-      `Lớp ${occurrence.sectionId}${occurrence.group ? ` · nhóm ${occurrence.group}` : ""} · ${kindLabel(occurrence.kind)}`,
+      `Lớp ${occurrence.sectionId}${occurrence.group ? ` · nhóm ${occurrence.group}` : ""}${kindText(occurrence.kind) ? ` · ${kindText(occurrence.kind)}` : ""}`,
       `${formatPeriods(occurrence.startPeriod, occurrence.endPeriod)} · tuần ${occurrence.week} (học các tuần ${formatWeeks(occurrence.weeks)})`,
       ...(occurrence.lecturers.length > 0 ? [`Giảng viên: ${occurrence.lecturers.join(", ")}`] : []),
       input.sourceLine,
@@ -91,7 +91,7 @@ export function buildIcs(input: IcsInput): string {
       `DTSTAMP:${stamp}`,
       `DTSTART:${toUtcStamp(occurrence.date, occurrence.startTime, offset)}`,
       `DTEND:${toUtcStamp(occurrence.date, occurrence.endTime, offset)}`,
-      `SUMMARY:${escapeText(`${occurrence.courseCode} ${occurrence.courseName} (${kindLabel(occurrence.kind)})`)}`,
+      `SUMMARY:${escapeText(`${occurrence.courseCode} ${occurrence.courseName}${kindText(occurrence.kind) ? ` (${kindText(occurrence.kind)})` : ""}`)}`,
       ...(location ? [`LOCATION:${escapeText(location)}`] : []),
       `DESCRIPTION:${escapeText(details.join("\n"))}`,
       "END:VEVENT",

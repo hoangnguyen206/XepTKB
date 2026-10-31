@@ -1,6 +1,6 @@
 /** PNG export drawn directly on a canvas from the shared grid layout (ADR-0010 §5). */
 import type { SessionKind, TimeFrame } from "@ky-nay/domain";
-import { dayLabel, kindLabel, type GridLayout, type ScheduledSession } from "@ky-nay/export";
+import { dayLabel, kindText, type GridLayout, type ScheduledSession } from "@ky-nay/export";
 
 export type PngInput = {
   title: string;
@@ -127,7 +127,7 @@ export function renderPng(input: PngInput): Promise<Blob> {
         ? { text: `⚠ TRÙNG LỊCH · ${block.session.courseCode}`, font: `bold 14px ${FONT}` }
         : { text: block.session.courseCode, font: `bold 15px ${FONT}` },
       { text: block.session.courseName, font: `13px ${FONT}` },
-      { text: `${kindLabel(kind)}${block.session.group && block.session.group !== "CL" ? ` · nhóm ${block.session.group}` : ""}`, font: `13px ${FONT}` },
+      { text: [kindText(kind), block.session.group && block.session.group !== "CL" ? `nhóm ${block.session.group}` : ""].filter(Boolean).join(" · "), font: `13px ${FONT}` },
       { text: block.session.room ?? "", font: `13px ${FONT}` },
     ];
     let lineY = y + 5;

@@ -38,6 +38,8 @@ Thứ tự phụ thuộc cứng: M0 → M1 → M2 → M3 → M4 → M5. Trong t�
 
 **CI checkpoint (29/10/2026):** lần chạy GitHub Actions đầu tiên ([run 40123890415](https://github.com/hoangnguyen206/XepTKB/actions/runs/40123890415), `main` @ `4681c63`, 25/10) **fail** ở bước test: Node 20.20.2 không mở rộng glob trong `node --test` (`Could not find '.../packages/*/dist/test/*.test.js'`); lint và typecheck pass. Change set M3 đã commit `82cb85b` trên nhánh `m3-web-app`, mở draft PR #1; CI trên PR ([run 40907344256](https://github.com/hoangnguyen206/XepTKB/actions/runs/40907344256), Node 22.23.4, ubuntu-24.04) **xanh**: job `check` (lint, typecheck, node:test 78/78, Vitest 39/39, fixtures 5/5) và job `e2e` (Playwright 14/14). `main` vẫn đỏ cho tới khi merge PR #1, việc này phải chờ M3 qua G3.
 
+**M5-lite checkpoint (01/11/2026, cho beta Q-011):** quy trình nạp/publish theo [ADR-0012](adr/ADR-0012-dataset-publish-pipeline.md): CLI `npm run dataset -- import|validate|publish|retract|status|check`, dữ liệu ở `data/published` deploy cùng site; preview hiện `candidate`, production chỉ `published`; `dataset check` + `published.test.ts` trong CI. Chạy thử với TKB HK I thật: 1077 lớp, qua loader của app, đầu-cuối 215 ms tải / 15 ms tìm. Chưa làm: G4b drill (import → validate → publish → retract), admin UI (cắt theo §7.3), deploy production (chờ G3/G4a).
+
 ### Fallback
 
 Nếu không kịp cửa sổ tháng 11/2026, giữ core cho beta nội bộ và nhắm kỳ phụ 31/05–06/06/2027 hoặc năm học 2027–2028 05–11/07/2027. **Đã chọn (Q-011, 29/10/2026):** cửa sổ tháng 11/2026 là beta nội bộ chỉ với M3, không public. Không phát hành public bằng dataset chưa review chỉ để giữ ngày.
