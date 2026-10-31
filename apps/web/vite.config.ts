@@ -3,6 +3,17 @@ import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
+/**
+ * ADR-0010 §2 rule 4 / SEC-M3-003 on Cloudflare Pages (`CF_PAGES=1`): a preview branch may show unpublished
+ * (synthetic) data; the production branch never does, whatever the dashboard variables say. Set before Vite reads
+ * `VITE_*` variables from the environment.
+ */
+const PRODUCTION_BRANCH = "main";
+if (process.env.CF_PAGES === "1") {
+  const branch = process.env.CF_PAGES_BRANCH;
+  process.env.VITE_ALLOW_UNPUBLISHED = branch !== undefined && branch !== "" && branch !== PRODUCTION_BRANCH ? "true" : "false";
+}
+
 /** ADR-0010 §4. Build only: the dev server needs inline scripts for hot reload. */
 const CSP = [
   "default-src 'self'",
