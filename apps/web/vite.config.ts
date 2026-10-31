@@ -74,8 +74,11 @@ function hostHeaders(): Plugin {
 
 /** Files copied from `public/` that belong to the app shell (datasets live in IndexedDB instead). */
 const PUBLIC_SHELL = ["icon.svg", "manifest.webmanifest"];
-/** Build outputs that are host configuration, not app files: never precached. */
-const NOT_PRECACHED = new Set(["sw.js", "_headers"]);
+/**
+ * Build outputs never precached: host configuration, the worker itself, and `index.html`, which is cached as `./`.
+ * Cloudflare Pages answers `/index.html` with a redirect to `/`, and a redirected response cannot serve a navigation.
+ */
+const NOT_PRECACHED = new Set(["sw.js", "_headers", "index.html"]);
 
 /** Emits `sw.js` with this build's precache list; the cache name is a hash of the list (ADR-0010 §4). */
 function serviceWorker(): Plugin {
@@ -117,7 +120,12 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || url.pathname.includes("/data/")) return;
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request).catch(() => caches.open(CACHE).then((cache) => cache.match("./index.html")).then((hit) => hit || Response.error())));
+    // Offline: the shell cached as "./". A host may have redirected it; a redirected response cannot answer a
+    // navigation (net::ERR_FAILED), so a copy without the redirect flag is returned.
+    event.respondWith(fetch(request).catch(() => caches.open(CACHE).then((cache) => cache.match("./")).then((hit) => {
+      if (!hit) return Response.error();
+      return hit.redirected ? new Response(hit.body, { status: hit.status, statusText: hit.statusText, headers: hit.headers }) : hit;
+    })));
     return;
   }
   // Assets are content-hashed, so Vary (e.g. Origin on crossorigin module scripts) can be ignored.
