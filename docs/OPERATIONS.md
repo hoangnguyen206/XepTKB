@@ -31,7 +31,7 @@ Cấu hình project Pages (Git integration với `hoangnguyen206/XepTKB`):
 | Biến môi trường | chỉ **Preview**: `VITE_ALLOW_UNPUBLISHED=true` (cho phép dữ liệu mẫu `candidate`, có banner "Dữ liệu mẫu" + "chưa được công bố"); **Production**: không đặt (SEC-M3-003) |
 | Header | `apps/web/dist/_headers` sinh lúc build từ CSP (SEC-M3-007); kiểm tra header thật trên URL preview trước G4a |
 
-Preview URL (`<nhánh>.<project>.pages.dev`) dùng để thử trên điện thoại thật (Safari iOS, Chrome Android), vì service worker và WebCrypto cần HTTPS. URL preview không được quảng bá; không có dữ liệu thật hay PII. Data region/legal review của D-004 vẫn mở: app chỉ phục vụ file tĩnh công khai, không có backend lưu dữ liệu người dùng.
+Project `xeptkb` được owner tạo ngày 31/10/2026 qua luồng Pages (Cloudflare gọi là "legacy Pages workflow"; nếu Pages bị ngừng, chuyển sang Workers static assets với cùng thư mục `apps/web/dist` và `_headers`). Preview URL (`<nhánh>.xeptkb.pages.dev`, ví dụ `m3-web-app.xeptkb.pages.dev`) dùng để thử trên điện thoại thật (Safari iOS, Chrome Android), vì service worker và WebCrypto cần HTTPS. URL preview không được quảng bá; không có dữ liệu thật hay PII. Data region/legal review của D-004 vẫn mở: app chỉ phục vụ file tĩnh công khai, không có backend lưu dữ liệu người dùng.
 
 ## 2. CI quality gates
 
