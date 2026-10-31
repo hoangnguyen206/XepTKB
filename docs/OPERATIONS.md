@@ -16,6 +16,23 @@
 
 Không commit secret; production secrets chỉ qua secret manager/CI protected variables. `.env.example` chỉ mô tả key names.
 
+### Hosting — Cloudflare Pages (D-004 hosting, owner 31/10/2026)
+
+Cấu hình project Pages (Git integration với `hoangnguyen206/XepTKB`):
+
+| Mục | Giá trị |
+| --- | --- |
+| Framework preset | None |
+| Build command | `npm run build:web` |
+| Build output directory | `apps/web/dist` |
+| Node | `.node-version` = 22 (repo root) |
+| Production branch | `main`, **tắt automatic production deployments** cho tới G4a đầu tiên |
+| Preview deployments | mọi nhánh khác (ví dụ `m3-web-app`) |
+| Biến môi trường | chỉ **Preview**: `VITE_ALLOW_UNPUBLISHED=true` (cho phép dữ liệu mẫu `candidate`, có banner "Dữ liệu mẫu" + "chưa được công bố"); **Production**: không đặt (SEC-M3-003) |
+| Header | `apps/web/dist/_headers` sinh lúc build từ CSP (SEC-M3-007); kiểm tra header thật trên URL preview trước G4a |
+
+Preview URL (`<nhánh>.<project>.pages.dev`) dùng để thử trên điện thoại thật (Safari iOS, Chrome Android), vì service worker và WebCrypto cần HTTPS. URL preview không được quảng bá; không có dữ liệu thật hay PII. Data region/legal review của D-004 vẫn mở: app chỉ phục vụ file tĩnh công khai, không có backend lưu dữ liệu người dùng.
+
 ## 2. CI quality gates
 
 CI target khi code bắt đầu:

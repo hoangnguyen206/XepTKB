@@ -8,6 +8,7 @@ import {
   type DayNo,
   type HardConflict,
   type ResolvedPlanPick,
+  type SessionInfo,
   type SessionKind,
   type TimeFrame,
 } from "@ky-nay/domain";
@@ -31,6 +32,8 @@ export type ScheduledSession = {
   lecturers: readonly string[];
   /** The timetable's "Ghi chú" text, shown to the student as information (Q-012). */
   note?: string;
+  /** Extra source columns, shown as information (ADR-0011 §8). */
+  info?: readonly SessionInfo[];
 };
 
 export type Occurrence = ScheduledSession & {
@@ -73,6 +76,7 @@ export function scheduledSessions(picks: readonly ResolvedPlanPick[], courses: r
         ...(session.campus !== undefined ? { campus: session.campus } : {}),
         lecturers: [...session.lecturers],
         ...(session.rawNote !== undefined ? { note: session.rawNote } : {}),
+        ...(session.info !== undefined && session.info.length > 0 ? { info: session.info.map((item) => ({ ...item })) } : {}),
       };
       out.push(isFixedSession(session)
         ? { ...base, fixed: true, day: session.day, startPeriod: session.startPeriod, endPeriod: session.endPeriod }

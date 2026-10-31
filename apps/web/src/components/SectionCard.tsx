@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { isFixedSession, normalizeGroup, sessionsForPick, type Plan, type Section, type Session } from "@ky-nay/domain";
-import { dayLabel, formatPeriods, formatWeeks, kindLabel, periodTimes } from "@ky-nay/export";
+import { dayLabel, formatPeriods, formatSessionExtras, formatWeeks, kindLabel, periodTimes } from "@ky-nay/export";
 import type { AppCatalog } from "../model/catalog.js";
 import { groupOptions, isPicked, pickForCourse, previewPick } from "../model/picker.js";
 
@@ -9,7 +9,8 @@ function sessionText(session: Session, catalog: AppCatalog): string {
   const groupText = group && group !== "CL" ? ` · nhóm ${group}` : "";
   const place = session.campus && !(session.room ?? "").includes(session.campus) ? [session.room, session.campus].filter(Boolean).join(" · ") : session.room ?? "";
   const lecturers = session.lecturers.length > 0 ? ` · GV ${session.lecturers.join(", ")}` : "";
-  const note = session.rawNote ? ` · Ghi chú: ${session.rawNote}` : "";
+  const extras = formatSessionExtras(session.rawNote, session.info);
+  const note = extras ? ` · ${extras}` : "";
   if (!isFixedSession(session)) {
     return `Không có giờ cố định (${kindLabel(session.kind)})${groupText} · tuần ${formatWeeks(session.weeks)}${place ? ` · ${place}` : ""}${lecturers}${note}`;
   }

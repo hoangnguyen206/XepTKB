@@ -145,7 +145,9 @@ test("uet-xlsx reads the HK I 2026–27 layout without a kind column (C-10)", ()
   assert.equal(result.sections.find((section) => section.id === "SYN1057 1")!.online, true);
   assert.equal(result.sections.find((section) => section.id === "SYN3132 1")!.online, false);
   assert.ok(result.issues.some((item) => item.code === "SECTION_CANCELLED" && item.rawValue === "SYN3102 5"));
-  assert.ok(result.issues.some((item) => item.code === "SHIFT_RANGE_INTERPRETED" && item.sourceRow === 12));
+  // `1 - 2` = shifts 1–2 is a confirmed UET rule (owner, 2026-10-31): no warning. STT is a row number, not info.
+  assert.equal(result.issues.some((item) => item.sourceRow === 12 && item.severity === "warning" && item.field === "shift"), false);
+  assert.ok(result.sections.every((section) => section.sessions.every((session) => session.info === undefined)));
   assert.deepEqual(result.coverage, {
     sheet: "TKB 04.09", headerRow: 6, knownFormat: true,
     columns: ["courseCode", "courseName", "credits", "day", "group", "lecturer", "room", "sectionId", "shift"],
@@ -175,9 +177,13 @@ test("an unreviewed column set is held, and repeated Ghi chú columns are joined
   assert.equal(lt!.weekOrigin, "parser-default");
   assert.deepEqual(th!.weeks, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   assert.equal(th!.rawNote, "Học tuần 2-15 · thi đợt 2");
+  // Columns the adapter does not use are kept as information with their own header; empty cells are skipped.
+  assert.deepEqual(lt!.info, [{ label: "LT", value: "45" }, { label: "SS", value: "60" }]);
+  assert.deepEqual(th!.info, [{ label: "TH", value: "30" }, { label: "SS", value: "60" }]);
   const unknown = uetXlsxAdapter.parse(input(syntheticXlsx([{ name: "TKB", rows: [["Mã HP", "Môn", "Mã LHP", "Thứ", "Ca", "Đợt thi"], ["SYN1", "Môn", "SYN1 1", "2", "1", "1"]] }])));
   assert.equal(unknown.artifact.status, "hold");
   assert.ok(unknown.issues.some((item) => item.code === "FORMAT_UNRECOGNIZED"));
+  assert.deepEqual(unknown.sections[0]!.sessions[0]!.info, [{ label: "Đợt thi", value: "1" }]);
 });
 
 test("uet-xlsx rejects invalid period ranges and reports ambiguous headers", () => {

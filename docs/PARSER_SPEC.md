@@ -63,7 +63,9 @@ PDF scan/image không nằm trong MVP; nếu dùng OCR/LLM, output là candidate
 | `note` | `Ghi chú`, `Ghi chú học`, `Tuần học` | optional; có thể lặp (2 cột `Ghi chú`), giá trị được nối bằng ` · ` |
 | `examRound` | `Đợt thi` | optional |
 
-Unknown columns được giữ trong raw metadata nhưng không được tự gán canonical field. Header recognition dùng normalized Unicode/case/whitespace, không dùng index cột. Thiếu cột bắt buộc → `MISSING_REQUIRED_COLUMN` nêu tên cột.
+Unknown columns không được tự gán canonical field. Header recognition dùng normalized Unicode/case/whitespace, không dùng index cột. Thiếu cột bắt buộc → `MISSING_REQUIRED_COLUMN` nêu tên cột.
+
+**Cột ngoài danh sách là thông tin (Q-013, [ADR-0011 §8](adr/ADR-0011-timetable-format-variability.md)).** Mọi cột adapter không dùng tới (cột lạ như `SS`, `LT`, `TH`, `Tự học`, `PCGD`, hoặc canonical chưa dùng như `Đợt thi`) được giữ ở `Session.info` dạng `{ label: <tiêu đề cột như trong file>, value }`. Ô trống được bỏ qua, cột số thứ tự (`STT`, `TT`) bị bỏ, tối đa 30 cột và 300 ký tự mỗi giá trị. Thông tin này hiển thị cho sinh viên cùng ghi chú và không bao giờ dùng để tính tuần hay trùng lịch. `UNKNOWN_COLUMN` vẫn báo một lần cho mỗi cột lạ, để Data Reviewer xem có nên đưa cột đó vào danh sách canonical.
 
 ### Định dạng thay đổi giữa các kỳ ([ADR-0011](adr/ADR-0011-timetable-format-variability.md))
 
@@ -87,7 +89,7 @@ Unknown columns được giữ trong raw metadata nhưng không được tự g�
 ### Day/period
 
 - map `T2..T7`, `Thứ 2..7`, `CN` thành 2..8;
-- map `Ca 1..4`, `Sáng/Chiều` qua TimeFrame; trong cột `Ca`, `Tiết a-b` là tiết, còn `a - b` không có chữ `Tiết` là **ca a đến ca b** (`1 - 2` → tiết 1–6), kèm warning `SHIFT_RANGE_INTERPRETED`; profile `shiftRange: "periods"` đổi cách đọc. Chờ owner/Data Reviewer xác nhận với nhà trường (C-10);
+- map `Ca 1..4`, `Sáng/Chiều` qua TimeFrame; trong cột `Ca`, `Tiết a-b` là tiết, còn `a - b` không có chữ `Tiết` là **ca a đến ca b** (`1 - 2` → tiết 1–6). Owner xác nhận 31/10/2026 (Q-013), nên không có warning; profile `shiftRange: "periods"` chỉ dành cho nguồn ghi khác;
 - parse `Tiết 9-12`, `9 – 12`, `9,10,11,12` thành range/explicit periods;
 - note period override thắng shift/cột Ca và phải ghi warning trace.
 
@@ -164,7 +166,6 @@ M2 bổ sung matching/merge thuần trong `packages/domain`: candidate registrat
 - `UNPARSED_NOTE` — không còn phát từ 2026-10-30 (Q-012: ghi chú chỉ là thông tin); giữ trong taxonomy để tương thích
 - `DEFAULT_WEEKS_APPLIED` — parser không còn phát (Q-012); tuần mặc định được ghi bằng `weekOrigin=parser-default`
 - `SECTION_CANCELLED` — lớp nằm trong sheet lớp hủy, không nạp
-- `SHIFT_RANGE_INTERPRETED` — `a - b` trong cột `Ca` được đọc theo profile `shiftRange`
 - `FORMAT_UNRECOGNIZED` — bộ cột chưa review, artifact `hold`
 - `GROUP_MISSING`
 - `ROOM_CAMPUS_UNKNOWN`

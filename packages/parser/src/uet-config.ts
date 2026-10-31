@@ -91,6 +91,9 @@ export const REPEATABLE_COLUMNS = ["note"];
 /** Folded words of worksheet names that list cancelled sections ("Các lớp hủy"); such a sheet is never imported. */
 export const CANCELLED_SHEET_WORDS = ["huy"];
 
+/** Folded headers of columns that carry no information for students (row numbers); never kept as session info. */
+export const INFO_IGNORED_HEADERS = ["stt", "tt"];
+
 /** Folded room text of a self-paced online class when the file has no kind column ("Học Online"). */
 export const ONLINE_ROOM_WORDS = ["online"];
 

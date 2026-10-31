@@ -9,6 +9,7 @@ import {
   type ParseIssue,
   type Section,
   type Session,
+  type SessionInfo,
   type SourceRef,
   isFixedSession,
 } from "@ky-nay/domain";
@@ -31,7 +32,7 @@ import {
   periodsFromShiftCell,
   sectionIdFromCourse,
 } from "./normalize.js";
-import { CANCELLED_SHEET_WORDS, KNOWN_FORMATS, ONLINE_ROOM_WORDS, REPEATABLE_COLUMNS, REQUIRED_COLUMNS } from "./uet-config.js";
+import { CANCELLED_SHEET_WORDS, INFO_IGNORED_HEADERS, KNOWN_FORMATS, ONLINE_ROOM_WORDS, REPEATABLE_COLUMNS, REQUIRED_COLUMNS } from "./uet-config.js";
 import { parseNote } from "./weeks.js";
 
 const ADAPTER_ID = "uet-xlsx";
@@ -147,7 +148,39 @@ function findHeader(sheet: OoxmlSheet, issues: ParseIssue[]): { mapping: HeaderM
   return { mapping: best.mapping, headerRow: best.rowIndex + 1 };
 }
 
-type SelectedSheet = { sheet: OoxmlSheet; mapping: HeaderMapping; headerRow: number; cancelled: Set<string> };
+type InfoColumn = { index: number; label: string };
+type SelectedSheet = { sheet: OoxmlSheet; mapping: HeaderMapping; headerRow: number; cancelled: Set<string>; infoColumns: InfoColumn[] };
+
+/** Canonical fields this adapter turns into model fields; any other column becomes session info. */
+const CONSUMED_COLUMNS = new Set(["homeClass", "courseCode", "courseName", "credits", "sectionId", "group", "kind", "day", "shift", "periodText", "room", "lecturer", "note"]);
+const MAX_INFO_COLUMNS = 30;
+const MAX_INFO_VALUE = 300;
+
+/**
+ * ADR-0011 §8 (owner, 2026-10-31): the layout has no fixed column count. Columns the adapter does not use (`SS`,
+ * `LT`, `Tự học`, `Đợt thi`…) are kept with their header text so students see them; row numbers are dropped.
+ */
+function infoColumns(sheet: OoxmlSheet, headerRow: number): InfoColumn[] {
+  const headers = sheet.rows[headerRow - 1] ?? [];
+  const columns: InfoColumn[] = [];
+  headers.forEach((header, index) => {
+    const label = normalizeDisplay(header);
+    if (!label || INFO_IGNORED_HEADERS.includes(foldText(label))) return;
+    const canonical = canonicalColumn(label);
+    if (canonical && CONSUMED_COLUMNS.has(canonical)) return;
+    columns.push({ index, label: label.slice(0, 100) });
+  });
+  return columns.slice(0, MAX_INFO_COLUMNS);
+}
+
+function rowInfo(record: RowRecord, columns: readonly InfoColumn[]): SessionInfo[] {
+  const info: SessionInfo[] = [];
+  for (const column of columns) {
+    const value = normalizeDisplay(record.row[column.index]);
+    if (value) info.push({ label: column.label, value: value.length > MAX_INFO_VALUE ? `${value.slice(0, MAX_INFO_VALUE - 1)}…` : value });
+  }
+  return info;
+}
 
 /** Section ids listed on a cancelled-classes sheet, built the same way as timetable ids. */
 function cancelledSectionIds(sheet: OoxmlSheet, header: { mapping: HeaderMapping; headerRow: number }): Set<string> {
@@ -188,7 +221,7 @@ function selectSheet(workbook: { sheets: OoxmlSheet[] }, profile: ImportProfile 
   candidates.sort((a, b) => a.headerRow - b.headerRow || a.sheet.name.localeCompare(b.sheet.name));
   const selected = candidates[0]!;
   const selectedHeader = findHeader(selected.sheet, issues);
-  return selectedHeader ? { sheet: selected.sheet, ...selectedHeader, cancelled } : undefined;
+  return selectedHeader ? { sheet: selected.sheet, ...selectedHeader, cancelled, infoColumns: infoColumns(selected.sheet, selectedHeader.headerRow) } : undefined;
 }
 
 function formatFingerprint(mapping: HeaderMapping): { columns: string[]; known: boolean } {
@@ -333,11 +366,7 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, selected: Selec
     const rawShift = rowValue(record, "shift");
     const rawPeriods = rowValue(record, "periodText");
     const columnPeriods = parsePeriodRanges(rawPeriods);
-    const shiftCell = notePeriods.length > 0 || columnPeriods.length > 0 ? { ranges: [], rangeRead: false } : periodsFromShiftCell(rawShift, shiftRange);
-    if (shiftCell.rangeRead) {
-      issues.push(issue("SHIFT_RANGE_INTERPRETED", "warning", `Ca range read as ${shiftRange === "shifts" ? "shifts" : "periods"} (import profile shiftRange)`, { sourceRow: record.sourceRow, field: "shift", ...(rawShift ? { rawValue: rawShift } : {}) }));
-    }
-    const ranges = notePeriods.length > 0 ? notePeriods : columnPeriods.length > 0 ? columnPeriods : shiftCell.ranges;
+    const ranges = notePeriods.length > 0 ? notePeriods : columnPeriods.length > 0 ? columnPeriods : periodsFromShiftCell(rawShift, shiftRange);
     const uniqueRanges = new Map<string, { startPeriod: number; endPeriod: number }>();
     for (const range of ranges) uniqueRanges.set(`${range.startPeriod}-${range.endPeriod}`, range);
     const room = normalizeRoom(rowValue(record, "room"));
@@ -354,6 +383,7 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, selected: Selec
     }
     const group = normalizeGroup(rowValue(record, "group"));
     if (!group) issues.push(issue("GROUP_MISSING", "warning", "session group is missing; reviewer must confirm applicability", { sourceRow: record.sourceRow, field: "group" }));
+    const info = rowInfo(record, selected.infoColumns);
     const sessionBase = {
       frame: "uet-default",
       weeks,
@@ -364,6 +394,7 @@ function parseRows(input: SourceInput, artifact: ImportArtifact, selected: Selec
       ...(campus ? { campus } : {}),
       lecturers: normalizeLecturers(rowValue(record, "lecturer")),
       ...(note ? { rawNote: note } : {}),
+      ...(info.length > 0 ? { info } : {}),
       source,
       confidence: "deterministic" as const,
     };

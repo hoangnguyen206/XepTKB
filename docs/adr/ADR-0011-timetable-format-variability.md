@@ -30,11 +30,21 @@
    - a cancelled-classes sheet is never imported, and its ids are removed from the timetable (`SECTION_CANCELLED`);
    - section ids are rebuilt from the normalized course code;
    - `#` is kept as part of the code;
-   - a bare `a - b` in `Ca` means shifts a..b (`SHIFT_RANGE_INTERPRETED`; profile `shiftRange` can switch it to periods);
+   - a bare `a - b` in `Ca` means shifts a..b; only an explicit `Tiết a-b` means periods (confirmed by the owner, Q-013, 2026-10-31, so no warning; profile `shiftRange` exists for a source that writes it differently);
    - rows with no time in a file without a kind column become non-fixed sessions (`OTHER`, or `ONL` when the room says online), as in Q-012;
    - repeated `Ghi chú` columns are joined.
 6. **Notes are information (Q-012, owner 2026-10-30).** Only an explicit week or period pattern changes a session. Any other note text is kept in `rawNote` and shown to students, with no warning.
 7. **Later (post-MVP).** For a never-seen layout, an LLM may *propose* a profile in the admin flow, as a draft that a reviewer approves (deterministic-first rule).
+8. **Columns outside the list are information (Q-013, owner 2026-10-31).** There is no fixed column count. Only the necessary columns are required. Every column the adapter does not use (unknown ones such as `SS`, `LT`, `Tự học`, or canonical ones it ignores such as `Đợt thi`) is kept per session as `info: { label, value }[]`:
+   - the label is the header as written; empty cells are skipped and row-number columns (`STT`) are dropped;
+   - at most 30 entries of up to 300 characters each, checked again by the web loader;
+   - shown to students next to the note, never used for weeks or conflicts.
+
+   This is an additive optional field: schema stays `0.2.0`, and older loaders ignore it.
+
+## Status after the owner's answers (2026-10-31)
+
+Q-013 confirmed the `Ca` rule, the column policy (§8) and Cloudflare Pages for hosting. The `SHIFT_RANGE_INTERPRETED` warning added on 2026-10-30 was removed before any merge.
 
 ## Alternatives considered
 
@@ -53,7 +63,7 @@
   - quirks are fixed in a reviewed JSON file.
 - Negative:
   - `KNOWN_FORMATS` and profiles must be maintained;
-  - the `1 - 2` = shifts rule is an interpretation. It is backed by the file (the school writes `Tiết` when it means periods) but not yet confirmed by the school or the owner.
+  - `Session.info` makes the dataset somewhat larger when a layout has many extra columns (capped per session).
 - Privacy/security: no new boundary. Timetable files are public; `test:real` prints counts only for registration files.
 - Rollback: `uet-xlsx@0.1.0` cannot read the real file, so rollback means fixing forward with a profile. Data already imported keeps its `parserVersion`.
 

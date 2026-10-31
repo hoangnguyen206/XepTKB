@@ -182,6 +182,12 @@ function isSourceRef(value: unknown): boolean {
   return isRecord(value) && isNonEmptyString(value.artifactId) && SOURCE_REF_TYPES.includes(value.sourceType as (typeof SOURCE_REF_TYPES)[number]);
 }
 
+/** ADR-0011 §8: bounded list of extra column values, displayed as text only. */
+function isInfoList(value: unknown): boolean {
+  return Array.isArray(value) && value.length <= 30
+    && value.every((item) => isRecord(item) && isNonEmptyString(item.label) && item.label.length <= 100 && isString(item.value) && item.value.length <= 300);
+}
+
 function isSessionShape(value: unknown): boolean {
   if (!isRecord(value)) return false;
   const common = isNonEmptyString(value.id)
@@ -192,6 +198,7 @@ function isSessionShape(value: unknown): boolean {
     && CONFIDENCE.includes(value.confidence as (typeof CONFIDENCE)[number])
     && isSourceRef(value.source)
     && isOptional(value.group, isString) && isOptional(value.room, isString) && isOptional(value.campus, isString) && isOptional(value.rawNote, isString)
+    && isOptional(value.info, isInfoList)
     && isOptional(value.weekOrigin, (origin) => origin === "explicit" || origin === "parser-default" || origin === "registration-default");
   if (!common) return false;
   if (value.fixedTime === false) return isOptional(value.day, (day) => typeof day === "number");

@@ -1,5 +1,5 @@
 /** Vietnamese display formatting shared by the web UI and every export. */
-import type { DayNo, HardConflict, SessionKind } from "@ky-nay/domain";
+import type { DayNo, HardConflict, SessionInfo, SessionKind } from "@ky-nay/domain";
 
 const DAY_LONG: Record<DayNo, string> = { 2: "Thứ 2", 3: "Thứ 3", 4: "Thứ 4", 5: "Thứ 5", 6: "Thứ 6", 7: "Thứ 7", 8: "Chủ nhật" };
 const DAY_SHORT: Record<DayNo, string> = { 2: "T2", 3: "T3", 4: "T4", 5: "T5", 6: "T6", 7: "T7", 8: "CN" };
@@ -27,6 +27,11 @@ export function formatWeeks(weeks: readonly number[]): string {
     parts.push(end - start >= 2 ? `${start}–${end}` : end === start ? `${start}` : `${start}, ${end}`);
   }
   return parts.join(", ");
+}
+
+/** Note and extra source columns as one information line (Q-012, ADR-0011 §8); empty when there is neither. */
+export function formatSessionExtras(note: string | undefined, info: readonly SessionInfo[] | undefined): string {
+  return [...(note ? [`Ghi chú: ${note}`] : []), ...(info ?? []).map((item) => `${item.label}: ${item.value}`)].join(" · ");
 }
 
 export function formatPeriods(startPeriod: number, endPeriod: number): string {

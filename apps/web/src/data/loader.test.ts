@@ -85,6 +85,21 @@ describe("artifact loader (AC-M3-07)", () => {
     expect(other.terms.map((term) => term.term).sort()).toEqual([otherTerm, TERM].sort());
   });
 
+  it("accepts extra source columns as session info and rejects a malformed list (ADR-0011 §8)", async () => {
+    const withInfo = (info: unknown) => {
+      const timetable = testTimetable();
+      timetable.sections[0]!.sessions[0] = { ...timetable.sections[0]!.sessions[0]!, info } as never;
+      return serveDataset({ timetable }).files;
+    };
+    const ok = await loadDataset(TERM, { allowUnpublished: true, cache: memoryCache(), fetchImpl: stubFetch(withInfo([{ label: "SS", value: "60" }])) });
+    expect(ok.kind).toBe("fresh");
+    if (ok.kind === "fresh") expect(ok.dataset.timetable.sections[0]!.sessions[0]!.info).toEqual([{ label: "SS", value: "60" }]);
+    for (const bad of [[{ label: "", value: "x" }], [{ label: "SS", value: 60 }], Array.from({ length: 31 }, () => ({ label: "x", value: "y" }))]) {
+      const rejected = await loadDataset(TERM, { allowUnpublished: true, cache: memoryCache(), fetchImpl: stubFetch(withInfo(bad)) });
+      expect(rejected.kind).toBe("unavailable");
+    }
+  });
+
   it("keeps a verified dataset when the cache write fails and says it is not stored (REV-M3-004)", async () => {
     const { files } = serveDataset();
     const cache = { ...memoryCache(), put: async () => { throw new DOMException("quota", "QuotaExceededError"); } };

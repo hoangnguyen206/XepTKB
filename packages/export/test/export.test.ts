@@ -10,6 +10,7 @@ import {
   describeConflict,
   escapeText,
   foldLine,
+  formatSessionExtras,
   formatWeeks,
   occurrencesForWeek,
   scheduledSessions,
@@ -112,8 +113,10 @@ test("grid layout places overlapping blocks in lanes and marks conflicts per wee
 });
 
 test("the timetable note reaches the schedule as information (Q-012)", () => {
-  const noted = scheduledSessions([{ pick: { sectionId: "X 1" }, section: section("X 1", "SYN1001", []), sessions: [fixed("s", { rawNote: "Học 1 ca/15 tuần, thi đợt 2" }), fixed("t", {})] }], courses);
+  const noted = scheduledSessions([{ pick: { sectionId: "X 1" }, section: section("X 1", "SYN1001", []), sessions: [fixed("s", { rawNote: "Học 1 ca/15 tuần, thi đợt 2", info: [{ label: "SS", value: "60" }] }), fixed("t", {})] }], courses);
   assert.deepEqual(noted.map((session) => session.note), ["Học 1 ca/15 tuần, thi đợt 2", undefined]);
+  assert.equal(formatSessionExtras(noted[0]!.note, noted[0]!.info), "Ghi chú: Học 1 ca/15 tuần, thi đợt 2 · SS: 60");
+  assert.equal(formatSessionExtras(noted[1]!.note, noted[1]!.info), "");
 });
 
 test("Sunday sessions add a CN column", () => {

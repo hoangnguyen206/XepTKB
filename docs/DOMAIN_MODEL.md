@@ -71,7 +71,8 @@ type SessionBase = {
   room?: string;
   campus?: string;
   lecturers: string[];
-  rawNote?: string;
+  rawNote?: string;                 // "Ghi chú" text, information only (Q-012)
+  info?: { label: string; value: string }[]; // unused source columns, information only (ADR-0011 §8, additive in 0.2.0)
   source: SourceRef;
   confidence: "deterministic" | "reviewed-fallback" | "manual";
 };

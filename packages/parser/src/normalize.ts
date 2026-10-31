@@ -159,22 +159,22 @@ export function periodsFromShift(value: string | undefined): PeriodRange[] {
 export type ShiftRangeMeaning = "shifts" | "periods";
 
 /**
- * Reads a `Ca` cell: a shift number or name, an explicit `Tiết a-b`, or a bare range `a - b`. The HK I 2026–27
- * timetable writes `Tiết` whenever it means periods, so a bare range is read as shifts a..b unless the import profile
- * says `periods`. `rangeRead` tells the caller that the bare-range rule was used.
+ * Reads a `Ca` cell: a shift number or name, an explicit `Tiết a-b`, or a bare range `a - b`. UET writes `Tiết`
+ * whenever it means periods, so a bare range means shifts a..b (`1 - 2` → periods 1–6; confirmed by the owner,
+ * 2026-10-31). An import profile can switch the bare range to periods for a source that writes it differently.
  */
-export function periodsFromShiftCell(value: string | undefined, meaning: ShiftRangeMeaning = "shifts"): { ranges: PeriodRange[]; rangeRead: boolean } {
-  if (!value) return { ranges: [], rangeRead: false };
+export function periodsFromShiftCell(value: string | undefined, meaning: ShiftRangeMeaning = "shifts"): PeriodRange[] {
+  if (!value) return [];
   const folded = normalizeHeader(value);
-  if (folded.startsWith("tiet")) return { ranges: parsePeriodRanges(value), rangeRead: false };
+  if (folded.startsWith("tiet")) return parsePeriodRanges(value);
   const bare = folded.match(/^(\d+)\s*-\s*(\d+)$/);
-  if (!bare) return { ranges: periodsFromShift(value), rangeRead: false };
+  if (!bare) return periodsFromShift(value);
   const [from, to] = [bare[1]!, bare[2]!];
-  if (meaning === "periods") return { ranges: [{ startPeriod: Number(from), endPeriod: Number(to) }], rangeRead: true };
+  if (meaning === "periods") return [{ startPeriod: Number(from), endPeriod: Number(to) }];
   const first = UET_CONFIG.frame.shifts.find((shift) => shift.name === from);
   const last = UET_CONFIG.frame.shifts.find((shift) => shift.name === to);
-  if (!first || !last || Number(from) > Number(to)) return { ranges: [], rangeRead: true };
-  return { ranges: [{ startPeriod: Math.min(...first.periods), endPeriod: Math.max(...last.periods) }], rangeRead: true };
+  if (!first || !last || Number(from) > Number(to)) return [];
+  return [{ startPeriod: Math.min(...first.periods), endPeriod: Math.max(...last.periods) }];
 }
 
 export function normalizeKind(value: string | undefined): SessionKind {

@@ -66,7 +66,7 @@ Các giá trị sau phải nhất quán ở mọi tài liệu:
 | D-001 | Tên thương hiệu cuối cùng và domain | Open | Product, kiểm tra tên miền/nhãn hiệu |
 | D-002 | Chốt React+Vite hay framework khác | Proposed | Tech Lead sau spike PWA/SSR |
 | D-003 | Backend: **static artifact + CLI admin**; Supabase deferred | **Closed** (Q-003) | Tech Lead + Security 20/10/2026 |
-| D-004 | Hosting/data region và vendor/legal review | Open | Owner + tư vấn pháp lý |
+| D-004 | Hosting/data region và vendor/legal review | **Một phần** (31/10/2026): hosting = **Cloudflare Pages** (owner), cấu hình ở [OPERATIONS §1](OPERATIONS.md); data region/legal review còn mở | Owner + tư vấn pháp lý |
 | D-005 | Browser matrix Tier 1/2 + analytics cookieless aggregate | **Closed** (Q-007/Q-008) | Product + Security 20/10/2026 |
 | D-006 | Có tài khoản/sync trong release đầu không | **Closed**: không | Product 20/10/2026 |
 | D-007 | Fixture policy: synthetic + `test:real` ngoài repo; registration file xóa PII trước khi lưu | **Closed** (Q-006) | Data Ops + Security 20/10/2026 |
