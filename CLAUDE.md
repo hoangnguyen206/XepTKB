@@ -1,6 +1,6 @@
 # Kỳ Này — Hướng dẫn làm việc cho Claude Code và Agent
 
-> **Status:** draft / M0–M2 implementation present; M3 web app + dataset CLI implemented on branch `m3-web-app` (`2ab03cd`, draft PR #1, not merged); G3 R2 completed (`qa-pass-with-follow-up`, `security-pass-with-exception` for M3 code / `security-no-go` for real dataset G4b, `review-no-go` on parser/pipeline S2 findings)
+> **Status:** draft / M0–M2 implementation present; M3 web app + dataset CLI implemented on branch `m3-web-app` (`d51c65b`, draft PR #1, not merged); G3 R2.1 completed (`qa-pass`, `security-pass-with-exception` with G4b `security-no-go` lifted, `review-approved` technical; pending human G0/G1 sign-off `REV-M3-103` and S3 exception sign-off)
 > **Owner:** Tech Lead  
 > **Last reviewed:** 2026-11-06
 > **Source of truth:** các tài liệu trong `docs/`; bản brief chỉ là nguồn đầu vào ban đầu.
@@ -8,7 +8,7 @@
 
 ## 1. Bối cảnh
 
-Kỳ Này (tên làm việc, chưa chốt thương hiệu) là web app/PWA giúp sinh viên UET xếp thời khóa biểu từ dữ liệu trường phát hành. MVP tập trung UET, chạy tốt trên điện thoại nhưng không bỏ qua desktop. Repository hiện có foundation, parser, M2 domain engine, package export, CLI publish dữ liệu và web app M3 (`apps/web`, commit `2ab03cd` trên nhánh `m3-web-app`/draft PR #1, chưa merge vào `main`, đã chạy G3 R2 nhưng còn 2 lỗi S2 ở đường parser/pipeline dữ liệu thật — xem [EVID-M3-001](docs/evidence/M3-EVIDENCE-ENVELOPE.md)); đã có preview trên Cloudflare Pages, chưa có deploy production, dataset publish thật hay release.
+Kỳ Này (tên làm việc, chưa chốt thương hiệu) là web app/PWA giúp sinh viên UET xếp thời khóa biểu từ dữ liệu trường phát hành. MVP tập trung UET, chạy tốt trên điện thoại nhưng không bỏ qua desktop. Repository hiện có foundation, parser, M2 domain engine, package export, CLI publish dữ liệu và web app M3 (`apps/web`, commit `d51c65b` trên nhánh `m3-web-app`/draft PR #1, chưa merge vào `main`, đã vượt qua kiểm định kỹ thuật G3 R2.1 — xem [EVID-M3-001](docs/evidence/M3-EVIDENCE-ENVELOPE.md)); đã có preview trên Cloudflare Pages, chưa có deploy production, dataset publish thật hay release.
 
 Mốc kinh doanh/kỹ thuật cần ưu tiên là khi trường công bố TKB học kỳ II năm học 2026–2027, dự kiến tuần **09–15/11/2026**. Nếu không kịp, cắt scope theo [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), không âm thầm hạ chất lượng parser hoặc privacy.
 
@@ -81,7 +81,7 @@ Một task chỉ hoàn thành khi đạt gate tương ứng trong [Agent workflo
 - docs, changelog, rollback/monitoring và handoff được cập nhật;
 - không dùng dữ liệu thật trong CI hoặc log.
 
-Các tài liệu sản phẩm vẫn ở `draft`/`proposed`; M1 parser, M2 domain packages và web app M3 có local test/evidence nhưng G0–G5 chưa đạt (G3a/G3c của M3 đang `no-go`) cho tới khi có actor/date/evidence độc lập theo từng gate. Không điền giả trạng thái app build/test/release.
+Các tài liệu sản phẩm vẫn ở `draft`/`proposed`; M1 parser, M2 domain packages và web app M3 có local test/evidence và M3 đã qua kiểm định kỹ thuật G3 R2.1 (`d51c65b`), nhưng G0–G5 chưa đóng hoàn toàn cho tới khi có actor/date sign-off của người cho G0/G1 (`REV-M3-103`) và exception S3 của G3b. Không điền giả trạng thái app build/test/release.
 
 ## 6. Quy tắc cho Agent
 

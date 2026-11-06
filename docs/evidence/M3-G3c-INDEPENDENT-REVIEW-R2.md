@@ -2,13 +2,13 @@
 
 > **Artifact ID:** `REVIEW-M3-002` (thay thế quyết định của [REVIEW-M3-001](M3-G3c-INDEPENDENT-REVIEW.md) ngày 2026-10-25)
 > **Artifact status:** `needs_review` — báo cáo do agent ở vai trò Independent Reviewer viết, đã kết hợp kết quả G3a R2 và G3b R2; cần người (Tech Lead/Release Manager) xác nhận.
-> **Status:** `review-no-go` (đề xuất của agent Reviewer sau khi kết hợp G3a/G3b R2; chờ người xác nhận)
+> **Status:** `review-approved` (về mặt kỹ thuật tại `d51c65b`; nâng từ `review-no-go` tại `2ab03cd` sau khi toàn bộ `REV-M3-101`, `REV-M3-102`, `REV-M3-104`…`107`, `REV-M3-008` đã `verified-fixed`; chỉ còn điều kiện sign-off G0/G1 của người `REV-M3-103` trước G4a/G4b — xem phụ lục R2.1 cuối báo cáo)
 > **Canonical gate:** `G3c`
 > **Owner:** Independent Reviewer (agent role)
-> **Last reviewed:** 2026-11-06
+> **Last reviewed:** 2026-11-06 (kèm phụ lục hậu kiểm R2.1 tại `d51c65b`)
 > **Related docs:** [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md), [IMPL-M3-001](M3-IMPLEMENTATION-HANDOFF.md), [SPEC-M3-001](M3-SPEC.md), [DESIGN-M3-001](M3-DESIGN-HANDOFF.md), [REVIEW-M3-001](M3-G3c-INDEPENDENT-REVIEW.md), [ADR-0009](../adr/ADR-0009-m2-domain-engine-schema.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0011](../adr/ADR-0011-timetable-format-variability.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [DOMAIN_MODEL](../DOMAIN_MODEL.md), [PARSER_SPEC](../PARSER_SPEC.md), [API_AND_DATA_CONTRACTS](../API_AND_DATA_CONTRACTS.md), [IMPLEMENTATION_PLAN §10](../IMPLEMENTATION_PLAN.md), [DATA_INGESTION_RUNBOOK](../DATA_INGESTION_RUNBOOK.md), [Agent workflow](../../.claude/AGENT_WORKFLOW.md), [G3a R2 (TEST-M3-002)](M3-G3a-QA-REPORT-R2.md), [G3b R2 (SEC-REVIEW-M3-002)](M3-G3b-SECURITY-REVIEW-R2.md)
 > **Evidence envelope:** mục [Evidence Envelope](#evidence-envelope) ở cuối file; ledger của M3 là [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md)
-> **Independent reviewer / approval UTC timestamp:** một Claude agent đóng vai Independent Reviewer, **không phải sign-off của người**, 2026-11-05T17:05Z (cập nhật kết hợp G3a/G3b R2: 2026-11-06T04:30Z). Báo cáo này cần một người (Tech Lead hoặc Release Manager) xác nhận.
+> **Independent reviewer / approval UTC timestamp:** một Claude agent đóng vai Independent Reviewer, **không phải sign-off của người**, 2026-11-05T17:05Z (kết hợp G3a/G3b R2: 2026-11-06T04:30Z; phụ lục hậu kiểm R2.1 tại `d51c65b`: 2026-11-06T05:33Z). Báo cáo này cần một người (Tech Lead hoặc Release Manager) xác nhận.
 
 ## Scope and identity
 
@@ -308,4 +308,23 @@ Cả ba cổng G3a R2 ([TEST-M3-002](M3-G3a-QA-REPORT-R2.md)), G3b R2 ([SEC-REVI
 - **Exact commands + exit codes:** `npm ci` 0; `npm run check` 0 (node:test 94/94, Vitest 54/54, fixtures 6/6, dataset check OK với 0 dataset); `npm run test:e2e` 0 (17/17, cổng local 4383); probe ghi chú, probe định dạng, probe loader như trên; cộng kết quả chạy độc lập của G3a R2 và G3b R2 trên cùng commit `2ab03cd`.
 - **Data and artefact integrity:** chỉ dữ liệu tổng hợp; `data/published` rỗng; không dùng file thật, không PII.
 - **Risk and controls:** finding của G3c: REV-M3-101 (S2), 102 (S2, = SEC-M3-102 = QA-M3-105), 103 (S2 process), 104…107 (S3), REV-M3-008 (S3, partially-fixed); cộng các S3 của G3a (`QA-M3-101`…`104`) và G3b (`SEC-M3-101`, `103`, `104`, `001`, `003`, `005`, `006a`). Waiver ở G3c: none. Rollback: N/A (review không thay đổi code).
-- **Decision and next step:** `review-no-go` (đã kết hợp G3a/G3b R2; chờ human acknowledgement). Next owner: Data Parser + Product (REV-M3-101, REV-M3-102/SEC-M3-102/QA-M3-105) và Release Manager (xét duyệt exception S3 trước 2026-11-08).
+- **Decision and next step:** `review-no-go` tại `2ab03cd`; nâng lên **`review-approved` (về mặt kỹ thuật)** tại `d51c65b` (xem phụ lục R2.1 bên dưới). Bước tiếp theo: Product + Tech Lead + Release Manager thực hiện sign-off G0/G1 (`REV-M3-103`) và xác nhận bộ báo cáo G3 R2 trước khi mở G4a/G4b.
+
+---
+
+## Phụ lục R2.1 — Tái kiểm chứng hậu sửa lỗi tại `d51c65bc10f91ed7cd23462bdef901f5a81d5acc` (2026-11-06T05:33Z)
+
+- **Target bất biến:** `d51c65bc10f91ed7cd23462bdef901f5a81d5acc` (`db0058c..d51c65b` trên nhánh `m3-web-app`).
+- **Kết quả kiểm chứng độc lập cho từng finding của G3c:**
+  - **`REV-M3-101` (S2):** **`verified-fixed`** — `packages/parser/src/weeks.ts:24-32,55-112` chỉ nhận `weekOrigin: "explicit"` khi mệnh đề tuần tiêu thụ trọn vẹn (`isCompleteClause`) và không còn từ `"tuần"` trong phần dư (ngoài cụm tần suất `N ca/M tuần`); 6/6 chuỗi đối kháng (`"Học tuần 1 đến tuần 8"`, `"Học tuần 9 đến hết"`, `"Học từ tuần 3 đến tuần 10"`, `"Tuần 1-8"`, `"Học tuần 1-5 (trừ tuần 3)"`, `"Nghỉ tuần 5"`) đều trả `weekOrigin: "parser-default"`, `[1..15]` và phát `UNPARSED_NOTE` kèm `rawValue`; `scripts/dataset.mjs` in bảng `Week notes ("tuần")` và mục checklist cho Data Reviewer.
+  - **`REV-M3-102 = SEC-M3-102 = QA-M3-105` (S2):** **`verified-fixed`** — `uet-xlsx-adapter.ts` đưa `infoColumns` vào `formatFingerprint` + `ParseCoverage`, gắn `rawValue` cho `UNKNOWN_COLUMN`, chặn tiêu đề PII bằng `UNSUPPORTED_INPUT`; `ooxml.ts` bỏ qua sheet/cột/hàng `hidden`; `dataset.mjs` + `dataset-core.mjs` in bảng `Extra (info) columns` và bắt buộc Data Reviewer truyền `--accept-new-format "<reason>"` khi `validate`.
+  - **`REV-M3-104` (S3):** **`verified-fixed`** — `loader.ts:182,186` bọc `.catch(() => undefined)` cho cả hai lệnh `options.cache.get(...)`; `controller.ts:63-70` bắt lỗi `loadDataset` và chuyển sang trạng thái `unavailable` có nút "Thử lại"; thêm unit test trong `loader.test.ts:103-113`.
+  - **`REV-M3-105` (S3):** **`verified-fixed`** — `published.test.ts:46-133` kiểm tra cả `allowUnpublished: true` và `false`, đồng thời chạy round-trip `scripts/dataset.mjs import/validate/publish` → `loadDataset` trên workbook tổng hợp.
+  - **`REV-M3-106` (S3):** **`verified-fixed`** — thêm lệnh `restore <version> --by <name> --reason <text>` (`retracted → validated`) trong `dataset-core.mjs` & `dataset.mjs`, đồng bộ với `DATA_INGESTION_RUNBOOK.md` §7/§12 và `ADR-0012` §2/§3; kiểm chứng bằng test round-trip trong `dataset-core.test.mjs:133-139`.
+  - **`REV-M3-107` (S3):** **`verified-fixed`** — đã đồng bộ `ADR-0010` §4 + bảng Status, `DOMAIN_MODEL` §3, `IMPLEMENTATION_PLAN` (`C-11`), tên test `m3.spec.ts:94`, `M3-IMPLEMENTATION-HANDOFF.md` và `M3-EVIDENCE-ENVELOPE.md`.
+  - **`REV-M3-008` (S3):** **`verified-fixed`** — đã bổ sung test tự động cho cảnh báo chuyển cơ sở trong ngày (`model.test.ts:42-53`, `App.test.tsx:142-162`) và đường bàn phím tới bước tải `.ics` (`m3.spec.ts:161-170`).
+  - **`REV-M3-103` (S2 process):** **open (human gate action)** — việc ghi nhận actor/date của người cho G0 (`SPEC-M3-001`, `D-M3-1…4`, `C-02`, `C-08`) và G1 (`ADR-0009` amendment, `ADR-0010`, `ADR-0011`, `ADR-0012`) thuộc thẩm quyền của Product / Tech Lead / Data Reviewer trước khi mở G4a/G4b.
+- **Kết hợp với G3a R2.1 và G3b R2.1 tại `d51c65b`:**
+  - G3a R2.1: **`qa-pass`** (0 S0/S1/S2/S3 mở).
+  - G3b R2.1: **`security-pass-with-exception`**, **gỡ bỏ `security-no-go` cho G4b** (0 S0/S1/S2 mở; 3 mục S3 phần dư nhẹ cho CI/G4a/M4).
+  - **Quyết định G3c cập nhật tại `d51c65b`:** **`review-approved`** cho toàn bộ phần kỹ thuật (code, parser, pipeline, test, tài liệu), chờ người (Product / Tech Lead / Release Manager) ghi nhận `REV-M3-103` (G0/G1) và xác nhận báo cáo gate.

@@ -3,7 +3,7 @@
 > **Artifact ID:** `TEST-M3-002`  
 > **Artifact status:** `needs_review` — báo cáo do agent ở vai trò Tester viết; cần người (Owner/Release Manager) ghi nhận  
 > **Canonical gate:** `G3a`  
-> **Status:** `qa-pass-with-follow-up` (đề xuất; 0 S0/S1/S2 mở, 5 S3 mới cần owner/hạn được Release Manager chấp thuận)  
+> **Status:** `qa-pass` tại `d51c65b` (đề xuất; nâng từ `qa-pass-with-follow-up` tại `2ab03cd` sau khi toàn bộ `QA-M3-101`…`105` và `#19` đã `verified-fixed`; xem phụ lục R2.1 cuối báo cáo)  
 > **Owner:** Tester (agent role)  
 > **Last reviewed:** 2026-11-06  
 > **Related docs:** [M3 spec](M3-SPEC.md), [M3 implementation handoff](M3-IMPLEMENTATION-HANDOFF.md), [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md), [G3a lần 1 (TEST-M3-001)](M3-G3a-QA-REPORT.md), [QA plan](../QA_TEST_PLAN.md), [ADR-0009](../adr/ADR-0009-m2-domain-engine-schema.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0011](../adr/ADR-0011-timetable-format-variability.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [Implementation plan Q-011/Q-012/Q-013](../IMPLEMENTATION_PLAN.md), [Data ingestion runbook §12](../DATA_INGESTION_RUNBOOK.md)  
@@ -233,5 +233,23 @@ Quan sát không xếp severity (để G3b/G3c xem):
   - findings: `QA-M3-101`…`105` (S3, open);
   - không có waiver/exception nào do Tester cấp; chấp thuận S3 thuộc Release Manager;
   - rollback: không áp dụng (QA không đổi code).
-- **Decision and next step:** `qa-pass-with-follow-up` (đề xuất). Bước tiếp theo: Release Manager chấp thuận S3, G3b/G3c chạy lại, Owner ghi nhận báo cáo này.
+- **Decision and next step:** `qa-pass-with-follow-up` tại `2ab03cd`; nâng lên **`qa-pass`** tại `d51c65b` (xem phụ lục R2.1 bên dưới). Bước tiếp theo: Owner ghi nhận báo cáo này.
 - **Notes:** QA chỉ ghi duy nhất file này vào checkout dùng chung, không commit, không push.
+
+---
+
+## Phụ lục R2.1 — Tái kiểm chứng hậu sửa lỗi tại `d51c65bc10f91ed7cd23462bdef901f5a81d5acc` (2026-11-06T05:33Z)
+
+- **Target bất biến:** `d51c65bc10f91ed7cd23462bdef901f5a81d5acc` (`db0058c..d51c65b` trên nhánh `m3-web-app`).
+- **Lệnh kiểm tra đã chạy:**
+  - `npm run check` → exit `0` (`lint` pass, `typecheck` pass, `node:test` **101/101**, Vitest **60/60** trên 7 file, `fixtures:run` **6/6**, `dataset check` OK).
+  - `npm run test:e2e` → exit `0` (Playwright Chromium **17/17** trên cổng mặc định `4380`, 41,7s).
+  - `E2E_WEBKIT=1 npx --prefix apps/web playwright test -c apps/web/playwright.config.ts --project=webkit -g "REV-M3-002" --repeat-each=3` → exit `0` (**3/3** pass, 22,4s).
+- **Trạng thái các finding sau tái kiểm chứng độc lập:**
+  - `QA-M3-101` (S3): **`verified-fixed`** — `SectionCard.tsx:30-37,86` đồng bộ `group` theo `pickedGroup` và chỉ nhận `selectedGroup` khi thuộc `groupOptions(section)`; thêm test trong `App.test.tsx:112-140`.
+  - `QA-M3-102` (S3): **`verified-fixed`** — `ensureServiceWorkerAfterWipe()` (`sw-client.ts:56-74`) + `REPOPULATE_PRECACHE` (`vite.config.ts:118-120`) được gọi từ `persistPlan` (`controller.ts:118`); kiểm chứng qua E2E `REV-M3-002` trên cả Chromium và WebKit.
+  - `QA-M3-103` (S3): **`verified-fixed`** — `playwright.config.ts:3` dùng `Number(process.env.E2E_PORT ?? 4380)`.
+  - `QA-M3-104` (S3): **`verified-fixed`** — `m3.spec.ts:258-266` bỏ `await page.reload()` thừa trước khi tạo phương án sau wipe và `playwright.config.ts:30` thêm project `webkit` tùy chọn (`E2E_WEBKIT=1`).
+  - `QA-M3-105 = REV-M3-102 = SEC-M3-102` (S2/S3): **`verified-fixed`** — `infoColumns` đưa vào `formatFingerprint`, bảng `Extra (info) columns` trong báo cáo import, bắt buộc Data Reviewer truyền `--accept-new-format` khi `validate`.
+  - `#19` (`REV-M3-008`, S3): **`verified-fixed`** — đã bổ sung unit/component test cho cảnh báo chuyển cơ sở trong ngày (`model.test.ts:42-53`, `App.test.tsx:142-162`) và mở rộng E2E bàn phím tới bước tải `.ics` (`m3.spec.ts:161-170`).
+- **Quyết định G3a cập nhật tại `d51c65b`:** **`qa-pass`** (đề xuất của agent Tester; 0 S0/S1/S2/S3 mở trong phạm vi QA/Frontend).

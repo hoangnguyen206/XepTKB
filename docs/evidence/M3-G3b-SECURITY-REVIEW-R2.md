@@ -4,10 +4,10 @@
 > **Trạng thái/Status:** `needs_review`. Đây là báo cáo do agent viết, cần người xác nhận.
 > **Canonical gate:** `G3b` (implementation verification), lần chạy lại thứ 2
 > **Owner:** Security Reviewer (agent role)
-> **Last reviewed:** 2026-11-05
+> **Last reviewed:** 2026-11-06 (kèm phụ lục hậu kiểm R2.1 tại `d51c65b`)
 > **Related docs:** [Security & privacy](../SECURITY_PRIVACY.md), [M0 G1 threat/data-flow](M0-G1-threat-data-flow.md), [G3b R1](M3-G3b-SECURITY-REVIEW.md), [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md), [IMPL-M3-001](M3-IMPLEMENTATION-HANDOFF.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0011](../adr/ADR-0011-timetable-format-variability.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [Operations §1](../OPERATIONS.md), [Data ingestion runbook §12](../DATA_INGESTION_RUNBOOK.md), [C-09 review](C09-REGISTRATION-SAMPLE-REVIEW.md), [Audit M0–M2](M0-M2-AUDIT-2026-10-25.md)
 > **Evidence envelope:** mục [Evidence Envelope](#evidence-envelope) bên dưới. Ledger tổng là [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md).
-> **Decision actor / UTC timestamp:** Claude subagent đóng vai Security Reviewer, **không phải sign-off của người**. quyết định ghi lúc 2026-11-05T17:17Z (2026-11-06 00:17 Asia/Ho_Chi_Minh)
+> **Decision actor / UTC timestamp:** Claude subagent đóng vai Security Reviewer, **không phải sign-off của người**. quyết định R2 ghi lúc 2026-11-05T17:17Z; phụ lục hậu kiểm R2.1 tại `d51c65b` ghi lúc 2026-11-06T05:39Z
 > **Receiving owner / acknowledgement:** cần người xác nhận gồm Release Manager (exception), Tech Lead (ADR-0012 control), Data Parser và Data Reviewer (SEC-M3-102/103), Frontend (SEC-M3-001/006). Hiện **chưa ai xác nhận**.
 
 **Lưu ý.** Báo cáo này do một agent viết khi đóng vai Security Reviewer, không phải Security Reviewer là người. Người trong vai đó cần đọc và xác nhận (acknowledge) quyết định bên dưới. Exception nào đề xuất ở đây cũng chưa có hiệu lực cho tới khi Release Manager chấp thuận.
@@ -189,5 +189,21 @@ Exception R1 (SEC-M3-001…007) **hết hạn ngày 2026-11-08** và **chưa t�
   - workbook probe do script tự sinh, file nằm ngoài repo và đã xóa cùng worktree;
   - không có file thật.
 - **Evidence:** các bảng Re-verification, Findings và Commands ở trên. Script và log nằm trong scratchpad của agent, không commit.
-- **Risk:** 1 S2 + 7 S3 mở; exception đề xuất A–D đang chờ duyệt; rollback như EVID-M3-001; monitoring `N/A`, chưa có production.
-- **Decision:** `security-pass-with-exception` (M3 code); `security-no-go` cho G4b dữ liệu thật tới khi SEC-M3-102 được xử lý.
+- **Risk:** tại `2ab03cd` có 1 S2 + 7 S3 mở; sau phụ lục R2.1 tại `d51c65b` còn **0 S0, 0 S1, 0 S2** và chỉ còn 3 mục S3 phần dư nhẹ ở mức CI/cấu hình dài hạn (`SEC-M3-101(e)`, `SEC-M3-003(b/d)`, `SEC-M3-005` AST lint cho M4).
+- **Decision:** `security-pass-with-exception` tại `d51c65b`; **đã gỡ bỏ `security-no-go` cho G4b dữ liệu thật** sau khi `SEC-M3-102` (S2) và `SEC-M3-103` (`AUD-010`) được xác nhận `verified-fixed` (xem phụ lục R2.1 bên dưới).
+
+---
+
+## Phụ lục R2.1 — Hậu kiểm hẹp tại `d51c65bc10f91ed7cd23462bdef901f5a81d5acc` (2026-11-06T05:39Z)
+
+- **Target bất biến:** `d51c65bc10f91ed7cd23462bdef901f5a81d5acc` (`db0058c..d51c65b` trên nhánh `m3-web-app`).
+- **Kết quả hậu kiểm độc lập theo từng finding:**
+  - **`SEC-M3-102` (S2):** **`verified-fixed`** — `ooxml.ts` bỏ qua sheet `hidden`/`veryHidden`, cột ẩn `<col hidden="1">` và dòng ẩn `<row hidden="1">` (kể cả trong `fillMergedCells`); `uet-config.ts` chặn tiêu đề PII (`FORBIDDEN_HEADER_PATTERNS`) bằng lỗi `UNSUPPORTED_INPUT` và loại khỏi `info`; `uet-xlsx-adapter.ts` đưa `infoColumns` vào `formatFingerprint` (`status: "hold"` + `FORMAT_UNRECOGNIZED` khi có cột lạ); `dataset.mjs` + `dataset-core.mjs` in bảng `Extra (info) columns` và bắt buộc Data Reviewer truyền `--accept-new-format "<reason>"` khi `validate`. **Không còn cần exception `EXC-SEC-M3-R2-A`; gỡ bỏ trạng thái `security-no-go` cho G4b.**
+  - **`SEC-M3-103` / `AUD-010` (S3 / S2):** **`verified-fixed`** — `ooxml.ts` áp giới hạn `MAX_COL_INDEX = 16383`, `MAX_ROW_NUMBER = 100000`, `MAX_MERGED_CELLS = 200000`. Cả 5 mẫu C13 (`mergeCell A2:XFD1048576`, `<c r="FXSHRXW2">`, `mergeCell A2:Z200000`, `<row r="4000000000">`, `mergeCell A2:Z10000`) đều fail-closed với `MALFORMED_INPUT` trong **1,1–5,5 ms** (so với crash OOM 5s và 47,7s CPU ở `2ab03cd`).
+  - **`SEC-M3-104` (S3):** **`verified-fixed`** — `sanitizeCliText` chặn newline/control chars trong mọi cờ tự do của CLI; `dataset check` và `site-data.mjs` kiểm `isSafeRelativePath`, chặn symlink và chỉ chép các file được manifest tham chiếu.
+  - **`SEC-M3-001` (S3):** **`verified-fixed`** — `loader.ts:173-176` quét toàn bộ `cache.all()` ngay khi tải manifest thành công và xóa mọi bản lưu có `datasetVersion` đã `retracted` ở cả kỳ không active (`loader.test.ts:74-101`).
+  - **`SEC-M3-006a` (S3):** **`verified-fixed`** — `wipeGeneration` trong `controller.ts` truyền xuống `Footer` (`Chrome.tsx:84`) remount `BackupList` ở cả tab nhận thông điệp `wiped` qua `BroadcastChannel`.
+  - **`SEC-M3-101` (S3):** **`partially-fixed`** (đã đóng (a)(b)(c)(d): `normalizeActor`, fail-closed khi thiếu `importer` trong `audit.jsonl`, kiểm actor khi `publish`, và `verifyAuditTrail` trong `dataset check`; chỉ còn mục (e) mức quy trình/CI đối chiếu `git diff` nhánh base để chặn việc vừa sửa file `timetable.json` đã `published` vừa sửa lại hash trong cùng một PR — giảm thiểu bằng review PR trên `data/` ở G4b).
+  - **`SEC-M3-003` (S3):** **`partially-fixed`** (đã đóng (a)(c): `vite.config.ts` ép `NODE_ENV=production` và `VITE_ALLOW_UNPUBLISHED="false"` trên nhánh `main`, `controller.ts` kiểm `VITE_ALLOW_UNPUBLISHED !== "false"`, và `site-data.mjs` lọc bỏ `candidate`/`validated` khỏi bản build production; còn mục (b)(d) giữ trong checklist G4a: `grep allowUnpublished:!1` trên bundle release).
+  - **`SEC-M3-005` (S3):** **`partially-fixed`** (đã sửa lỗi `stripComments` xóa nhầm code sau chuỗi có `//` hoặc `/*` và mở rộng quét `.js`/`.jsx`/`.cjs`; việc nâng lên AST lint bằng ESLint giữ đúng lộ trình trước khi M4 vào G3b).
+- **Quyết định G3b cập nhật tại `d51c65b`:** **`security-pass-with-exception`** cho cả code M3 và đường nạp dữ liệu G4b (0 S0/S1/S2; chỉ còn 3 mục S3 phần dư nhẹ cho checklist G4a/G4b và M4).
