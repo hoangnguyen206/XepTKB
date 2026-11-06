@@ -63,4 +63,4 @@ ADR-0007 chose a local CLI and static artifacts, and planned the push to a CDN (
 
 - `scripts/test/dataset-core.test.mjs`: version naming (Vietnam date), week-1 Monday validation, diff by what students see, status transitions and the two-person rule.
 - Dry run on 2026-10-31 with the real HK I 2026–27 file: 1077 sections, 1467 sessions, report generated; refusals checked (importer as reviewer, publish of a candidate, duplicate file). The dataset passed `published.test.ts` and an end-to-end Chromium run (load 215 ms, search 15 ms). The dry run was then removed.
-- G4b drill still to do: import → preview review → validate → publish → retract → publish again, with times recorded.
+- **G4b drill completed on 2026-11-06 (`DRILL-M3-G4b-001`):** full end-to-end `test:real → import (v1) → preview build/Chromium review → validate → publish → production build/Chromium review → import/publish v2 (diff) → retract v2 & v1 → restore v1 → publish v1 → dataset check` executed on `main` @ `4915a86` in 16.77 s total wall-clock time (CLI steps 75–835 ms each); see [M3-G4b-DRILL-REPORT.md](../evidence/M3-G4b-DRILL-REPORT.md).

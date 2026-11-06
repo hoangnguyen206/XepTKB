@@ -22,7 +22,7 @@ if (lstatSync(manifestPath).isSymbolicLink()) fail("symlink not allowed at data/
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 const isProductionOnly =
   process.env.VITE_ALLOW_UNPUBLISHED === "false"
-  || (process.env.CF_PAGES === "1" && (process.env.CF_PAGES_BRANCH === "main" || !process.env.CF_PAGES_BRANCH));
+  || process.env.CF_PAGES_BRANCH === "main" || (process.env.CF_PAGES === "1" && !process.env.CF_PAGES_BRANCH);
 
 // SEC-M3-003(c) / SEC-M3-104(c): only copy verified, non-symlinked files referenced by the manifest;
 // on production builds, strip candidate/validated entries and their artifacts so unpublished data is never served.
