@@ -32,7 +32,7 @@
 - Branch: `m4-registration-ui` (branched from `main` @ `3c34c89`).
 - Toolchain versions: Node `22.22.2`, npm `12.0.2`, TypeScript `5.9.3`, Vite `8.3.4`, Vitest `5.0.3`, Playwright `1.64.0`.
 - Exact commands + exit codes (2026-11-06):
-  - `npm run check` → exit `0` (`lint` passed, `typecheck` passed, `node:test` `102/102`, `vitest` `65/65`, `fixtures:run` `6/6`, `node scripts/dataset.mjs check` `0 datasets`).
+  - `npm run check` → exit `0` (`lint` passed, `typecheck` passed, `node:test` `102/102`, `vitest` `68/68`, `fixtures:run` `6/6`, `node scripts/dataset.mjs check` `0 datasets`).
   - `npm run test:e2e` → exit `0` (Playwright Chromium `19/19` passed).
 
 ## Data and artefact integrity
@@ -40,7 +40,7 @@
 - Fixture manifest: [`fixtures/manifest.json`](../../fixtures/manifest.json)
   - `registration-portal-format-redacted` (`fixtures/redacted-registration/portal-format.doc`): sha256 `4937d9964e2c64112e58b8bf753c5966a55f3982dfdb4cf0f46b7d484d959fb4`
   - `registration-local-synthetic` (`fixtures/synthetic/registration-local.html`): sha256 `357da7470b18dd26386c16bdcc5537c213fd9e3b875645e29cb5b19b2651f8c3`
-- Dataset/schema/parser version: domain schema `0.2.0`, Plan storage envelope `1.0.0`, registration parser `vnu-registration-html@0.1.0`.
+- Dataset/schema/parser version: domain schema `0.2.0`, Plan storage envelope `0.2.0`, registration parser `vnu-registration-html@0.2.0`.
 - Compatibility/migration note: Backward-compatible with all M3 IndexedDB `draft` Plans and `Settings`.
 
 ## Evidence links and results

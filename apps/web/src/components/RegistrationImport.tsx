@@ -77,6 +77,7 @@ export function RegistrationImportPanel(props: {
       setPreview(result);
     } catch {
       inputEl.value = "";
+      setPreview(undefined);
       setReadingError("Không đọc được file đã chọn. Hãy thử lại.");
     }
   };

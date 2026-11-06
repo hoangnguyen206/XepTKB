@@ -20,7 +20,13 @@ const PICK_ISSUE_TEXT: Record<string, string> = {
 export function StalePlanNotice(props: { plan: Plan; catalog: AppCatalog; onRebase: () => void }) {
   const [confirming, setConfirming] = useState(false);
   const preview = confirming ? rebasePreview(props.plan, props.catalog) : undefined;
-  const unchanged = preview !== undefined && preview.removed.length === 0 && preview.groupCleared.length === 0 && preview.needsGroup.length === 0;
+  const droppedOverrides = preview?.droppedOverrides ?? [];
+  const unchanged =
+    preview !== undefined &&
+    preview.removed.length === 0 &&
+    preview.groupCleared.length === 0 &&
+    preview.needsGroup.length === 0 &&
+    droppedOverrides.length === 0;
   return (
     <Notice
       tone="warning"
@@ -34,6 +40,11 @@ export function StalePlanNotice(props: { plan: Plan; catalog: AppCatalog; onReba
           {preview.removed.length > 0 ? <p>Các lớp không còn trong dữ liệu mới sẽ bị bỏ khỏi phương án: {preview.removed.join(", ")}.</p> : null}
           {preview.groupCleared.length > 0 ? <p>Nhóm đã chọn không còn trong dữ liệu mới, sẽ bỏ nhóm của: {preview.groupCleared.join(", ")}.</p> : null}
           {preview.needsGroup.length > 0 ? <p className="field-error">Sau khi cập nhật cần chọn lại nhóm cho: {preview.needsGroup.join(", ")}.</p> : null}
+          {droppedOverrides.length > 0 ? (
+            <p className="field-error">
+              Thay đổi phòng/giờ từ ĐKMH của các lớp sau không còn khớp cấu trúc buổi học mới và sẽ bị bỏ (hãy nhập lại file ĐKMH nếu cần): {droppedOverrides.join(", ")}.
+            </p>
+          ) : null}
           <div className="actions">
             <button type="button" className="button primary" onClick={props.onRebase}>Xác nhận cập nhật</button>
             <button type="button" className="button secondary" onClick={() => setConfirming(false)}>Hủy</button>

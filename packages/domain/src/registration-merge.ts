@@ -223,6 +223,36 @@ function applyExistingOverrides(session: Session, sectionId: string, overrides: 
   return { session: next, issues };
 }
 
+/**
+ * Resolves the target session of a set of overrides within `section`.
+ * Prefers an exact `session.id === targetSessionId` match; when a newer timetable version shifted
+ * the `.xlsx` `sourceRow` inside `session.id` (`${sectionId}:${sourceRow}:${start}-${end}`), falls
+ * back to the unique session whose fields match the overrides' `from` (or `to`) values and period suffix (`REV-M4-001`).
+ */
+export function findOverrideTargetSession(
+  section: Section,
+  targetSessionId: string,
+  sessionOverrides: readonly Override[],
+): Session | undefined {
+  const exact = section.sessions.find((session) => session.id === targetSessionId);
+  if (exact) return exact;
+  if (sessionOverrides.length === 0) return undefined;
+  const periodMatch = /:(\d+)-(\d+)$/.exec(targetSessionId);
+  const suffixStart = periodMatch ? Number(periodMatch[1]) : undefined;
+  const suffixEnd = periodMatch ? Number(periodMatch[2]) : undefined;
+  const hasPeriodsOverride = sessionOverrides.some((ov) => ov.field === "periods");
+  const candidates = section.sessions.filter((session) => {
+    if (!hasPeriodsOverride && suffixStart !== undefined && suffixEnd !== undefined) {
+      if (!("startPeriod" in session) || session.startPeriod !== suffixStart || session.endPeriod !== suffixEnd) return false;
+    }
+    return sessionOverrides.every((ov) => {
+      const current = JSON.stringify(sessionFieldValue(session, ov.field));
+      return current === JSON.stringify(ov.from) || current === JSON.stringify(ov.to);
+    });
+  });
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
+
 /** Applies targeted Plan overrides (`registration < admin-correction < user`) to a single catalog section. */
 export function applySectionOverrides(
   section: Section,
@@ -235,10 +265,29 @@ export function applySectionOverrides(
   const targetSectionId = canonicalSectionId(section.id, aliases);
   const relevant = overrides.filter((override) => canonicalSectionId(override.target.sectionId, aliases) === targetSectionId);
   if (relevant.length === 0) return { section, issues: [] };
+  const byOldSession = new Map<string, Override[]>();
+  for (const override of relevant) {
+    const bucket = byOldSession.get(override.target.sessionId) ?? [];
+    bucket.push(override);
+    byOldSession.set(override.target.sessionId, bucket);
+  }
+  const normalizedRelevant: Override[] = [];
+  for (const [oldSessionId, group] of byOldSession) {
+    const matchedSession = findOverrideTargetSession(section, oldSessionId, group);
+    if (!matchedSession) continue;
+    for (const override of group) {
+      normalizedRelevant.push(
+        matchedSession.id === override.target.sessionId
+          ? override
+          : { ...override, target: { ...override.target, sessionId: matchedSession.id } },
+      );
+    }
+  }
+  if (normalizedRelevant.length === 0) return { section, issues: [] };
   const issues: DomainIssue[] = [];
   const sessions = section.sessions.map((session) => {
     const maxWeek = Math.max(teachingWeeks, ...session.weeks, 30);
-    const applied = applyExistingOverrides(session, section.id, relevant, maxWeek, maxPeriodFor(session, catalog));
+    const applied = applyExistingOverrides(session, section.id, normalizedRelevant, maxWeek, maxPeriodFor(session, catalog));
     issues.push(...applied.issues);
     return applied.session;
   });

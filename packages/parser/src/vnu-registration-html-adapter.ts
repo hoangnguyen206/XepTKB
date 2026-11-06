@@ -138,6 +138,8 @@ function pairSlots(days: DayNo[], ranges: PeriodRange[]): Slot[] | undefined {
 }
 
 const ROOM_TOKEN = /^\d{3}-[A-ZĐ][A-ZĐ0-9]*$/u;
+const MAX_ROOM_TEXT_LENGTH = 128;
+const REQUIRED_COLUMNS = ["courseCode", "sectionId", "day", "periodText", "room"] as const;
 
 /**
  * Rooms of a multi-slot row are concatenated with no separator (`301-B306-B`). A row is split only
@@ -146,6 +148,7 @@ const ROOM_TOKEN = /^\d{3}-[A-ZĐ][A-ZĐ0-9]*$/u;
 function splitRooms(value: string | undefined, count: number): (string | undefined)[] | undefined {
   const room = normalizeRoom(value);
   if (count <= 1 || room === undefined || ROOM_TOKEN.test(room)) return Array.from({ length: count }, () => room);
+  if (room.length > MAX_ROOM_TEXT_LENGTH) return undefined;
   const separated = room.split(/[\s,;|]+/).filter(Boolean);
   if (separated.length === count && separated.every((token) => ROOM_TOKEN.test(token))) return separated;
   const found: string[][] = [];
@@ -276,7 +279,12 @@ export const vnuRegistrationHtmlAdapter: ParserAdapter = {
       issues.push(issue("MALFORMED_INPUT", "error", "registration HTML could not be parsed safely"));
       return finish([]);
     }
-    const table = tables.map(splitRows).find((candidate) => candidate !== undefined);
+    const candidates = tables.map(splitRows).filter((candidate): candidate is { headers: string[]; rows: string[][] } => candidate !== undefined);
+    const table =
+      candidates.find((candidate) => {
+        const present = new Set(candidate.headers.map(mapHeader).filter((col): col is string => col !== undefined));
+        return REQUIRED_COLUMNS.every((required) => present.has(required));
+      }) ?? candidates[0];
     if (!table) {
       issues.push(issue("MISSING_REQUIRED_COLUMN", "error", "registration table has no recognized schedule header"));
       return finish([]);
@@ -286,7 +294,7 @@ export const vnuRegistrationHtmlAdapter: ParserAdapter = {
       const canonical = mapHeader(table.headers[index]!);
       if (canonical && !columns.has(canonical)) columns.set(canonical, index);
     }
-    for (const required of ["courseCode", "sectionId", "day", "periodText", "room"]) {
+    for (const required of REQUIRED_COLUMNS) {
       if (!columns.has(required)) issues.push(issue("MISSING_REQUIRED_COLUMN", "error", `registration column ${required} is missing`, { field: required }));
     }
     if (issues.some((item) => item.severity === "error")) return finish([]);

@@ -25,7 +25,7 @@
     - `lint`: foundation and web boundary checks passed (including M4 rules forbidding `@ky-nay/parser` root imports and `node:*` imports in `apps/web/src`).
     - `typecheck`: all packages + `apps/web` (`tsconfig.json`, `tsconfig.test.json`, `tsconfig.node.json`) exit `0`.
     - `node:test`: `102/102` passed.
-    - `vitest`: `65/65` passed across 8 test files (including `apps/web/src/m4-registration.test.tsx`).
+    - `vitest`: `68/68` passed across 8 test files (including `apps/web/src/m4-registration.test.tsx` and `apps/web/src/export/png.test.ts`).
     - `fixtures:run`: `6/6` passed (`registration-portal-format-redacted`, `registration-local-synthetic`, `smoke-minimal`, `adversarial-invalid`, `uet-hk1-row1`, `uet-hk2-row4`).
     - `node scripts/dataset.mjs check`: `data/published OK — 0 datasets (0 published)`.
   - `npm run test:e2e` → exit `0`: Playwright Chromium **19/19 passed** (`e2e/m3.spec.ts` 13/13, `e2e/m4.spec.ts` 2/2, `e2e/qa-m3.spec.ts` 4/4).
@@ -53,7 +53,7 @@
 ## Data and integrity
 
 - Fixture manifest + hash: [`fixtures/manifest.json`](../../fixtures/manifest.json), including `registration-portal-format-redacted` (`fixtures/redacted-registration/portal-format.doc`, sha256 `4937d9964e2c64112e58b8bf753c5966a55f3982dfdb4cf0f46b7d484d959fb4`) and `registration-local-synthetic` (`fixtures/synthetic/registration-local.html`, sha256 `357da7470b18dd26386c16bdcc5537c213fd9e3b875645e29cb5b19b2651f8c3`).
-- Domain schema version: `0.2.0` (unchanged). Plan storage envelope: `1.0.0` (unchanged).
+- Domain schema version: `0.2.0` (unchanged). Plan storage envelope: `0.2.0` (unchanged). Registration parser version: `vnu-registration-html@0.2.0`.
 - New data fields/boundary: Browser `File` input (`localOnly: true`) is parsed in memory by `vnuRegistrationHtmlAdapter` and discarded immediately after preview construction (`input.value = ""`); only PII-free `Plan` (`planKind: "final"`, `id: "${draftPlan.id}:final"`) and PII-free `RegistrationNoteSummary` (`unmatchedSectionIds`, `issueSummaries`) are persisted in IndexedDB upon explicit user confirmation.
 
 ## Acceptance mapping

@@ -8,7 +8,7 @@ import { createPlan, type Plan } from "@ky-nay/domain";
 import { MAX_REGISTRATION_BYTES } from "@ky-nay/parser/registration";
 import { App } from "./App.js";
 import { buildAppCatalog } from "./model/catalog.js";
-import { buildPlanView, rebasePlan } from "./model/plan-view.js";
+import { buildPlanView, rebasePlan, rebasePreview } from "./model/plan-view.js";
 import { buildRegistrationPreview, checkRegistrationBytes } from "./model/registration.js";
 import { openDb, idbEntries } from "./storage/db.js";
 import { serveDataset, stubFetch, testMetadata, testTimetable, VERSION } from "./test/fixture.js";
@@ -198,10 +198,91 @@ describe("registration byte guards and preview model (AC-M4-01, AC-M4-02, AC-M4-
     const rebased = rebasePlan(preview.plan!, nextCatalog, "2026-10-27T00:00:00.000Z");
     expect(rebased.overrides.filter((ov) => ov.field === "room")).toHaveLength(0);
   });
+
+  it("retains overrides when a newer timetable shifts .xlsx sourceRow in session.id, and warns when overrides are dropped (REV-M4-001)", () => {
+    const html = buildPortalHtml([
+      { courseCode: "SYN1003", courseName: "Vật lý đại cương", credits: "3", sectionId: "SYN1003 1", day: "T2", periods: "1 - 3", room: "305-G2" },
+    ]);
+    const preview = buildRegistrationPreview({
+      bytes: new TextEncoder().encode(html),
+      catalog,
+      draftPlan,
+    });
+    const finalPlanWithOldId: Plan = {
+      ...preview.plan!,
+      overrides: preview.plan!.overrides.map((ov) => ({
+        ...ov,
+        target: { ...ov.target, sessionId: "SYN1003 1:10:1-3" },
+      })),
+    };
+    const shiftedTimetable = testTimetable("v2");
+    const syn1003 = shiftedTimetable.sections.find((s) => s.id === "SYN1003 1")!;
+    syn1003.sessions[0] = { ...syn1003.sessions[0]!, id: "SYN1003 1:25:1-3" };
+    const shiftedCatalog = buildAppCatalog({
+      entry: serveDataset({ version: "v2" }).entry,
+      timetable: shiftedTimetable,
+      metadata: testMetadata("v2"),
+      cachedAt: "2026-10-27T00:00:00.000Z",
+    });
+
+    // Even before rebase, buildPlanView resolves the override against the shifted session.id
+    expect(buildPlanView(finalPlanWithOldId, shiftedCatalog).sessions[0]?.room).toBe("305-G2");
+
+    // rebasePreview shows no droppedOverrides and rebasePlan rebinds target.sessionId to the new session.id
+    expect(rebasePreview(finalPlanWithOldId, shiftedCatalog)).toEqual({ removed: [], groupCleared: [], needsGroup: [] });
+    const rebased = rebasePlan(finalPlanWithOldId, shiftedCatalog, "2026-10-27T00:00:00.000Z");
+    expect(rebased.overrides.every((ov) => ov.target.sessionId === "SYN1003 1:25:1-3")).toBe(true);
+
+    // If the new timetable changes the session's periods incompatibly (e.g. 7-9), rebasePreview warns via droppedOverrides
+    const incompatibleTimetable = testTimetable("v3");
+    const syn1003Incompatible = incompatibleTimetable.sections.find((s) => s.id === "SYN1003 1")!;
+    const baseIncompatible = syn1003Incompatible.sessions[0]!;
+    if ("startPeriod" in baseIncompatible) {
+      syn1003Incompatible.sessions[0] = { ...baseIncompatible, id: "SYN1003 1:99:7-9", startPeriod: 7, endPeriod: 9, room: "999-G2" };
+    }
+    const incompatibleCatalog = buildAppCatalog({
+      entry: serveDataset({ version: "v3" }).entry,
+      timetable: incompatibleTimetable,
+      metadata: testMetadata("v3"),
+      cachedAt: "2026-10-28T00:00:00.000Z",
+    });
+    expect(rebasePreview(finalPlanWithOldId, incompatibleCatalog).droppedOverrides).toEqual(["SYN1003 1"]);
+  });
+
+  it("skips preamble tables containing synonym words and bounds room-splitting length (SEC-M4-001)", () => {
+    const htmlWithPreambleSynonym = `<!DOCTYPE html><html><body>
+      <table><tr><td>Họ và tên</td><td>Nguyễn Văn A</td><td>Ngày</td><td>01/01/2005</td><td>Mã lớp</td><td>QH-2023</td></tr></table>
+      <table>
+        <tr><th>Mã môn học</th><th>Lớp môn học</th><th>Thứ</th><th>Tiết</th><th>Giảng đường</th></tr>
+        <tr><td>SYN1003</td><td>SYN1003 1</td><td>T2</td><td>1 - 3</td><td>305-G2</td></tr>
+      </table>
+    </body></html>`;
+    const preview = buildRegistrationPreview({
+      bytes: new TextEncoder().encode(htmlWithPreambleSynonym),
+      catalog,
+      draftPlan,
+    });
+    expect(preview.ok).toBe(true);
+    expect(preview.plan?.picks).toEqual([{ sectionId: "SYN1003 1" }]);
+
+    // Adversarial long room string (> 128 chars) on a multi-slot row completes in < 100 ms without backtracking
+    const longRoom = "301-B".repeat(500);
+    const startMs = performance.now();
+    const longPreview = buildRegistrationPreview({
+      bytes: new TextEncoder().encode(
+        buildPortalHtml([{ courseCode: "SYN1001", courseName: "Giải tích 1", credits: "4", sectionId: "SYN1001 1", day: "T2,T5", periods: "1 - 3,7 - 9", room: longRoom }]),
+      ),
+      catalog,
+      draftPlan,
+    });
+    expect(performance.now() - startMs).toBeLessThan(200);
+    expect(longPreview.ok).toBe(true);
+  });
 });
 
 describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import, delete & zero PII (AC-M4-02..07)", () => {
-  it("supports preview cancel, confirm into final slot, group resolution, slot switching, and zero PII in DOM/IndexedDB", async () => {
+  it("supports preview cancel, confirm into final slot, group resolution, re-import, slot switching, in-app nudge, and zero PII in DOM/IndexedDB", async () => {
+    const uaSpy = vi.spyOn(window.navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 Zalo/24.0");
     const user = userEvent.setup();
     render(<App />);
     await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
@@ -216,9 +297,10 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     await user.click(within(screen.getByRole("article", { name: "Lớp SYN4001 1" })).getByRole("button", { name: "Chọn lớp này" }));
     expect(await screen.findByRole("button", { name: "Phương án nháp (1)" })).toBeTruthy();
 
-    // Open Registration Import panel
+    // Open Registration Import panel and verify in-app browser banner (Q-007 / REV-M4-003)
     await user.click(screen.getByRole("button", { name: "Nhập kết quả ĐKMH" }));
     expect(await screen.findByRole("heading", { name: "Nhập kết quả đăng ký môn học (ĐKMH)" })).toBeTruthy();
+    expect(screen.getAllByText(/trình duyệt trong ứng dụng/i).length).toBeGreaterThan(0);
 
     const html = buildPortalHtml([
       // SYN1001 1 with only T2 1-3 -> requires group selection after import
@@ -260,10 +342,25 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     // Overrides remain intact after selecting group
     expect(within(planPanel).getByText(/Phòng học: Hòa Lạc A101 → 305-G2 \(theo ĐKMH\)/)).toBeTruthy();
 
-    // Check Day tab shows override badge and detail
+    // 3. Re-import via "Cập nhật từ file ĐKMH" (REV-M4-003): replaces old room override 305-G2 with 409-G2
+    await user.click(screen.getByRole("button", { name: "Cập nhật từ file ĐKMH" }));
+    const htmlUpdated = buildPortalHtml([
+      { courseCode: "SYN1003", courseName: "Vật lý đại cương", credits: "3", sectionId: "SYN1003 1", day: "T2", periods: "1 - 3", room: "409-G2" },
+    ]);
+    await user.upload(
+      screen.getByLabelText(/Chọn file Kết quả đăng ký môn học/),
+      new File([htmlUpdated], "23029876_secret_ketqua.doc", { type: "application/msword" }),
+    );
+    await user.click(await screen.findByRole("button", { name: "Xác nhận cập nhật Phương án chính thức" }));
+    expect(await screen.findByRole("button", { name: "Phương án chính thức (1)" })).toBeTruthy();
+
+    // Check Day tab ("Tất cả các tuần") shows updated override badge and detail (409-G2, not 305-G2)
     await user.click(screen.getByRole("tab", { name: "Ngày" }));
     const dayPanel = await screen.findByRole("tabpanel");
+    await user.selectOptions(within(dayPanel).getByLabelText("Chọn tuần"), "all");
     expect(within(dayPanel).getAllByText("Đã đổi phòng").length).toBeGreaterThan(0);
+    expect(within(dayPanel).getByText(/Phòng học: Hòa Lạc A101 → 409-G2 \(theo ĐKMH\)/)).toBeTruthy();
+    expect(within(dayPanel).queryByText(/305-G2/)).toBeNull();
 
     // Switch back to Phương án nháp -> SYN4001 1 is still preserved
     await user.click(screen.getByRole("button", { name: "Phương án nháp (1)" }));
@@ -287,11 +384,12 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     db.close();
 
     // Switch back to Phương án chính thức and delete it -> returns to Phương án nháp
-    await user.click(screen.getByRole("button", { name: "Phương án chính thức (2)" }));
+    await user.click(screen.getByRole("button", { name: "Phương án chính thức (1)" }));
     await user.click(screen.getByRole("tab", { name: /^Phương án/ }));
     await user.click(screen.getByRole("button", { name: "Xóa phương án chính thức" }));
     await user.click(screen.getByRole("button", { name: "Xác nhận xóa phương án chính thức" }));
     expect(await screen.findByRole("heading", { name: "Phương án nháp" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Phương án chính thức/ })).toBeNull();
+    uaSpy.mockRestore();
   });
 });

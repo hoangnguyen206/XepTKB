@@ -3,6 +3,7 @@ import {
   calculatePlanCredits,
   canonicalSectionId,
   findConflicts,
+  findOverrideTargetSession,
   normalizeGroup,
   resolvePlanPicks,
   resolvePlanWeek1,
@@ -85,16 +86,50 @@ function invalidGroupPicks(plan: Plan, catalog: AppCatalog): Set<string> {
   return new Set(invalid.map((issue) => canonicalSectionId(issue.sectionId!)));
 }
 
-export type RebasePreview = { removed: string[]; groupCleared: string[]; needsGroup: string[] };
+export type RebasePreview = { removed: string[]; groupCleared: string[]; needsGroup: string[]; droppedOverrides?: string[] };
 
-/** What a rebase will change, listed before the user confirms it (AC-M3-12). */
+function resolveOverrideTargets(overrides: readonly Override[], catalog: AppCatalog): { rebased: Override[]; droppedSections: string[] } {
+  const bySession = new Map<string, { sectionId: string; sessionId: string; items: Override[] }>();
+  for (const override of overrides) {
+    const key = `${canonicalSectionId(override.target.sectionId)}|${override.target.sessionId}`;
+    const bucket = bySession.get(key) ?? { sectionId: override.target.sectionId, sessionId: override.target.sessionId, items: [] };
+    bucket.items.push(override);
+    bySession.set(key, bucket);
+  }
+  const rebased: Override[] = [];
+  const droppedSections = new Set<string>();
+  for (const bucket of bySession.values()) {
+    const section = catalog.sectionById.get(canonicalSectionId(bucket.sectionId));
+    if (!section) continue;
+    const baseSession = findOverrideTargetSession(section, bucket.sessionId, bucket.items);
+    if (!baseSession) {
+      droppedSections.add(section.id);
+      continue;
+    }
+    for (const override of bucket.items) {
+      const currentBaseValue = sessionFieldValue(baseSession, override.field);
+      // When the newer published timetable caught up with a registration override, the override is no longer needed.
+      if (override.source === "registration" && JSON.stringify(currentBaseValue) === JSON.stringify(override.to)) continue;
+      rebased.push({
+        ...override,
+        target: { sectionId: section.id, sessionId: baseSession.id },
+        from: currentBaseValue,
+      });
+    }
+  }
+  return { rebased, droppedSections: [...droppedSections] };
+}
+
+/** What a rebase will change, listed before the user confirms it (AC-M3-12, REV-M4-001). */
 export function rebasePreview(plan: Plan, catalog: AppCatalog): RebasePreview {
   const invalid = invalidGroupPicks(plan, catalog);
+  const { droppedSections } = resolveOverrideTargets(plan.overrides, catalog);
   const rebased = resolvePlanPicks(rebasePlan(plan, catalog, plan.updatedAt), catalog.domain);
   return {
     removed: missingPicks(plan, catalog),
     groupCleared: plan.picks.filter((pick) => invalid.has(canonicalSectionId(pick.sectionId))).map((pick) => pick.sectionId),
     needsGroup: rebased.issues.filter((issue) => issue.code === "GROUP_REQUIRED" && issue.sectionId !== undefined).map((issue) => issue.sectionId!),
+    ...(droppedSections.length > 0 ? { droppedOverrides: droppedSections } : {}),
   };
 }
 
@@ -102,16 +137,7 @@ export function rebasePreview(plan: Plan, catalog: AppCatalog): RebasePreview {
 export function rebasePlan(plan: Plan, catalog: AppCatalog, now: string): Plan {
   const missing = new Set(missingPicks(plan, catalog).map((id) => canonicalSectionId(id)));
   const invalid = invalidGroupPicks(plan, catalog);
-  const rebasedOverrides: Override[] = [];
-  for (const override of plan.overrides) {
-    const section = catalog.sectionById.get(canonicalSectionId(override.target.sectionId));
-    const baseSession = section?.sessions.find((session) => session.id === override.target.sessionId);
-    if (!section || !baseSession) continue;
-    const currentBaseValue = sessionFieldValue(baseSession, override.field);
-    // When the newer published timetable caught up with a registration override, the override is no longer needed.
-    if (override.source === "registration" && JSON.stringify(currentBaseValue) === JSON.stringify(override.to)) continue;
-    rebasedOverrides.push({ ...override, from: currentBaseValue });
-  }
+  const { rebased: rebasedOverrides } = resolveOverrideTargets(plan.overrides, catalog);
   return {
     ...plan,
     datasetVersion: catalog.entry.datasetVersion,

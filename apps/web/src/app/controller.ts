@@ -171,7 +171,11 @@ export function useAppController() {
       current.status === "ready" ? { ...current, activeSlots: nextSettings.activeSlots ?? {} } : current,
     );
     const db = dbRef.current;
-    if (db) await updateSettings(db, { activeSlots: { [term]: slot } }).catch(() => undefined);
+    if (!db) return;
+    saveChainRef.current = saveChainRef.current.then(async () => {
+      await updateSettings(db, { activeSlots: { [term]: slot } }).catch(() => undefined);
+    });
+    await saveChainRef.current;
   }, []);
 
   const applyRegistrationImport = useCallback(async (finalPlan: Plan, notes: TermRegistrationNotes) => {
@@ -191,14 +195,16 @@ export function useAppController() {
           }
         : current,
     );
+    await persistPlan(finalPlan);
     const db = dbRef.current;
-    if (db) {
+    if (!db) return;
+    saveChainRef.current = saveChainRef.current.then(async () => {
       await updateSettings(db, {
         activeSlots: { [term]: "final" },
         registrationNotes: { [term]: notes },
       }).catch(() => undefined);
-    }
-    await persistPlan(finalPlan);
+    });
+    await saveChainRef.current;
   }, [persistPlan]);
 
   const removeFinalPlan = useCallback(async (planId: string, term: string) => {
