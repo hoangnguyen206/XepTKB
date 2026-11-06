@@ -16,6 +16,7 @@
   "dependencies": {
     "@ky-nay/domain": "0.0.0",
     "@ky-nay/export": "0.0.0",
+    "@ky-nay/parser": "0.0.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

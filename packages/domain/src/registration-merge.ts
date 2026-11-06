@@ -3,8 +3,8 @@
  * Registration is a field-level overlay; source Sections remain immutable.
  */
 import { domainIssue, type DomainIssue } from "./issues.js";
-import { buildCourseCodeAliases, canonicalSectionId, normalizeCourseCode, normalizeGroup, normalizeSectionId, sectionParts } from "./normalize.js";
-import { isFixedSession, type DomainCatalog, type FixedSession, type Override, type Plan, type PlanPick, type Section, type Session, type Term } from "./types.js";
+import { buildCourseCodeAliases, canonicalSectionId, normalizeCourseCode, normalizeGroup, sectionParts } from "./normalize.js";
+import { isFixedSession, type DomainCatalog, type Override, type Plan, type PlanPick, type Section, type Session, type Term } from "./types.js";
 
 export type RegistrationMatch = {
   registrationSection: Section;
@@ -28,7 +28,7 @@ export type RegistrationMergeResult = {
   issues: readonly DomainIssue[];
 };
 
-function fieldValue(session: Session, field: Override["field"]): unknown {
+export function sessionFieldValue(session: Session, field: Override["field"]): unknown {
   if (field === "periods") return isFixedSession(session) ? { startPeriod: session.startPeriod, endPeriod: session.endPeriod } : undefined;
   if (field === "lecturer") return session.lecturers;
   return session[field];
@@ -70,8 +70,8 @@ function maxPeriodFor(session: Session, catalog: DomainCatalog): number {
 }
 
 function equalField(left: Session, right: Session, field: Override["field"]): boolean {
-  const leftValue = fieldValue(left, field);
-  const rightValue = fieldValue(right, field);
+  const leftValue = sessionFieldValue(left, field);
+  const rightValue = sessionFieldValue(right, field);
   if (Array.isArray(leftValue) || Array.isArray(rightValue) || (typeof leftValue === "object" && leftValue !== null) || (typeof rightValue === "object" && rightValue !== null)) {
     return JSON.stringify(leftValue) === JSON.stringify(rightValue);
   }
@@ -173,7 +173,7 @@ function overridesForPair(base: Session, registration: Session, sectionId: strin
   for (const field of fields) {
     if (field === "weeks" && hasDefaultWeeks(nextRegistration)) continue;
     if (!hasField(nextRegistration, field) || equalField(base, nextRegistration, field)) continue;
-    const value = fieldValue(nextRegistration, field);
+    const value = sessionFieldValue(nextRegistration, field);
     const applied = applyField(merged, field, value, teachingWeeks, maxPeriod);
     if (!applied) {
       issues.push(domainIssue("INVALID_OVERRIDE_VALUE", "error", `registration value for ${field} is invalid`, { sectionId, sessionId: base.id, field }));
@@ -183,7 +183,7 @@ function overridesForPair(base: Session, registration: Session, sectionId: strin
     overrides.push({
       target: { sectionId, sessionId: base.id },
       field,
-      from: fieldValue(base, field),
+      from: sessionFieldValue(base, field),
       to: value,
       source: "registration",
       reason: normalizedRegistration.defaulted && field === "weeks" ? "ADR-0006 TH registration default" : "registration result overrides timetable field",
@@ -200,6 +200,7 @@ function applyExistingOverrides(session: Session, sectionId: string, overrides: 
   const issues: DomainIssue[] = [];
   const byField = new Map<string, Override>();
   let next = cloneSession(session);
+  let touchedByRegistration = false;
   const rank = { registration: 1, "admin-correction": 2, user: 3 } as const;
   for (const override of [...relevant].sort((a, b) => rank[a.source] - rank[b.source])) {
     const prior = byField.get(override.field);
@@ -209,10 +210,88 @@ function applyExistingOverrides(session: Session, sectionId: string, overrides: 
     }
     byField.set(override.field, override);
     const applied = applyField(next, override.field, override.to, teachingWeeks, maxPeriod);
-    if (!applied) issues.push(domainIssue("INVALID_OVERRIDE_VALUE", "error", `invalid ${override.field} override for ${sectionId}/${session.id}`, { sectionId, sessionId: session.id, field: override.field }));
-    else next = applied;
+    if (!applied) {
+      issues.push(domainIssue("INVALID_OVERRIDE_VALUE", "error", `invalid ${override.field} override for ${sectionId}/${session.id}`, { sectionId, sessionId: session.id, field: override.field }));
+    } else {
+      next = applied;
+      if (override.source === "registration") touchedByRegistration = true;
+    }
+  }
+  if (touchedByRegistration && next.source.sourceType === "timetable") {
+    next.source = { artifactId: "local-registration", sourceType: "registration" };
   }
   return { session: next, issues };
+}
+
+/**
+ * Resolves the target session of a set of overrides within `section`.
+ * Prefers an exact `session.id === targetSessionId` match; when a newer timetable version shifted
+ * the `.xlsx` `sourceRow` inside `session.id` (`${sectionId}:${sourceRow}:${start}-${end}`), falls
+ * back to the unique session whose fields match the overrides' `from` (or `to`) values and period suffix (`REV-M4-001`).
+ */
+export function findOverrideTargetSession(
+  section: Section,
+  targetSessionId: string,
+  sessionOverrides: readonly Override[],
+): Session | undefined {
+  const exact = section.sessions.find((session) => session.id === targetSessionId);
+  if (exact) return exact;
+  if (sessionOverrides.length === 0) return undefined;
+  const periodMatch = /:(\d+)-(\d+)$/.exec(targetSessionId);
+  const suffixStart = periodMatch ? Number(periodMatch[1]) : undefined;
+  const suffixEnd = periodMatch ? Number(periodMatch[2]) : undefined;
+  const hasPeriodsOverride = sessionOverrides.some((ov) => ov.field === "periods");
+  const candidates = section.sessions.filter((session) => {
+    if (!hasPeriodsOverride && suffixStart !== undefined && suffixEnd !== undefined) {
+      if (!("startPeriod" in session) || session.startPeriod !== suffixStart || session.endPeriod !== suffixEnd) return false;
+    }
+    return sessionOverrides.every((ov) => {
+      const current = JSON.stringify(sessionFieldValue(session, ov.field));
+      return current === JSON.stringify(ov.from) || current === JSON.stringify(ov.to);
+    });
+  });
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
+
+/** Applies targeted Plan overrides (`registration < admin-correction < user`) to a single catalog section. */
+export function applySectionOverrides(
+  section: Section,
+  overrides: readonly Override[],
+  catalog: DomainCatalog,
+  teachingWeeks = 30,
+): { section: Section; issues: DomainIssue[] } {
+  if (overrides.length === 0) return { section, issues: [] };
+  const aliases = buildCourseCodeAliases(catalog.courses).aliases;
+  const targetSectionId = canonicalSectionId(section.id, aliases);
+  const relevant = overrides.filter((override) => canonicalSectionId(override.target.sectionId, aliases) === targetSectionId);
+  if (relevant.length === 0) return { section, issues: [] };
+  const byOldSession = new Map<string, Override[]>();
+  for (const override of relevant) {
+    const bucket = byOldSession.get(override.target.sessionId) ?? [];
+    bucket.push(override);
+    byOldSession.set(override.target.sessionId, bucket);
+  }
+  const normalizedRelevant: Override[] = [];
+  for (const [oldSessionId, group] of byOldSession) {
+    const matchedSession = findOverrideTargetSession(section, oldSessionId, group);
+    if (!matchedSession) continue;
+    for (const override of group) {
+      normalizedRelevant.push(
+        matchedSession.id === override.target.sessionId
+          ? override
+          : { ...override, target: { ...override.target, sessionId: matchedSession.id } },
+      );
+    }
+  }
+  if (normalizedRelevant.length === 0) return { section, issues: [] };
+  const issues: DomainIssue[] = [];
+  const sessions = section.sessions.map((session) => {
+    const maxWeek = Math.max(teachingWeeks, ...session.weeks, 30);
+    const applied = applyExistingOverrides(session, section.id, normalizedRelevant, maxWeek, maxPeriodFor(session, catalog));
+    issues.push(...applied.issues);
+    return applied.session;
+  });
+  return { section: { ...section, sessions }, issues };
 }
 
 function nonClassGroups(sessions: readonly Session[]): string[] {

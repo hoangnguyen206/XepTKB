@@ -122,13 +122,18 @@ export function renderPng(input: PngInput): Promise<Blob> {
       }
     }
     // The conflict text leads the first line so even a one-period block shows it in words, not only by colour (REV-M3-010).
+    // Overridden sessions also include their override badge/detail on the room line (QA-M4-002 / REV-M4-002).
+    const overrideBadges = block.session.overrides ? [...new Set(block.session.overrides.map((item) => item.badge))] : [];
+    const overrideDetailText = block.session.overrides && block.session.overrides.length > 0 ? block.session.overrides.map((item) => item.detail).join("; ") : "";
+    const roomLineText = [block.session.room ?? "", overrideBadges.length > 0 ? `★ ${overrideBadges.join(", ")}` : ""].filter(Boolean).join(" · ");
     const lines = [
       block.conflict
         ? { text: `⚠ TRÙNG LỊCH · ${block.session.courseCode}`, font: `bold 14px ${FONT}` }
         : { text: block.session.courseCode, font: `bold 15px ${FONT}` },
       { text: block.session.courseName, font: `13px ${FONT}` },
       { text: [kindText(kind), block.session.group && block.session.group !== "CL" ? `nhóm ${block.session.group}` : ""].filter(Boolean).join(" · "), font: `13px ${FONT}` },
-      { text: block.session.room ?? "", font: `13px ${FONT}` },
+      { text: roomLineText, font: overrideBadges.length > 0 ? `bold 13px ${FONT}` : `13px ${FONT}` },
+      ...(overrideDetailText ? [{ text: overrideDetailText, font: `12px ${FONT}` }] : []),
     ];
     let lineY = y + 5;
     for (const line of lines) {

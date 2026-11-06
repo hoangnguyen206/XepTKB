@@ -1,17 +1,30 @@
 /** Expands a resolved Plan into displayable sessions and dated occurrences. */
 import {
   buildCourseCodeAliases,
+  canonicalSectionId,
   dateFor,
   isFixedSession,
   normalizeCourseCode,
   type Course,
   type DayNo,
   type HardConflict,
+  type Override,
+  type OverrideField,
   type ResolvedPlanPick,
   type SessionInfo,
   type SessionKind,
   type TimeFrame,
 } from "@ky-nay/domain";
+import { describeOverride, overrideBadge } from "./format.js";
+
+export type SessionOverride = {
+  field: OverrideField;
+  source: Override["source"];
+  from?: unknown;
+  to: unknown;
+  badge: string;
+  detail: string;
+};
 
 export type ScheduledSession = {
   /** `${sectionId}|${sessionId}` — matches the conflict keys used by the grid. */
@@ -34,6 +47,8 @@ export type ScheduledSession = {
   note?: string;
   /** Extra source columns, shown as information (ADR-0011 §8). */
   info?: readonly SessionInfo[];
+  /** Field-level overrides applied to this session (`registration < admin-correction < user`, AC-05). */
+  overrides?: readonly SessionOverride[];
 };
 
 export type Occurrence = ScheduledSession & {
@@ -51,7 +66,50 @@ export function sessionKey(sectionId: string, sessionId: string): string {
   return `${sectionId}|${sessionId}`;
 }
 
-export function scheduledSessions(picks: readonly ResolvedPlanPick[], courses: readonly Course[]): ScheduledSession[] {
+const OVERRIDE_RANK: Record<Override["source"], number> = {
+  registration: 1,
+  "admin-correction": 2,
+  user: 3,
+};
+
+function overridesForSession(
+  sectionId: string,
+  sessionId: string,
+  overrides: readonly Override[],
+  aliases: ReadonlyMap<string, string>,
+): SessionOverride[] {
+  if (overrides.length === 0) return [];
+  const targetSection = canonicalSectionId(sectionId, aliases);
+  const matching = overrides.filter(
+    (override) => canonicalSectionId(override.target.sectionId, aliases) === targetSection && override.target.sessionId === sessionId,
+  );
+  if (matching.length === 0) return [];
+  const byField = new Map<OverrideField, { firstFrom: unknown; winner: Override }>();
+  for (const override of [...matching].sort((a, b) => OVERRIDE_RANK[a.source] - OVERRIDE_RANK[b.source])) {
+    const existing = byField.get(override.field);
+    byField.set(override.field, {
+      firstFrom: existing !== undefined ? existing.firstFrom : override.from,
+      winner: override,
+    });
+  }
+  const out: SessionOverride[] = [];
+  for (const { firstFrom, winner } of byField.values()) {
+    if (JSON.stringify(firstFrom) === JSON.stringify(winner.to)) continue;
+    const effective = { field: winner.field, source: winner.source, ...(firstFrom !== undefined ? { from: firstFrom } : {}), to: winner.to };
+    out.push({
+      ...effective,
+      badge: overrideBadge(winner.field),
+      detail: describeOverride(effective),
+    });
+  }
+  return out;
+}
+
+export function scheduledSessions(
+  picks: readonly ResolvedPlanPick[],
+  courses: readonly Course[],
+  overrides: readonly Override[] = [],
+): ScheduledSession[] {
   const { aliases } = buildCourseCodeAliases(courses);
   const names = new Map<string, string>();
   for (const course of courses) {
@@ -63,6 +121,7 @@ export function scheduledSessions(picks: readonly ResolvedPlanPick[], courses: r
     const rawCode = normalizeCourseCode(entry.section.courseCode);
     const courseCode = aliases.get(rawCode) ?? rawCode;
     for (const session of entry.sessions) {
+      const sessionOverrides = overridesForSession(entry.section.id, session.id, overrides, aliases);
       const base = {
         key: sessionKey(entry.section.id, session.id),
         sectionId: entry.section.id,
@@ -77,6 +136,7 @@ export function scheduledSessions(picks: readonly ResolvedPlanPick[], courses: r
         lecturers: [...session.lecturers],
         ...(session.rawNote !== undefined ? { note: session.rawNote } : {}),
         ...(session.info !== undefined && session.info.length > 0 ? { info: session.info.map((item) => ({ ...item })) } : {}),
+        ...(sessionOverrides.length > 0 ? { overrides: sessionOverrides } : {}),
       };
       out.push(isFixedSession(session)
         ? { ...base, fixed: true, day: session.day, startPeriod: session.startPeriod, endPeriod: session.endPeriod }

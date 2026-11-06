@@ -48,7 +48,13 @@ export function App() {
   const online = useOnline();
   const state = controller.state;
   const ready = state.status === "ready" ? state : undefined;
-  const plan = ready?.plans.find((item) => item.term === ready.catalog.term.id && item.planKind === "draft");
+  const termId = ready?.catalog.term.id;
+  const draftPlan = ready && termId ? ready.plans.find((item) => item.term === termId && item.planKind === "draft") : undefined;
+  const finalPlan = ready && termId ? ready.plans.find((item) => item.term === termId && item.planKind === "final") : undefined;
+  const preferredSlot = ready && termId ? ready.activeSlots[termId] : undefined;
+  const activeSlot: "draft" | "final" = preferredSlot === "final" && finalPlan ? "final" : !draftPlan && finalPlan ? "final" : "draft";
+  const activePlan = activeSlot === "final" && finalPlan ? finalPlan : draftPlan ?? finalPlan;
+  const baseDraftPlan = draftPlan ?? finalPlan;
 
   const create = (choice: Week1Choice) => {
     if (!ready) return;
@@ -92,11 +98,25 @@ export function App() {
             </div>
           </div>
         ) : null}
-        {ready && !plan ? (
+        {ready && !activePlan ? (
           <Onboarding key={ready.catalog.term.id} terms={ready.terms} term={ready.catalog.term} loadingTerm={false} onSwitchTerm={(term) => void controller.switchTerm(term)} onCreate={create} />
         ) : null}
-        {ready && plan ? <Workspace key={plan.id} plan={plan} catalog={ready.catalog} onPlanChange={(next) => void controller.persistPlan(next)} /> : null}
-        {ready && plan && ready.terms.length > 1 ? (
+        {ready && activePlan && baseDraftPlan ? (
+          <Workspace
+            key={ready.catalog.term.id}
+            plan={activePlan}
+            draftPlan={baseDraftPlan}
+            {...(finalPlan ? { finalPlan } : {})}
+            activeSlot={activeSlot}
+            {...(ready.registrationNotes[ready.catalog.term.id] ? { registrationNotes: ready.registrationNotes[ready.catalog.term.id]! } : {})}
+            catalog={ready.catalog}
+            onPlanChange={(next) => void controller.persistPlan(next)}
+            onSelectSlot={(slot) => void controller.selectSlot(ready.catalog.term.id, slot)}
+            onConfirmRegistration={(nextFinal, notes) => void controller.applyRegistrationImport(nextFinal, notes)}
+            {...(finalPlan ? { onDeleteFinalPlan: () => void controller.removeFinalPlan(finalPlan.id, ready.catalog.term.id) } : {})}
+          />
+        ) : null}
+        {ready && activePlan && ready.terms.length > 1 ? (
           <div className="term-switch">
             <label htmlFor="term-switch">Đổi học kỳ</label>
             <select id="term-switch" value={ready.catalog.term.id} onChange={(event) => void controller.switchTerm(event.target.value)}>

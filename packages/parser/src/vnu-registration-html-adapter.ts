@@ -25,7 +25,8 @@ import {
 
 const ADAPTER_ID = "vnu-registration-html";
 const ADAPTER_VERSION = "0.2.0";
-const DEFAULT_MAX_BYTES = 2 * 1024 * 1024;
+export const MAX_REGISTRATION_BYTES = 2 * 1024 * 1024;
+const DEFAULT_MAX_BYTES = MAX_REGISTRATION_BYTES;
 
 function localName(node: any): string {
   return String(node.localName ?? node.nodeName ?? "").split(":").pop()?.toLowerCase() ?? "";
@@ -54,11 +55,6 @@ function descendants(node: any, name: string): any[] {
 
 function text(node: any): string {
   return String(node?.textContent ?? "").replace(/[ \t\r\n]+/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function attr(node: any, name: string): string | undefined {
-  const value = node?.getAttribute?.(name);
-  return value === null || value === undefined || value === "" ? undefined : String(value);
 }
 
 function issue(code: ParseIssue["code"], severity: ParseIssue["severity"], message: string, details: Partial<ParseIssue> = {}): ParseIssue {
@@ -114,11 +110,6 @@ function parseTables(html: string): string[][][] {
   return descendants(document, "table").map((table) => descendants(table, "tr").map((row) => children(row, "th").concat(children(row, "td")).map(text)));
 }
 
-function findColumn(headers: string[], canonical: string): number | undefined {
-  const index = headers.findIndex((header) => mapHeader(header) === canonical);
-  return index >= 0 ? index : undefined;
-}
-
 function splitRows(table: string[][]): { headers: string[]; rows: string[][] } | undefined {
   const headerIndex = table.findIndex((row) => row.some((cell) => mapHeader(cell) !== undefined));
   if (headerIndex < 0) return undefined;
@@ -147,6 +138,8 @@ function pairSlots(days: DayNo[], ranges: PeriodRange[]): Slot[] | undefined {
 }
 
 const ROOM_TOKEN = /^\d{3}-[A-ZĐ][A-ZĐ0-9]*$/u;
+const MAX_ROOM_TEXT_LENGTH = 128;
+const REQUIRED_COLUMNS = ["courseCode", "sectionId", "day", "periodText", "room"] as const;
 
 /**
  * Rooms of a multi-slot row are concatenated with no separator (`301-B306-B`). A row is split only
@@ -155,6 +148,7 @@ const ROOM_TOKEN = /^\d{3}-[A-ZĐ][A-ZĐ0-9]*$/u;
 function splitRooms(value: string | undefined, count: number): (string | undefined)[] | undefined {
   const room = normalizeRoom(value);
   if (count <= 1 || room === undefined || ROOM_TOKEN.test(room)) return Array.from({ length: count }, () => room);
+  if (room.length > MAX_ROOM_TEXT_LENGTH) return undefined;
   const separated = room.split(/[\s,;|]+/).filter(Boolean);
   if (separated.length === count && separated.every((token) => ROOM_TOKEN.test(token))) return separated;
   const found: string[][] = [];
@@ -285,7 +279,12 @@ export const vnuRegistrationHtmlAdapter: ParserAdapter = {
       issues.push(issue("MALFORMED_INPUT", "error", "registration HTML could not be parsed safely"));
       return finish([]);
     }
-    const table = tables.map(splitRows).find((candidate) => candidate !== undefined);
+    const candidates = tables.map(splitRows).filter((candidate): candidate is { headers: string[]; rows: string[][] } => candidate !== undefined);
+    const table =
+      candidates.find((candidate) => {
+        const present = new Set(candidate.headers.map(mapHeader).filter((col): col is string => col !== undefined));
+        return REQUIRED_COLUMNS.every((required) => present.has(required));
+      }) ?? candidates[0];
     if (!table) {
       issues.push(issue("MISSING_REQUIRED_COLUMN", "error", "registration table has no recognized schedule header"));
       return finish([]);
@@ -295,7 +294,7 @@ export const vnuRegistrationHtmlAdapter: ParserAdapter = {
       const canonical = mapHeader(table.headers[index]!);
       if (canonical && !columns.has(canonical)) columns.set(canonical, index);
     }
-    for (const required of ["courseCode", "sectionId", "day", "periodText", "room"]) {
+    for (const required of REQUIRED_COLUMNS) {
       if (!columns.has(required)) issues.push(issue("MISSING_REQUIRED_COLUMN", "error", `registration column ${required} is missing`, { field: required }));
     }
     if (issues.some((item) => item.severity === "error")) return finish([]);

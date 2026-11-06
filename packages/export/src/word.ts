@@ -26,13 +26,15 @@ export function buildWordDoc(input: WordInput): string {
   const fixedRows = input.sessions.filter((session) => session.fixed).map((session) => {
     const times = session.startPeriod !== undefined && session.endPeriod !== undefined ? periodTimes(input.frame, session.startPeriod, session.endPeriod) : undefined;
     const when = session.startPeriod !== undefined && session.endPeriod !== undefined ? formatPeriods(session.startPeriod, session.endPeriod) : "";
+    const place = [session.room, session.campus].filter(Boolean).join(" · ");
+    const overrideNote = session.overrides && session.overrides.length > 0 ? ` [${session.overrides.map((item) => item.detail).join("; ")}]` : "";
     return `<tr>${[
       cell(session.day !== undefined ? dayLabel(session.day) : ""),
       cell(times ? `${when} (${times.start}–${times.end})` : when),
       cell(`${session.courseCode} ${session.courseName}`),
       cell(`${session.sectionId}${session.group ? ` · nhóm ${session.group}` : ""}`),
       cell(kindText(session.kind)),
-      cell([session.room, session.campus].filter(Boolean).join(" · ")),
+      cell(`${place}${overrideNote}`),
       cell(formatWeeks(session.weeks)),
       cell(session.lecturers.join(", ")),
     ].join("")}</tr>`;

@@ -86,7 +86,7 @@ test("final Plan lists the registered sections, not the draft picks", () => {
   assert.equal(fromEmpty.issues.some((issue) => issue.severity === "error"), false);
 });
 
-test("AC-05 registration time change overrides day and periods", () => {
+test("AC-05 registration time change overrides day and periods and resolvePlanPicks applies plan.overrides", () => {
   const moved = registrationSession({ day: 4, startPeriod: 7, endPeriod: 9 });
   const result = mergeRegistration({ plan: draft, catalog, registrationSections: [registrationSection(moved)], term });
   const session = result.sections[0]!.sessions[0]!;
@@ -94,6 +94,12 @@ test("AC-05 registration time change overrides day and periods", () => {
   assert.deepEqual([session.day, session.startPeriod, session.endPeriod], [4, 7, 9]);
   assert.deepEqual(result.overrides.map((override) => override.field).sort(), ["day", "periods", "room"]);
   assert.equal(session.source.sourceType, "registration");
+  // Resolving the persisted final Plan against the original base catalog must also yield the overridden session (ADR-0013 §2.3).
+  const resolved = resolvePlanPicks(result.plan, catalog);
+  const resolvedSession = resolved.picks[0]!.sessions[0]!;
+  assert.ok(isFixedSession(resolvedSession));
+  assert.deepEqual([resolvedSession.day, resolvedSession.startPeriod, resolvedSession.endPeriod, resolvedSession.room], [4, 7, 9, "305-G2"]);
+  assert.equal(resolvedSession.source.sourceType, "registration");
 });
 
 test("re-import replaces the earlier registration override and user override keeps precedence", () => {
@@ -106,6 +112,7 @@ test("re-import replaces the earlier registration override and user override kee
   const withUser = mergeRegistration({ plan: pinned, catalog, registrationSections: [registrationSection(registrationSession())], term });
   assert.equal(withUser.sections[0]!.sessions[0]!.room, "Lab-1");
   assert.deepEqual(withUser.plan.overrides.map((override) => override.source).sort(), ["registration", "user"]);
+  assert.equal(resolvePlanPicks(withUser.plan, catalog).picks[0]!.sessions[0]!.room, "Lab-1");
 });
 
 test("legacy registration candidate without weekOrigin does not override timetable weeks", () => {

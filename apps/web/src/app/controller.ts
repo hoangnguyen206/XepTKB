@@ -5,8 +5,8 @@ import { ArtifactError, type LoadedDataset } from "../data/contract.js";
 import { loadDataset, type DatasetCacheLike, type TermOption } from "../data/loader.js";
 import { buildAppCatalog, type AppCatalog } from "../model/catalog.js";
 import { openDb } from "../storage/db.js";
-import { datasetCache, loadSettings, saveSettings, wipeLocalData } from "../storage/local-data.js";
-import { loadPlans, savePlanIfUnchanged } from "../storage/plan-store.js";
+import { datasetCache, loadSettings, saveSettings, updateSettings, wipeLocalData, type Settings, type TermRegistrationNotes } from "../storage/local-data.js";
+import { deletePlan, loadPlans, savePlanIfUnchanged } from "../storage/plan-store.js";
 import { ensureServiceWorkerAfterWipe } from "./sw-client.js";
 
 /** Cross-tab messages (QA-M3-005): another tab saved Plans or wiped the device data. */
@@ -24,6 +24,8 @@ export type Ready = {
   /** Set when the app shows the last cached dataset instead of fresh data. */
   cached?: { reason: "offline" | "invalid"; error: ArtifactError };
   plans: Plan[];
+  activeSlots: Record<string, "draft" | "final">;
+  registrationNotes: Record<string, TermRegistrationNotes>;
 };
 
 export type AppState =
@@ -45,17 +47,31 @@ export function useAppController() {
   const dbRef = useRef<IDBDatabase | undefined>(undefined);
   const cacheRef = useRef<DatasetCacheLike>(memoryCache());
   const plansRef = useRef<Plan[]>([]);
+  const settingsRef = useRef<Settings>({});
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
   const channelRef = useRef<BroadcastChannel | undefined>(undefined);
 
-  const showPlans = useCallback((plans: Plan[]) => {
+  const showPlans = useCallback((plans: Plan[], nextSettings: Settings = settingsRef.current) => {
     plansRef.current = plans;
-    setState((current) => (current.status === "ready" ? { ...current, plans } : current));
+    settingsRef.current = nextSettings;
+    setState((current) =>
+      current.status === "ready"
+        ? {
+            ...current,
+            plans,
+            activeSlots: nextSettings.activeSlots ?? {},
+            registrationNotes: nextSettings.registrationNotes ?? {},
+          }
+        : current,
+    );
   }, []);
 
   const reloadPlans = useCallback(async () => {
     const db = dbRef.current;
-    if (db) showPlans((await loadPlans(db)).plans);
+    if (db) {
+      const [planReport, storedSettings] = await Promise.all([loadPlans(db), loadSettings(db)]);
+      showPlans(planReport.plans, storedSettings);
+    }
   }, [showPlans]);
 
   const load = useCallback(async (term: string | undefined) => {
@@ -76,7 +92,8 @@ export function useAppController() {
       setNotices((current) => [...current, { kind: "warning", text: "Không lưu được dữ liệu thời khóa biểu vào bộ nhớ trình duyệt (có thể đã đầy), nên khi mất mạng sẽ không mở được. Dữ liệu đang dùng vẫn hợp lệ." }]);
     }
     const db = dbRef.current;
-    if (db) await saveSettings(db, { activeTerm: result.dataset.entry.term }).catch(() => undefined);
+    settingsRef.current = { ...settingsRef.current, activeTerm: result.dataset.entry.term };
+    if (db) await updateSettings(db, { activeTerm: result.dataset.entry.term }).catch(() => undefined);
     setState({
       status: "ready",
       dataset: result.dataset,
@@ -84,6 +101,8 @@ export function useAppController() {
       terms: result.terms,
       ...(result.kind === "cached" ? { cached: { reason: result.reason, error: result.error } } : {}),
       plans: plansRef.current,
+      activeSlots: settingsRef.current.activeSlots ?? {},
+      registrationNotes: settingsRef.current.registrationNotes ?? {},
     });
   }, []);
 
@@ -96,7 +115,9 @@ export function useAppController() {
         const db = await openDb();
         dbRef.current = db;
         cacheRef.current = datasetCache(db);
-        activeTerm = (await loadSettings(db)).activeTerm;
+        const loadedSettings = await loadSettings(db);
+        settingsRef.current = loadedSettings;
+        activeTerm = loadedSettings.activeTerm;
         const report = await loadPlans(db);
         plansRef.current = report.plans;
         if (report.migrated.length > 0) found.push({ kind: "info", text: `Đã chuyển ${report.migrated.length} phương án sang định dạng mới. ${report.notes.join("; ")}` });
@@ -140,9 +161,91 @@ export function useAppController() {
     await saveChainRef.current;
   }, [reloadPlans]);
 
+  const selectSlot = useCallback(async (term: string, slot: "draft" | "final") => {
+    const nextSettings: Settings = {
+      ...settingsRef.current,
+      activeSlots: { ...(settingsRef.current.activeSlots ?? {}), [term]: slot },
+    };
+    settingsRef.current = nextSettings;
+    setState((current) =>
+      current.status === "ready" ? { ...current, activeSlots: nextSettings.activeSlots ?? {} } : current,
+    );
+    const db = dbRef.current;
+    if (!db) return;
+    saveChainRef.current = saveChainRef.current.then(async () => {
+      await updateSettings(db, { activeSlots: { [term]: slot } }).catch(() => undefined);
+    });
+    await saveChainRef.current;
+  }, []);
+
+  const applyRegistrationImport = useCallback(async (finalPlan: Plan, notes: TermRegistrationNotes) => {
+    const term = finalPlan.term;
+    const nextSettings: Settings = {
+      ...settingsRef.current,
+      activeSlots: { ...(settingsRef.current.activeSlots ?? {}), [term]: "final" },
+      registrationNotes: { ...(settingsRef.current.registrationNotes ?? {}), [term]: notes },
+    };
+    settingsRef.current = nextSettings;
+    setState((current) =>
+      current.status === "ready"
+        ? {
+            ...current,
+            activeSlots: nextSettings.activeSlots ?? {},
+            registrationNotes: nextSettings.registrationNotes ?? {},
+          }
+        : current,
+    );
+    await persistPlan(finalPlan);
+    const db = dbRef.current;
+    if (!db) return;
+    saveChainRef.current = saveChainRef.current.then(async () => {
+      await updateSettings(db, {
+        activeSlots: { [term]: "final" },
+        registrationNotes: { [term]: notes },
+      }).catch(() => undefined);
+    });
+    await saveChainRef.current;
+  }, [persistPlan]);
+
+  const removeFinalPlan = useCallback(async (planId: string, term: string) => {
+    plansRef.current = plansRef.current.filter((item) => item.id !== planId);
+    const nextRegistrationNotes = { ...(settingsRef.current.registrationNotes ?? {}) };
+    delete nextRegistrationNotes[term];
+    const nextActiveSlots = { ...(settingsRef.current.activeSlots ?? {}), [term]: "draft" as const };
+    const nextSettings: Settings = {
+      ...settingsRef.current,
+      activeSlots: nextActiveSlots,
+      registrationNotes: nextRegistrationNotes,
+    };
+    settingsRef.current = nextSettings;
+    setState((current) =>
+      current.status === "ready"
+        ? {
+            ...current,
+            plans: plansRef.current,
+            activeSlots: nextActiveSlots,
+            registrationNotes: nextRegistrationNotes,
+          }
+        : current,
+    );
+    const db = dbRef.current;
+    if (!db) return;
+    saveChainRef.current = saveChainRef.current.then(async () => {
+      try {
+        await deletePlan(db, planId);
+        await saveSettings(db, nextSettings);
+        channelRef.current?.postMessage({ type: "plans-changed" } satisfies TabMessage);
+      } catch {
+        setNotices((current) => [...current, { kind: "warning", text: "Không xóa được phương án chính thức khỏi bộ nhớ trình duyệt." }]);
+      }
+    });
+    await saveChainRef.current;
+  }, []);
+
   const resetAfterWipe = useCallback(async (text: string) => {
     const db = dbRef.current;
     plansRef.current = [];
+    settingsRef.current = {};
     cacheRef.current = db ? datasetCache(db) : memoryCache();
     setWipeGeneration((n) => n + 1);
     setNotices([{ kind: "info", text }]);
@@ -178,6 +281,9 @@ export function useAppController() {
     switchTerm: (term: string) => load(term),
     retry: () => load(state.status === "ready" ? state.dataset.entry.term : undefined),
     persistPlan,
+    selectSlot,
+    applyRegistrationImport,
+    removeFinalPlan,
     wipe,
     db: () => dbRef.current,
   };

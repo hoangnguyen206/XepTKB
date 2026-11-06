@@ -25,6 +25,9 @@ const webRules = [
   { pattern: NETWORK_API, message: "network access outside the artifact loader", allow: (file) => file.endsWith(NETWORK_MODULE) || isTestFile(file) },
   { pattern: /\binnerHTML\b|\bouterHTML\b|insertAdjacentHTML|dangerouslySetInnerHTML|document\.write/, message: "HTML injection sink" },
   { pattern: /\blocalStorage\b|\bsessionStorage\b|document\.cookie/, message: "storage outside IndexedDB" },
+  // ADR-0008 / ADR-0013: apps/web may only import the browser-safe registration subpath of @ky-nay/parser.
+  { pattern: /["']@ky-nay\/parser(?!\/registration["'])(?:\/[^"']*)?["']/, message: "parser import outside @ky-nay/parser/registration" },
+  { pattern: /["']node:[^"']+["']/, message: "Node built-in import in browser source", allow: (file) => isTestFile(file) },
 ];
 // The service worker source is generated from vite.config.ts: it may only pass same-origin requests through
 // (`fetch(request)`), never open another channel.

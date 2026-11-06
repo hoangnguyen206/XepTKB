@@ -1,6 +1,6 @@
 # Implementation plan — docs-first đến MVP UET
 
-> **Status:** draft — Q-001..Q-008 đã approve 20/10/2026; milestone M0–M5 chờ Product sign-off G0
+> **Status:** draft — Q-001..Q-008 đã approve 20/10/2026; M3 và M4 đã được Owner approve G0+G1+G3; còn M5 release gates (`G4a/G4b/G5`)
 > **Owner:** Tech Lead + Release Manager
 > **Last reviewed:** 2026-11-06
 > **Related docs:** [PRD](PRD.md), [QA plan](QA_TEST_PLAN.md), [Data ingestion runbook](DATA_INGESTION_RUNBOOK.md), [Audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md)
@@ -43,7 +43,12 @@ Thứ tự phụ thuộc cứng: M0 → M1 → M2 → M3 → M4 → M5. Trong t�
 **M3 G3 R2 + R2.1 checkpoint (05–06/11/2026):** chạy lại độc lập G3a/G3b/G3c trên commit cố định `2ab03cd` (CI GitHub [run 42069057252](https://github.com/hoangnguyen206/XepTKB/actions/runs/42069057252) xanh), sau đó sửa 2 lỗi S2 (`db0058c`) + cụm S3 (`d51c65b`) và chạy kiểm chứng hẹp **G3 R2.1 tại `d51c65bc10f91ed7cd23462bdef901f5a81d5acc`** (`npm run check` exit 0: node:test 101/101, Vitest 60/60, fixtures 6/6, `dataset check` OK; `npm run test:e2e` Playwright Chromium 17/17 + WebKit `REV-M3-002` 3/3):
 - **G3a R2 → R2.1 ([TEST-M3-002](evidence/M3-G3a-QA-REPORT-R2.md)):** nâng từ `qa-pass-with-follow-up` (`2ab03cd`) lên **`qa-pass` (`d51c65b`)** — đã đóng S1 (`QA-M3-001 = REV-M3-001`), mọi S2 cũ của web app (#2–#7, #22) và toàn bộ 5 S3 mới (`QA-M3-101`…`105`).
 - **G3b R2 → R2.1 ([SEC-REVIEW-M3-002](evidence/M3-G3b-SECURITY-REVIEW-R2.md)):** **`security-pass-with-exception`** tại `d51c65b`, **đã gỡ bỏ `security-no-go` trên G4b dữ liệu thật** sau khi xác nhận `SEC-M3-102` (S2), `SEC-M3-103` (`AUD-010`), `SEC-M3-104`, `SEC-M3-001`, `SEC-M3-006a` là `verified-fixed`, và gói exception S3 thu hẹp (`EXC-SEC-M3-R2-B/C/D`) đã được Owner (Release Manager) phê duyệt lúc `2026-11-06T05:50Z` trước hạn **08/11/2026**.
-- **G3c R2 → R2.1 ([REVIEW-M3-002](evidence/M3-G3c-INDEPENDENT-REVIEW-R2.md), đã kết hợp G3a/G3b R2.1):** nâng từ `review-no-go` (`2ab03cd`) lên **`review-approved` (`d51c65b`)** — đã xác nhận cả 2 lỗi S2 (`REV-M3-101`, `REV-M3-102`), toàn bộ các S3 (`REV-M3-104`…`107`, `REV-M3-008`) và G0/G1 sign-off của Owner (`REV-M3-103`, `2026-11-06T05:50Z`) đều `verified-fixed`. Chi tiết tổng hợp tại [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md).
+- **G3c R2 → R2.1 ([REVIEW-M3-002](evidence/M3-G3c-INDEPENDENT-REVIEW-R2.md), đã kết hợp G3a/G3b R2.1):** nâng từ `review-no-go` (`2ab03cd`) lên **`review-approved` (`d51c65b`)** — đã xác nhận cả 2 lỗi S2 (`REV-M3-101`, `REV-M3-102`), toàn bộ các S3 (`REV-M3-104`…`107`, `REV-M3-008`) và G0/G1 sign-off của Owner (`REV-M3-103`, `2026-11-06T05:50Z`) đều `verified-fixed`. Chi tiết tổng hợp tại [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md). Đã merge PR #1 vào `main` (`3c34c89`).
+
+**M4 checkpoint (06/11/2026):** đã triển khai trên nhánh `m4-registration-ui` theo [SPEC-M4-001](evidence/M4-SPEC.md), [ADR-0013](adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md) và [DESIGN-M4-001](evidence/M4-DESIGN-HANDOFF.md): chọn file Kết quả ĐKMH (`.doc` HTML / `.htm` / `.html`) xử lý cục bộ trên trình duyệt (`@ky-nay/parser/registration`), xem trước không PII, xác nhận tạo/cập nhật slot `Phương án chính thức` (`final`) tách biệt với `Phương án nháp` (`draft`), áp dụng `plan.overrides` trong `resolvePlanPicks` & `findOverrideTargetSession`, hiển thị huy hiệu `Đã đổi phòng`/`Đã đổi giờ`/`Đã đổi tuần` kèm `from → to` trên lưới tuần, lịch theo ngày, tóm tắt phương án, bản in, `.png`, `.ics`, `.doc`. Kiểm định độc lập **G3a/G3b/G3c** (`R1` tại `12abdbd` + `R1.1` tại `6fd1506`; `npm run check` exit `0` với node `102/102`, Vitest `68/68`, fixtures `6/6`; `npm run test:e2e` Playwright Chromium `19/19`) đạt:
+- **G3a ([TEST-M4-001](evidence/M4-G3a-QA-REPORT.md)):** **`qa-pass`** (`0` S0/S1/S2/S3 mở).
+- **G3b ([SEC-REVIEW-M4-001](evidence/M4-G3b-SECURITY-REVIEW.md)):** **`security-pass-with-exception`** (`0` S0/S1/S2/S3 mở đối với M4; chỉ còn theo dõi 3 exception S3 kế thừa từ M3 `EXC-SEC-M3-R2-B/C/D` hết hạn `2026-11-08` cho M5 `G4a`/`G4b`).
+- **G3c ([REVIEW-M4-001](evidence/M4-G3c-INDEPENDENT-REVIEW.md)):** **`review-approved`** (`0` S0/S1/S2/S3 mở sau khi đóng cả 5/5 finding `REV-M4-001..004` + `SEC-M4-001`). Chi tiết tổng hợp tại [EVID-M4-001](evidence/M4-EVIDENCE-ENVELOPE.md); đã được Owner ký duyệt `G0`, `G1` và `G3` lúc `2026-11-06T07:30Z`.
 
 ### Fallback
 

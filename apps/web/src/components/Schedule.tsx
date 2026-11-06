@@ -28,9 +28,20 @@ function extrasText(session: Pick<ScheduledSession, "note" | "info">): string {
   return text ? ` · ${text}` : "";
 }
 
+function uniqueOverrideBadges(session: Pick<ScheduledSession, "overrides">): string[] {
+  if (!session.overrides || session.overrides.length === 0) return [];
+  return [...new Set(session.overrides.map((item) => item.badge))];
+}
+
+function overrideDetailsText(session: Pick<ScheduledSession, "overrides">): string {
+  if (!session.overrides || session.overrides.length === 0) return "";
+  return session.overrides.map((item) => item.detail).join("; ");
+}
+
 function blockDescription(session: ScheduledSession, frame: TimeFrame, conflict: boolean): string {
   const times = session.startPeriod !== undefined && session.endPeriod !== undefined ? periodTimes(frame, session.startPeriod, session.endPeriod) : undefined;
   const period = session.startPeriod !== undefined && session.endPeriod !== undefined ? formatPeriods(session.startPeriod, session.endPeriod) : "";
+  const overrideText = overrideDetailsText(session);
   return [
     `${session.courseCode} ${session.courseName}`,
     `lớp ${session.sectionId}${session.group && session.group !== "CL" ? ` nhóm ${session.group}` : ""}`,
@@ -38,6 +49,7 @@ function blockDescription(session: ScheduledSession, frame: TimeFrame, conflict:
     `${period}${times ? ` (${times.start}–${times.end})` : ""}`,
     session.room ? `phòng ${session.room}` : "",
     `tuần ${formatWeeks(session.weeks)}`,
+    overrideText,
     conflict ? "đang trùng lịch" : "",
   ].filter(Boolean).join(", ");
 }
@@ -83,12 +95,19 @@ export function WeekGrid(props: { layout: GridLayout; frame: TimeFrame; week1: s
                     width: `${100 / block.lanes}%`,
                   };
                   const description = blockDescription(block.session, props.frame, block.conflict);
+                  const badges = uniqueOverrideBadges(block.session);
                   return (
-                    <li key={block.session.key} className={`block kind-${block.session.kind}${block.conflict ? " is-conflict" : ""}${block.lanes > 1 ? " is-split" : ""}`} style={position} title={description}>
+                    <li
+                      key={block.session.key}
+                      className={`block kind-${block.session.kind}${block.conflict ? " is-conflict" : ""}${badges.length > 0 ? " is-overridden" : ""}${block.lanes > 1 ? " is-split" : ""}`}
+                      style={position}
+                      title={description}
+                    >
                       <span className="visually-hidden">{description}</span>
                       <span aria-hidden="true" className="block-code">{block.session.courseCode}</span>
                       <span aria-hidden="true" className="block-meta">{[kindText(block.session.kind), block.session.group && block.session.group !== "CL" ? `N${block.session.group}` : ""].filter(Boolean).join(" ")}</span>
                       {block.session.room ? <span aria-hidden="true" className="block-meta">{block.session.room}</span> : null}
+                      {badges.length > 0 ? <span aria-hidden="true" className="block-override">{badges.join(" · ")}</span> : null}
                       {block.conflict ? <span aria-hidden="true" className="block-flag">⚠ Trùng</span> : null}
                     </li>
                   );
@@ -108,11 +127,17 @@ export function NonFixedList(props: { sessions: readonly ScheduledSession[] }) {
     <div className="non-fixed">
       <h3>Không có giờ cố định (không xếp vào lưới)</h3>
       <ul>
-        {props.sessions.map((session) => (
-          <li key={session.key}>
-            <strong>{session.courseCode}</strong> {session.courseName} — lớp {session.sectionId}{kindPart(session.kind)} · tuần {formatWeeks(session.weeks)}{extrasText(session)}
-          </li>
-        ))}
+        {props.sessions.map((session) => {
+          const badges = uniqueOverrideBadges(session);
+          const detail = overrideDetailsText(session);
+          return (
+            <li key={session.key}>
+              <strong>{session.courseCode}</strong> {session.courseName} — lớp {session.sectionId}{kindPart(session.kind)} · tuần {formatWeeks(session.weeks)}{extrasText(session)}
+              {badges.map((badge) => <span key={badge} className="badge badge-override">{badge}</span>)}
+              {detail ? <span className="override-detail"> ({detail})</span> : null}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -135,10 +160,16 @@ export function DayList(props: { sessions: readonly ScheduledSession[]; frame: T
                 <ul>
                   {items.map((session) => {
                     const times = periodTimes(props.frame, session.startPeriod!, session.endPeriod!);
+                    const badges = uniqueOverrideBadges(session);
+                    const detail = overrideDetailsText(session);
                     return (
                       <li key={session.key} className={props.conflictKeys.has(session.key) ? "is-conflict" : undefined}>
                         <span className="time">{times ? `${times.start}–${times.end}` : formatPeriods(session.startPeriod!, session.endPeriod!)}</span>
-                        <span><strong>{session.courseCode}</strong> {session.courseName}{kindPart(session.kind)} · {session.room ?? "chưa có phòng"} · tuần {formatWeeks(session.weeks)}{extrasText(session)}</span>
+                        <span>
+                          <strong>{session.courseCode}</strong> {session.courseName}{kindPart(session.kind)} · {session.room ?? "chưa có phòng"} · tuần {formatWeeks(session.weeks)}{extrasText(session)}
+                          {badges.map((badge) => <span key={badge} className="badge badge-override">{badge}</span>)}
+                          {detail ? <span className="override-detail"> ({detail})</span> : null}
+                        </span>
                         {props.conflictKeys.has(session.key) ? <span className="flag">⚠ Trùng lịch</span> : null}
                       </li>
                     );
@@ -165,13 +196,21 @@ export function DayList(props: { sessions: readonly ScheduledSession[]; frame: T
             <h3>{dayLabel(day)}, {formatDate(date)}{isToday ? <span className="badge badge-today">Hôm nay</span> : null}</h3>
             {items.length === 0 ? <p className="muted">Không có buổi học.</p> : (
               <ul>
-                {items.map((item) => (
-                  <li key={item.key} className={props.conflictKeys.has(item.key) ? "is-conflict" : undefined}>
-                    <span className="time">{item.startTime}–{item.endTime}</span>
-                    <span><strong>{item.courseCode}</strong> {item.courseName}{kindPart(item.kind)}{item.group && item.group !== "CL" ? ` nhóm ${item.group}` : ""} · {item.room ?? "chưa có phòng"}{extrasText(item)}</span>
-                    {props.conflictKeys.has(item.key) ? <span className="flag">⚠ Trùng lịch</span> : null}
-                  </li>
-                ))}
+                {items.map((item) => {
+                  const badges = uniqueOverrideBadges(item);
+                  const detail = overrideDetailsText(item);
+                  return (
+                    <li key={item.key} className={props.conflictKeys.has(item.key) ? "is-conflict" : undefined}>
+                      <span className="time">{item.startTime}–{item.endTime}</span>
+                      <span>
+                        <strong>{item.courseCode}</strong> {item.courseName}{kindPart(item.kind)}{item.group && item.group !== "CL" ? ` nhóm ${item.group}` : ""} · {item.room ?? "chưa có phòng"}{extrasText(item)}
+                        {badges.map((badge) => <span key={badge} className="badge badge-override">{badge}</span>)}
+                        {detail ? <span className="override-detail"> ({detail})</span> : null}
+                      </span>
+                      {props.conflictKeys.has(item.key) ? <span className="flag">⚠ Trùng lịch</span> : null}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </li>
