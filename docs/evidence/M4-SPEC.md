@@ -1,13 +1,13 @@
 # M4 spec — Registration merge UI
 
 > **Artifact ID:** `SPEC-M4-001`  
-> **Artifact status:** `in-review`  
+> **Artifact status:** `g0-approved`  
 > **Canonical gate:** `G0`  
 > **Owner:** Product Spec  
 > **Last reviewed:** 2026-11-06  
 > **Related docs:** [Implementation plan §2/§4](../IMPLEMENTATION_PLAN.md), [PRD](../PRD.md), [Security & privacy](../SECURITY_PRIVACY.md), [C-09 registration review](C09-REGISTRATION-SAMPLE-REVIEW.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [M4 design handoff](M4-DESIGN-HANDOFF.md)  
 > **Evidence envelope:** `EVID-M4-001` ([M4-EVIDENCE-ENVELOPE.md](M4-EVIDENCE-ENVELOPE.md))  
-> **Decision actor / UTC timestamp:** Pending Owner (Product / Tech Lead) human sign-off  
+> **Decision actor / UTC timestamp:** Approved by Owner (Product / Tech Lead) at `2026-11-06T07:30Z`  
 > **Receiving owner / acknowledgement:** Frontend/Coder (implementation), Tester, Security Reviewer, Independent Reviewer
 
 ## 1. Source and traceability

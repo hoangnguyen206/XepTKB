@@ -1,6 +1,6 @@
 # Implementation plan — docs-first đến MVP UET
 
-> **Status:** draft — Q-001..Q-008 đã approve 20/10/2026; M3 đã được Owner approve G0+G1+G3; M4 đã qua G3a/G3b/G3c độc lập và chờ Owner sign-off
+> **Status:** draft — Q-001..Q-008 đã approve 20/10/2026; M3 và M4 đã được Owner approve G0+G1+G3; còn M5 release gates (`G4a/G4b/G5`)
 > **Owner:** Tech Lead + Release Manager
 > **Last reviewed:** 2026-11-06
 > **Related docs:** [PRD](PRD.md), [QA plan](QA_TEST_PLAN.md), [Data ingestion runbook](DATA_INGESTION_RUNBOOK.md), [Audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md)
@@ -48,7 +48,7 @@ Thứ tự phụ thuộc cứng: M0 → M1 → M2 → M3 → M4 → M5. Trong t�
 **M4 checkpoint (06/11/2026):** đã triển khai trên nhánh `m4-registration-ui` theo [SPEC-M4-001](evidence/M4-SPEC.md), [ADR-0013](adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md) và [DESIGN-M4-001](evidence/M4-DESIGN-HANDOFF.md): chọn file Kết quả ĐKMH (`.doc` HTML / `.htm` / `.html`) xử lý cục bộ trên trình duyệt (`@ky-nay/parser/registration`), xem trước không PII, xác nhận tạo/cập nhật slot `Phương án chính thức` (`final`) tách biệt với `Phương án nháp` (`draft`), áp dụng `plan.overrides` trong `resolvePlanPicks` & `findOverrideTargetSession`, hiển thị huy hiệu `Đã đổi phòng`/`Đã đổi giờ`/`Đã đổi tuần` kèm `from → to` trên lưới tuần, lịch theo ngày, tóm tắt phương án, bản in, `.png`, `.ics`, `.doc`. Kiểm định độc lập **G3a/G3b/G3c** (`R1` tại `12abdbd` + `R1.1` tại `6fd1506`; `npm run check` exit `0` với node `102/102`, Vitest `68/68`, fixtures `6/6`; `npm run test:e2e` Playwright Chromium `19/19`) đạt:
 - **G3a ([TEST-M4-001](evidence/M4-G3a-QA-REPORT.md)):** **`qa-pass`** (`0` S0/S1/S2/S3 mở).
 - **G3b ([SEC-REVIEW-M4-001](evidence/M4-G3b-SECURITY-REVIEW.md)):** **`security-pass-with-exception`** (`0` S0/S1/S2/S3 mở đối với M4; chỉ còn theo dõi 3 exception S3 kế thừa từ M3 `EXC-SEC-M3-R2-B/C/D` hết hạn `2026-11-08` cho M5 `G4a`/`G4b`).
-- **G3c ([REVIEW-M4-001](evidence/M4-G3c-INDEPENDENT-REVIEW.md)):** **`review-approved`** (`0` S0/S1/S2/S3 mở sau khi đóng cả 5/5 finding `REV-M4-001..004` + `SEC-M4-001`). Chi tiết tổng hợp tại [EVID-M4-001](evidence/M4-EVIDENCE-ENVELOPE.md); đang chờ Owner ký duyệt `G0`, `G1` và `G3` của M4.
+- **G3c ([REVIEW-M4-001](evidence/M4-G3c-INDEPENDENT-REVIEW.md)):** **`review-approved`** (`0` S0/S1/S2/S3 mở sau khi đóng cả 5/5 finding `REV-M4-001..004` + `SEC-M4-001`). Chi tiết tổng hợp tại [EVID-M4-001](evidence/M4-EVIDENCE-ENVELOPE.md); đã được Owner ký duyệt `G0`, `G1` và `G3` lúc `2026-11-06T07:30Z`.
 
 ### Fallback
 

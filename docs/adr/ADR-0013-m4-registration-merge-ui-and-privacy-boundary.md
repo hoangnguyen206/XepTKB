@@ -1,13 +1,13 @@
 # ADR-0013: M4 Registration Merge UI, Override Resolution, and Browser Privacy Boundary
 
 > **Artifact ID:** `ADR-0013`  
-> **Artifact status:** `in-review`  
+> **Artifact status:** `g1-approved`  
 > **Canonical gate:** `G1`  
 > **Owner:** Tech Lead + Security Reviewer  
 > **Last reviewed:** 2026-11-06  
 > **Related docs:** [SPEC-M4-001](../evidence/M4-SPEC.md), [M4 design handoff](../evidence/M4-DESIGN-HANDOFF.md), [ADR-0008](ADR-0008-m1-parser-dependencies-local-provenance.md), [ADR-0009](ADR-0009-m2-domain-engine-schema.md), [ADR-0010](ADR-0010-m3-web-app-artifact-storage-export.md), [Security & privacy](../SECURITY_PRIVACY.md)  
 > **Evidence envelope:** `EVID-M4-001` ([M4-EVIDENCE-ENVELOPE.md](../evidence/M4-EVIDENCE-ENVELOPE.md))  
-> **Decision actor / UTC timestamp:** Pending Owner (Tech Lead) human sign-off  
+> **Decision actor / UTC timestamp:** Approved by Owner (Tech Lead + Security) at `2026-11-06T07:30Z`  
 > **Supersedes:** none
 
 ## 1. Context

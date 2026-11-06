@@ -1,13 +1,13 @@
 # M4 evidence envelope — Registration merge UI
 
 > **Artifact ID:** `EVID-M4-001`  
-> **Artifact status:** `needs_review` — G0/G1/G2 authored, independent G3a/G3b/G3c R1 (`12abdbd`) + R1.1 (`6fd1506`) completed (`qa-pass`, `security-pass-with-exception`, `review-approved`); awaiting human Owner gate sign-off  
+> **Artifact status:** `ready` (`approved` by Owner at `2026-11-06T07:30Z`) — G0/G1/G2 authored, independent G3a/G3b/G3c R1 (`12abdbd`) + R1.1 (`6fd1506`) completed (`qa-pass`, `security-pass-with-exception`, `review-approved`), and formally signed off by Owner  
 > **Canonical gate/sub-gate:** `G0 | G1 | G2 | G3a | G3b | G3c`  
 > **Owner:** Tech Lead + Release Manager  
 > **Last reviewed:** 2026-11-06  
 > **Related docs:** [M4 spec](M4-SPEC.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [M4 design handoff](M4-DESIGN-HANDOFF.md), [M4 implementation handoff](M4-IMPLEMENTATION-HANDOFF.md), [M4 G3a QA report](M4-G3a-QA-REPORT.md), [M4 G3b security review](M4-G3b-SECURITY-REVIEW.md), [M4 G3c independent review](M4-G3c-INDEPENDENT-REVIEW.md)  
-> **Decision actor / UTC timestamp:** `pending` (awaiting human Owner sign-off on `G0`, `G1`, `G3a/G3b/G3c`)  
-> **Receiving owner / acknowledgement:** Product (`G0`), Tech Lead + Security (`G1`), Tester (`G3a`), Security Reviewer (`G3b`), Independent Reviewer (`G3c`)
+> **Decision actor / UTC timestamp:** Approved by Owner (Product / Tech Lead / Security / Release Manager) at `2026-11-06T07:30Z`  
+> **Receiving owner / acknowledgement:** Product (`G0`), Tech Lead + Security (`G1`), Tester (`G3a`), Security Reviewer (`G3b`), Independent Reviewer (`G3c`), Owner (`2026-11-06T07:30Z`)
 
 ## Source and traceability
 
@@ -54,12 +54,12 @@
 
 | Evidence ID/link | Check | Expected | Actual | Result |
 | --- | --- | --- | --- | --- |
-| [`SPEC-M4-001`](M4-SPEC.md) | `G0` M4 specification (`AC-M4-01..08`, `D-M4-1..3`) | Complete spec covering `FR-09`, `FR-10`, `AC-04`, `AC-05`, `Q-005`, `Q-007` | Authored (`in-review`, awaiting human Owner `G0` sign-off) | `in-review` |
-| [`ADR-0013`](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md) & [`DESIGN-M4-001`](M4-DESIGN-HANDOFF.md) | `G1` architecture, privacy boundary & threat review | Local-only boundary, `resolvePlanPicks` override application, 2-slot storage design | Authored (`in-review`, awaiting human Owner `G1` sign-off) | `in-review` |
+| [`SPEC-M4-001`](M4-SPEC.md) | `G0` M4 specification (`AC-M4-01..08`, `D-M4-1..3`) | Complete spec covering `FR-09`, `FR-10`, `AC-04`, `AC-05`, `Q-005`, `Q-007` | Approved by Owner (`2026-11-06T07:30Z`) | `g0-approved` |
+| [`ADR-0013`](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md) & [`DESIGN-M4-001`](M4-DESIGN-HANDOFF.md) | `G1` architecture, privacy boundary & threat review | Local-only boundary, `resolvePlanPicks` override application, 2-slot storage design | Approved by Owner (`2026-11-06T07:30Z`) | `g1-approved` |
 | [`IMPL-M4-001`](M4-IMPLEMENTATION-HANDOFF.md) | `G2` implementation + automated test suites | `npm run check` exit `0`, `npm run test:e2e` exit `0` | `102/102` node tests, `68/68` Vitest, `6/6` fixtures, `19/19` E2E passed (`6fd1506`) | `ready-for-verification` |
-| [`TEST-M4-001`](M4-G3a-QA-REPORT.md) | `G3a` independent QA verification (`R1` + `R1.1` @ `6fd1506`) | Verify `AC-M4-01..08`, `AC-04`, `AC-05`, zero open defects | `0` S0/S1/S2/S3 open (`QA-M4-001..003` `verified-fixed`) | `qa-pass` |
-| [`SEC-REVIEW-M4-001`](M4-G3b-SECURITY-REVIEW.md) | `G3b` independent security & privacy review (`R1` + `R1.1` @ `6fd1506`) | Verify zero network/PII leakage (`AC-04`), XSS/file parser hardening | `0` S0/S1/S2/S3 open for M4 (`SEC-M4-001` `verified-fixed`; 3 inherited M3 S3 exceptions tracked for M5) | `security-pass-with-exception` |
-| [`REVIEW-M4-001`](M4-G3c-INDEPENDENT-REVIEW.md) | `G3c` independent code & architecture review (`R1` + `R1.1` @ `6fd1506`) | Verify domain/export/web implementation and G3a/G3b synthesis | `0` S0/S1/S2/S3 open (`REV-M4-001..004` + `SEC-M4-001` `verified-fixed`) | `review-approved` |
+| [`TEST-M4-001`](M4-G3a-QA-REPORT.md) | `G3a` independent QA verification (`R1` + `R1.1` @ `6fd1506`) | Verify `AC-M4-01..08`, `AC-04`, `AC-05`, zero open defects | `0` S0/S1/S2/S3 open (`QA-M4-001..003` `verified-fixed`), approved by Owner (`2026-11-06T07:30Z`) | `qa-pass` |
+| [`SEC-REVIEW-M4-001`](M4-G3b-SECURITY-REVIEW.md) | `G3b` independent security & privacy review (`R1` + `R1.1` @ `6fd1506`) | Verify zero network/PII leakage (`AC-04`), XSS/file parser hardening | `0` S0/S1/S2/S3 open for M4 (`SEC-M4-001` `verified-fixed`; 3 inherited M3 S3 exceptions tracked for M5), approved by Owner (`2026-11-06T07:30Z`) | `security-pass-with-exception` |
+| [`REVIEW-M4-001`](M4-G3c-INDEPENDENT-REVIEW.md) | `G3c` independent code & architecture review (`R1` + `R1.1` @ `6fd1506`) | Verify domain/export/web implementation and G3a/G3b synthesis | `0` S0/S1/S2/S3 open (`REV-M4-001..004` + `SEC-M4-001` `verified-fixed`), approved by Owner (`2026-11-06T07:30Z`) | `review-approved` |
 
 ## Findings ledger (M4 G3 R1 `12abdbd` → R1.1 `6fd1506`)
 
@@ -80,8 +80,10 @@
 
 ## Decision and next step
 
-- Recommendation/gate decision:
+- Recommendation/gate decision: **Approved by Owner (`2026-11-06T07:30Z`)**
+  - `G0`: **`g0-approved`** (`SPEC-M4-001`)
+  - `G1`: **`g1-approved`** (`ADR-0013`, `DESIGN-M4-001`)
   - `G3a`: **`qa-pass`** (`TEST-M4-001`)
   - `G3b`: **`security-pass-with-exception`** (`SEC-REVIEW-M4-001`, `0` M4 findings open)
   - `G3c`: **`review-approved`** (`REVIEW-M4-001`)
-- Next owner action: Present `G0` (`SPEC-M4-001`), `G1` (`ADR-0013`, `DESIGN-M4-001`), and `G3` (`TEST-M4-001`, `SEC-REVIEW-M4-001`, `REVIEW-M4-001`, `EVID-M4-001`) to the human Owner (Product / Tech Lead / Security / Release Manager) for formal gate sign-off and PR merge into `main`.
+- Next owner action: Merge `m4-registration-ui` into `main` and proceed to M5 release readiness (`G4a/G4b/G5`).

@@ -1,13 +1,13 @@
 # M4 design handoff — Registration merge UI
 
 > **Artifact ID:** `DESIGN-M4-001`  
-> **Artifact status:** `in-review`  
+> **Artifact status:** `g1-approved`  
 > **Canonical gate:** `G1`  
 > **Owner:** Tech Lead + Frontend  
 > **Last reviewed:** 2026-11-06  
 > **Related docs:** [M4 spec](M4-SPEC.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [Architecture](../ARCHITECTURE.md), [Domain model](../DOMAIN_MODEL.md), [Security & privacy](../SECURITY_PRIVACY.md)  
 > **Evidence envelope:** `EVID-M4-001` ([M4-EVIDENCE-ENVELOPE.md](M4-EVIDENCE-ENVELOPE.md))  
-> **Decision actor / UTC timestamp:** Pending Owner (Tech Lead) human sign-off
+> **Decision actor / UTC timestamp:** Approved by Owner (Tech Lead + Security) at `2026-11-06T07:30Z`
 
 ## 1. Context and source
 
@@ -64,5 +64,5 @@ flowchart LR
 
 ## 5. Approval
 
-- Product scope approval: pending Owner sign-off (`SPEC-M4-001`).
-- Tech Lead & Security design review: documented in `ADR-0013` §4; pending Owner human sign-off.
+- Product scope approval: `g0-approved` by Owner (`SPEC-M4-001`, `2026-11-06T07:30Z`).
+- Tech Lead & Security design review: `g1-approved` by Owner (`ADR-0013` §4, `2026-11-06T07:30Z`).

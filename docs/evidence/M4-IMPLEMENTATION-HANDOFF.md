@@ -1,7 +1,7 @@
 # M4 implementation handoff — Registration merge UI
 
 > **Artifact ID:** `IMPL-M4-001`  
-> **Artifact status:** `needs_review` — G2 local checks + E2E pass; awaiting independent G3a/G3b/G3c verification  
+> **Artifact status:** `ready` — G2 local checks + E2E pass; verified by independent G3a/G3b/G3c (`6fd1506`) and approved by Owner (`2026-11-06T07:30Z`)  
 > **Canonical gate:** `G2`  
 > **Task/PR:** `M4 Registration merge UI` (`m4-registration-ui`)  
 > **Owner:** Tech Lead  
@@ -9,7 +9,7 @@
 > **Last reviewed:** 2026-11-06  
 > **Related docs:** [M4 spec](M4-SPEC.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [M4 design handoff](M4-DESIGN-HANDOFF.md), [QA plan](../QA_TEST_PLAN.md), [Security & privacy](../SECURITY_PRIVACY.md)  
 > **Evidence envelope:** [EVID-M4-001](M4-EVIDENCE-ENVELOPE.md)  
-> **Receiving owner / acknowledgement:** Tester (`G3a`), Security Reviewer (`G3b`), Independent Reviewer (`G3c`) — pending
+> **Receiving owner / acknowledgement:** Tester (`G3a`), Security Reviewer (`G3b`), Independent Reviewer (`G3c`), Owner (`2026-11-06T07:30Z`)
 
 ## Source and immutable identity
 
