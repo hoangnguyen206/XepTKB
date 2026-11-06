@@ -91,7 +91,7 @@ test("AC-M3-01/02/03/04/06 — core flow on a 360 px phone, persisted across rel
   await expect(page.getByText(/3 lớp · 9 tín chỉ/)).toBeVisible();
 });
 
-test("AC-M3-05 — no horizontal page scroll at 360/768/1280 and no serious axe violations", async ({ page }) => {
+test("AC-M3-05 — no horizontal page scroll at 360/768/1200/1280 and no serious axe violations", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
@@ -162,6 +162,11 @@ test("AC-M3-05 — keyboard-only path from onboarding to a pick, with visible fo
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "Theo ngày" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: "Theo ngày" })).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tab", { name: /^Phương án/ })).toHaveAttribute("aria-selected", "true");
+  await focusOn((element) => element.text === "Tải lịch (.ics)");
+  const [ics] = await Promise.all([page.waitForEvent("download"), page.keyboard.press("Enter")]);
+  expect(ics.suggestedFilename()).toBe("ky-nay-2026-2027-h2.ics");
 });
 
 test("AC-M3-09/10 — ICS, PNG and Word exports carry the schedule and provenance", async ({ page }) => {
@@ -252,15 +257,13 @@ test("REV-M3-002 — after 'Xóa dữ liệu trên máy' the next online visit m
   await page.getByRole("button", { name: "Xác nhận xóa" }).click();
   await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
   await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
-  // Online visits: the worker installs again and precaches the shell.
-  await page.reload();
-  await startPlan(page);
+  // Creating a new Plan in the same tab (without reloading first) re-registers the worker and precaches the shell (QA-M3-102, QA-M3-104).
+  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
+  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
   await pick(page, "mang may tinh", "SYN2004 1");
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
-  });
-  await page.reload();
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await expect.poll(() => page.evaluate(async () => (await caches.keys()).some((key) => key.startsWith("ky-nay-shell-")))).toBe(true);
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByText("Đang ngoại tuyến")).toBeVisible();

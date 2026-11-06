@@ -23,9 +23,9 @@ ADR-0007 chose a local CLI and static artifacts, and planned the push to a CDN (
    `npm run build:web` copies this tree into the site (`scripts/site-data.mjs`), so Cloudflare Pages is the CDN. Publish and rollback are commits, and git history is the audit trail. The raw source file never enters the repository: only its SHA-256 and a safe document reference do (ADR-0007 §2).
 2. **CLI** `npm run dataset -- <command>` (`scripts/dataset.mjs`):
    - `import` — parse with `uet-xlsx`; refuse on any blocking error, unaccounted row, duplicate source hash or unreviewed column set; write the artifacts, a `candidate` manifest entry, a report in `data/reports/<version>.md` (template `DATA_IMPORT_REPORT`, with a diff against the previous version of the term) and a line in `data/audit.jsonl`;
-   - `validate`, `publish`, `retract`, `status`, `check`.
+   - `validate`, `publish`, `retract`, `restore`, `status`, `check`.
 3. **Lifecycle (runbook §7):**
-   - `candidate → validated → published`, and any status → `retracted`;
+   - `candidate → validated → published`, any status → `retracted`, and `retracted → validated` via `restore` (with a recorded reason);
    - the current dataset of a term is the last allowed entry in manifest order, so retracting the newest published version falls back to the previous one.
 4. **Two people.** `validate` refuses a reviewer who is also the importer. While the project has one maintainer, `--accept-single-reviewer "<reason>"` records a process exception in the audit log and the report. Neither is technical enforcement (as ADR-0007 states).
 5. **Preview vs production.**

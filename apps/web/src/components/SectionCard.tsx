@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { isFixedSession, normalizeGroup, sessionsForPick, type Plan, type Section, type Session } from "@ky-nay/domain";
 import { dayLabel, formatPeriods, formatSessionExtras, formatWeeks, kindText, periodTimes } from "@ky-nay/export";
 import type { AppCatalog } from "../model/catalog.js";
@@ -24,14 +24,19 @@ export function SectionCard(props: { section: Section; plan: Plan; catalog: AppC
   const { section, plan, catalog } = props;
   const groups = groupOptions(section);
   const picked = isPicked(plan, section);
-  // A picked group can stop existing after a dataset revision (REV-M3-001).
+  // A picked group can stop existing after a dataset revision (REV-M3-001, QA-M3-101).
   const pickedNeedsGroup = picked !== undefined && sessionsForPick(section, picked).issues.length > 0;
   const sameCourse = pickForCourse(plan, catalog, section);
-  const [group, setGroup] = useState<string | undefined>(() => normalizeGroup(picked?.group));
-  const needsGroup = groups.length > 0 && group === undefined;
-  const pickedSameGroup = picked !== undefined && normalizeGroup(picked.group) === group;
+  const pickedGroup = normalizeGroup(picked?.group);
+  const [group, setGroup] = useState<string | undefined>(() => pickedGroup);
+  useEffect(() => {
+    setGroup(pickedGroup);
+  }, [pickedGroup, section.id]);
+  const selectedGroup = group !== undefined && (groups.length === 0 || groups.includes(group)) ? group : undefined;
+  const needsGroup = groups.length > 0 && selectedGroup === undefined;
+  const pickedSameGroup = picked !== undefined && !pickedNeedsGroup && pickedGroup === selectedGroup;
   // A picked card keeps showing its conflicts (QA-M3-007): previewing the current pick resolves to the Plan itself.
-  const preview = !needsGroup ? previewPick(plan, catalog, group ? { sectionId: section.id, group } : { sectionId: section.id }) : undefined;
+  const preview = !needsGroup ? previewPick(plan, catalog, selectedGroup ? { sectionId: section.id, group: selectedGroup } : { sectionId: section.id }) : undefined;
   const conflicting = (preview?.conflictTexts.length ?? 0) > 0;
   const untimed = section.sessions.every((session) => !isFixedSession(session));
   const action = pickedSameGroup ? "Bỏ chọn lớp này"
@@ -60,7 +65,7 @@ export function SectionCard(props: { section: Section; plan: Plan; catalog: AppC
           <div className="group-options">
             {groups.map((option) => (
               <div className="radio-row" key={option}>
-                <input type="radio" id={`${id}-g-${option}`} name={`${id}-group`} checked={group === option} onChange={() => setGroup(option)} />
+                <input type="radio" id={`${id}-g-${option}`} name={`${id}-group`} checked={selectedGroup === option} onChange={() => setGroup(option)} />
                 <label htmlFor={`${id}-g-${option}`}>Nhóm {option}</label>
               </div>
             ))}
@@ -79,7 +84,7 @@ export function SectionCard(props: { section: Section; plan: Plan; catalog: AppC
           type="button"
           className={`button ${pickedSameGroup ? "secondary" : conflicting ? "danger" : "primary"}`}
           disabled={!pickedSameGroup && needsGroup}
-          onClick={() => (pickedSameGroup ? props.onUnpick(section.id) : props.onPick(section.id, group))}
+          onClick={() => (pickedSameGroup ? props.onUnpick(section.id) : props.onPick(section.id, selectedGroup))}
         >
           {action}
         </button>

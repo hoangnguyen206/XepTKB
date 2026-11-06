@@ -160,7 +160,23 @@ No change to `@ky-nay/domain` or `@ky-nay/parser` source in M3. Domain schema st
   - `uet-config.ts` adds `FORBIDDEN_HEADER_PATTERNS` (blocking PII column headers with `UNSUPPORTED_INPUT` error and excluding them from `session.info`) and `infoColumns` per format in `KNOWN_FORMATS`.
   - `uet-xlsx-adapter.ts` includes `infoColumns` in `formatFingerprint` and `ParseCoverage`, so any unreviewed non-canonical column sets `artifact.status = "hold"` and emits `FORMAT_UNRECOGNIZED`; `UNKNOWN_COLUMN` now carries `rawValue: label`.
   - `scripts/dataset.mjs` & `scripts/lib/dataset-core.mjs` print `Extra (info) columns` in the import report and require the Data Reviewer to confirm `--accept-new-format` at `validate` when a candidate was imported with `--accept-new-format`.
-- **Verification:** `npm run check` exit 0 (`lint` pass, `typecheck` pass, `node:test` 98/98, Vitest 54/54, fixtures 6/6, `dataset check` OK). Ready for narrow G3b/G3c re-verification.
+- **Verification:** `npm run check` exit 0 (`lint` pass, `typecheck` pass, `node:test` 98/98, Vitest 54/54, fixtures 6/6, `dataset check` OK). Committed as `db0058c`.
+
+## Fix round 2026-11-06b (S3 remediation across parser, web app, CLI & docs)
+
+- **Parser DoS hardening (`SEC-M3-103` / `AUD-010`, `packages/parser/src/ooxml.ts`, `packages/parser/test/uet-xlsx.test.ts`):**
+  - Strict cell/row/column bounds (`col <= 16_383`, `row <= 100_000`) and per-sheet merged-cell expansion cap (`MAX_MERGED_CELLS = 200_000`). All 5 adversarial C13 workbooks fail closed in `< 15 ms` with `MALFORMED_INPUT`.
+- **Web app resilience & UX (`REV-M3-104`, `SEC-M3-001`, `SEC-M3-003`, `SEC-M3-006a`, `QA-M3-101`, `QA-M3-102`, `REV-M3-008`):**
+  - `loader.ts`: sweeps `cache.all()` on manifest fetch to purge retracted datasets across inactive terms (`SEC-M3-001`) and wraps `cache.get()` in `.catch(() => undefined)` (`REV-M3-104`).
+  - `controller.ts` & `Chrome.tsx`: catches `loadDataset` errors (`REV-M3-104`), increments `wipeGeneration` across tabs on `wiped` broadcast (`SEC-M3-006a`), and calls `ensureServiceWorkerAfterWipe()` (`sw-client.ts` + `REPOPULATE_PRECACHE` in `vite.config.ts`) when saving a new Plan after wipe (`QA-M3-102`).
+  - `SectionCard.tsx`: syncs `group` state on rebase and disables `"Đổi nhóm"` when the group was cleared or removed (`QA-M3-101`).
+  - `playwright.config.ts` & `e2e/m3.spec.ts`: default port `4380` (`QA-M3-103`), optional `webkit` project (`E2E_WEBKIT=1`) and removal of redundant `page.reload()` in `REV-M3-002` (`QA-M3-104`), keyboard-to-export `.ics` test and campus-transition warning tests (`REV-M3-008`).
+- **Dataset CLI & build scripts (`SEC-M3-101`, `SEC-M3-104`, `SEC-M3-005`, `REV-M3-105`, `REV-M3-106`, `REV-M3-107`):**
+  - `dataset-core.mjs` & `dataset.mjs`: `normalizeActor`, fail-closed missing importer in `audit.jsonl`, actor check on `publish`, `restore <version> --by --reason` (`retracted → validated`), `sanitizeCliText`, `isSafeRelativePath` + symlink checks + audit replay in `dataset check`.
+  - `site-data.mjs`: verifies hashes/paths, rejects symlinks, and strips `candidate`/`validated` datasets on production builds.
+  - `lint.mjs`: string-aware `stripComments` and `.js`/`.jsx`/`.cjs` scanning.
+  - `published.test.ts` & `dataset-core.test.mjs`: dual-policy (`allowUnpublished: true/false`) and full CLI `import → validate → publish → retract → restore → publish → check` round-trip tests.
+- **Verification:** `npm run check` exit 0 (`node:test` 101/101, Vitest 60/60, fixtures 6/6, `dataset check` OK); `npm run test:e2e` exit 0 (Playwright Chromium 17/17); Playwright WebKit `REV-M3-002` `--repeat-each=3` exit 0 (3/3).
 
 ## Handoff decision
 

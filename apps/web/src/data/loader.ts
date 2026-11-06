@@ -170,16 +170,20 @@ export async function loadDataset(term: string | undefined, options: LoaderOptio
       ? { kind: "cached", reason, error: failure, dataset: cached, terms: available.map((dataset) => termOption(dataset.entry)) }
       : { kind: "unavailable", error: failure, terms: [] };
   }
+  const allCached = await options.cache.all().catch(() => []);
+  for (const item of allCached) {
+    if (isRetracted(manifest, item)) await options.cache.delete(item.entry.term).catch(() => undefined);
+  }
   const entries = currentEntries(manifest, options.allowUnpublished);
   const terms = entries.map(termOption);
   const entry = entries.find((candidate) => candidate.term === term) ?? (term === undefined ? entries[0] : undefined);
   if (!entry) {
     // A reachable manifest that retracts the cached version also removes it from the device, so it cannot reappear offline.
-    const stale = term ? await options.cache.get(term) : undefined;
+    const stale = term ? await options.cache.get(term).catch(() => undefined) : undefined;
     if (stale && isRetracted(manifest, stale)) await options.cache.delete(stale.entry.term).catch(() => undefined);
     return { kind: "unavailable", error: new ArtifactError("NO_DATASET", term ? `không có dữ liệu được phép dùng cho kỳ ${term}` : "chưa có dữ liệu nào được công bố"), terms };
   }
-  const cached = await options.cache.get(entry.term);
+  const cached = await options.cache.get(entry.term).catch(() => undefined);
   // Same version and hashes: reuse the cached payload but take status/review dates from the manifest.
   if (cached && sameArtifacts(cached.entry, entry)) return { kind: "fresh", dataset: { ...cached, entry }, terms };
   let dataset: LoadedDataset;

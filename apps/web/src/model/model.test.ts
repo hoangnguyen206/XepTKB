@@ -39,6 +39,19 @@ describe("search and picker", () => {
     expect(quiet.conflictTexts).toEqual([]);
   });
 
+  it("warns about same-day campus transitions without blocking the pick (REV-M3-008)", () => {
+    const tt = testTimetable();
+    tt.sections[0]!.sessions[0] = { ...tt.sections[0]!.sessions[0]!, room: "203-G2", campus: "Cầu Giấy" };
+    const withCampus = buildAppCatalog({ ...dataset(), timetable: tt });
+    const first = applyPick(empty(), withCampus, { sectionId: "SYN1001 1", group: "1" }, NOW).plan!;
+    const preview = previewPick(first, withCampus, { sectionId: "SYN1003 2" });
+    expect(preview.conflictTexts).toEqual([]);
+    expect(preview.campusTexts).toHaveLength(1);
+    expect(preview.campusTexts[0]).toMatch(/Học liền tiết với SYN1001 1 nhưng khác cơ sở \(Cầu Giấy ↔ Hòa Lạc\), Thứ 2, tuần 1–3/);
+    const both = applyPick(first, withCampus, { sectionId: "SYN1003 2" }, NOW).plan!;
+    expect(buildPlanView(both, withCampus).campusWarnings).toHaveLength(1);
+  });
+
   it("replaces another section of the same course and keeps the draft immutable", () => {
     const first = applyPick(empty(), catalog, { sectionId: "SYN1001 2" }, NOW).plan!;
     const second = applyPick(first, catalog, { sectionId: "SYN1001 1", group: "2" }, "2026-10-25T01:00:00.000Z").plan!;

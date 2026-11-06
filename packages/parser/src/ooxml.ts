@@ -3,7 +3,9 @@ import { DOMParser } from "@xmldom/xmldom";
 
 const MAX_ENTRY_BYTES = 16 * 1024 * 1024;
 const MAX_TOTAL_XML_BYTES = 32 * 1024 * 1024;
-const MAX_COL_INDEX = 16383; // XFD (16,384 columns in OOXML)
+const MAX_COL_INDEX = 16383; // XFD (16,384 columns in OOXML, 0-based)
+const MAX_ROW_NUMBER = 100000; // Safe upper bound on row number in a timetable sheet (OOXML max is 1,048,576)
+const MAX_MERGED_CELLS = 200000; // Maximum total cells expanded across mergeCell ranges per sheet
 
 type ZipEntries = Map<string, Uint8Array>;
 
@@ -99,11 +101,28 @@ function unzipBounded(bytes: Uint8Array): ZipEntries {
   return entries;
 }
 
-function columnIndex(ref: string): number {
-  const letters = ref.match(/^[A-Z]+/i)?.[0].toUpperCase() ?? "A";
+function parseColumnIndex(letters: string): number {
+  if (!/^[A-Z]{1,3}$/i.test(letters)) {
+    throw new Error(`OOXML cell reference has out-of-bounds column: ${letters}`);
+  }
   let index = 0;
-  for (const letter of letters) index = index * 26 + letter.charCodeAt(0) - 64;
-  return Math.max(0, index - 1);
+  for (const letter of letters.toUpperCase()) index = index * 26 + letter.charCodeAt(0) - 64;
+  const col = index - 1;
+  if (col < 0 || col > MAX_COL_INDEX) {
+    throw new Error(`OOXML cell reference has out-of-bounds column: ${letters}`);
+  }
+  return col;
+}
+
+function parseCellRef(ref: string): { col: number; row: number } {
+  const match = ref.match(/^([A-Z]+)(\d+)$/i);
+  if (!match) throw new Error(`malformed OOXML cell reference: ${ref}`);
+  const col = parseColumnIndex(match[1]!);
+  const row = Number(match[2]!);
+  if (!Number.isInteger(row) || row < 1 || row > MAX_ROW_NUMBER) {
+    throw new Error(`OOXML cell reference has out-of-bounds row: ${ref}`);
+  }
+  return { col, row };
 }
 
 function textContent(node: any): string {
@@ -135,17 +154,27 @@ function cellValue(cell: any, strings: string[]): string {
 }
 
 function fillMergedCells(rows: string[][], mergeRefs: string[], hiddenRows: Set<number>, hiddenCols: Set<number>): void {
+  let expandedCells = 0;
   for (const reference of mergeRefs) {
-    const [start, endValue] = reference.split(":");
-    const end = endValue ?? start;
-    if (!start || !end) continue;
-    const startMatch = start.match(/([A-Z]+)(\d+)/i);
-    const endMatch = end.match(/([A-Z]+)(\d+)/i);
-    if (!startMatch || !endMatch) continue;
-    const startRow = Number(startMatch[2]) - 1;
-    const endRow = Number(endMatch[2]) - 1;
-    const startCol = columnIndex(startMatch[1]!);
-    const endCol = columnIndex(endMatch[1]!);
+    const parts = reference.split(":");
+    if (parts.length > 2) throw new Error(`malformed OOXML mergeCell reference: ${reference}`);
+    const startRef = parts[0];
+    const endRef = parts[1] ?? startRef;
+    if (!startRef || !endRef) throw new Error(`malformed OOXML mergeCell reference: ${reference}`);
+    const start = parseCellRef(startRef);
+    const end = parseCellRef(endRef);
+    const startRow = start.row - 1;
+    const endRow = end.row - 1;
+    const startCol = start.col;
+    const endCol = end.col;
+    if (endRow < startRow || endCol < startCol) {
+      throw new Error(`OOXML mergeCell range is inverted: ${reference}`);
+    }
+    const spanCells = (endRow - startRow + 1) * (endCol - startCol + 1);
+    expandedCells += spanCells;
+    if (expandedCells > MAX_MERGED_CELLS) {
+      throw new Error(`OOXML mergeCell expansion exceeds safe limit (${MAX_MERGED_CELLS} cells): ${reference}`);
+    }
     if (hiddenRows.has(startRow) || hiddenCols.has(startCol)) continue;
     const value = rows[startRow]?.[startCol] ?? "";
     if (!value) continue;
@@ -215,7 +244,11 @@ export function readOoxmlWorkbook(bytes: Uint8Array): OoxmlWorkbook {
     const rowNumbers: number[] = [];
     let fallbackRow = 1;
     for (const row of directChildren(data, "row")) {
-      const rowNumber = Number(attr(row, "r") ?? fallbackRow);
+      const rawRow = attr(row, "r");
+      const rowNumber = rawRow !== undefined ? Number(rawRow) : fallbackRow;
+      if (!Number.isInteger(rowNumber) || rowNumber < 1 || rowNumber > MAX_ROW_NUMBER) {
+        throw new Error(`OOXML row number exceeds safe limit: ${rawRow ?? rowNumber}`);
+      }
       fallbackRow = rowNumber + 1;
       if (isHiddenAttr(attr(row, "hidden"))) {
         hiddenRows.add(rowNumber - 1);
@@ -224,7 +257,10 @@ export function readOoxmlWorkbook(bytes: Uint8Array): OoxmlWorkbook {
       const values: string[] = [];
       for (const cell of directChildren(row, "c")) {
         const ref = attr(cell, "r");
-        const index = ref ? columnIndex(ref) : values.length;
+        const index = ref ? parseCellRef(ref).col : values.length;
+        if (index > MAX_COL_INDEX) {
+          throw new Error(`OOXML column index exceeds safe limit: ${index}`);
+        }
         if (hiddenCols.has(index)) {
           values[index] = "";
           continue;

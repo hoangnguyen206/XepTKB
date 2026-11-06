@@ -71,6 +71,47 @@ describe("artifact loader (AC-M3-07)", () => {
     expect((await loadDataset(TERM, { allowUnpublished: true, cache, fetchImpl: offline })).kind).toBe("unavailable");
   });
 
+  it("purges a retracted dataset for an inactive term when fetching the manifest for the active term (SEC-M3-001)", async () => {
+    const { files, entry } = serveDataset();
+    const cache = memoryCache();
+    const loaded = await loadDataset(TERM, { allowUnpublished: true, cache, fetchImpl: stubFetch(files) });
+    if (loaded.kind !== "fresh") throw new Error("setup failed");
+    const otherTerm = "2026-2027-h1";
+    const otherVersion = "test-uet-h1.1";
+    await cache.put({
+      ...loaded.dataset,
+      entry: { ...loaded.dataset.entry, term: otherTerm, termName: "Học kỳ I", datasetVersion: otherVersion },
+    });
+    expect(cache.store.has(otherTerm)).toBe(true);
+    files.set(
+      "data/manifest.json",
+      JSON.stringify({
+        schemaVersion: "1.0",
+        generatedAt: "2026-10-26T00:00:00.000Z",
+        datasets: [
+          entry,
+          { ...entry, term: otherTerm, termName: "Học kỳ I", datasetVersion: otherVersion, status: "retracted" },
+        ],
+      }),
+    );
+    const active = await loadDataset(TERM, { allowUnpublished: true, cache, fetchImpl: stubFetch(files) });
+    expect(active.kind).toBe("fresh");
+    expect(cache.store.has(otherTerm)).toBe(false);
+    expect((await loadDataset(otherTerm, { allowUnpublished: true, cache, fetchImpl: offline })).kind).toBe("unavailable");
+  });
+
+  it("recovers from a failing cache.get() when the network dataset is valid (REV-M3-104)", async () => {
+    const { files } = serveDataset();
+    const cache = {
+      ...memoryCache(),
+      get: async () => {
+        throw new DOMException("idb broken", "InvalidStateError");
+      },
+    };
+    const result = await loadDataset(TERM, { allowUnpublished: true, cache, fetchImpl: stubFetch(files) });
+    expect(result.kind).toBe("fresh");
+  });
+
   it("offline, every cached term can be opened and is offered for switching (QA-M3-006)", async () => {
     const { files } = serveDataset();
     const cache = memoryCache();

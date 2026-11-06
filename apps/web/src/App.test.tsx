@@ -2,9 +2,12 @@ import { IDBFactory } from "fake-indexeddb";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createPlan } from "@ky-nay/domain";
 import { App } from "./App.js";
 import { previewWeek1 } from "./components/Onboarding.js";
-import { serveDataset, stubFetch, testMetadata } from "./test/fixture.js";
+import { SectionCard } from "./components/SectionCard.js";
+import { buildAppCatalog } from "./model/catalog.js";
+import { serveDataset, stubFetch, testMetadata, testTimetable, VERSION } from "./test/fixture.js";
 
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory();
@@ -104,5 +107,57 @@ describe("picker and plan (AC-M3-02, AC-M3-03, AC-M3-11, AC-M3-13)", () => {
     expect(within(panel).getByText("Không có giờ cố định (không xếp vào lưới)")).toBeTruthy();
     expect(panel.querySelectorAll(".day-body .block")).toHaveLength(0);
     expect(screen.getByText(/1 lớp · 2 tín chỉ/)).toBeTruthy();
+  });
+
+  it("disables 'Đổi nhóm' when a dataset revision/rebase removes or clears the picked group (QA-M3-101)", async () => {
+    const user = userEvent.setup();
+    const { entry } = serveDataset();
+    const catalog = buildAppCatalog({ entry, timetable: testTimetable(), metadata: testMetadata(), cachedAt: "2026-10-25T00:00:00.000Z" });
+    const section = catalog.sectionById.get("SYN1001 1")!;
+    const planWithDeletedGroup = {
+      ...createPlan({ id: "p", term: "2026-2027-h2", datasetVersion: VERSION, name: "Nháp", planKind: "draft" }, "2026-10-25T00:00:00.000Z"),
+      picks: [{ sectionId: "SYN1001 1", group: "99" }],
+    };
+    const onPick = vi.fn();
+    const { rerender } = render(
+      <SectionCard section={section} plan={planWithDeletedGroup} catalog={catalog} onPick={onPick} onUnpick={() => undefined} headingLevel="h3" />,
+    );
+    expect(screen.getByText(/⚠ Cần chọn lại nhóm/)).toBeTruthy();
+    const changeBtn = screen.getByRole("button", { name: "Đổi nhóm" }) as HTMLButtonElement;
+    expect(changeBtn.disabled).toBe(true);
+
+    // After rebase clears `group` to undefined, the button remains disabled until a radio is chosen.
+    const rebasedPlan = { ...planWithDeletedGroup, picks: [{ sectionId: "SYN1001 1" }] };
+    rerender(
+      <SectionCard section={section} plan={rebasedPlan} catalog={catalog} onPick={onPick} onUnpick={() => undefined} headingLevel="h3" />,
+    );
+    expect((screen.getByRole("button", { name: "Đổi nhóm" }) as HTMLButtonElement).disabled).toBe(true);
+    await user.click(screen.getByLabelText("Nhóm 2"));
+    const enabledBtn = screen.getByRole("button", { name: "Đổi nhóm" }) as HTMLButtonElement;
+    expect(enabledBtn.disabled).toBe(false);
+    await user.click(enabledBtn);
+    expect(onPick).toHaveBeenCalledWith("SYN1001 1", "2");
+  });
+
+  it("renders same-day campus-transition warnings in the section card and plan tab (REV-M3-008)", async () => {
+    const tt = testTimetable();
+    tt.sections[0]!.sessions[0] = { ...tt.sections[0]!.sessions[0]!, room: "203-G2", campus: "Cầu Giấy" };
+    vi.stubGlobal("fetch", stubFetch(serveDataset({ status: "published", timetable: tt }).files));
+    const user = userEvent.setup();
+    await startPlan(user);
+    await openCourse(user, "giai tich", "SYN1001");
+    const card1 = screen.getByRole("article", { name: "Lớp SYN1001 1" });
+    await user.click(within(card1).getByLabelText("Nhóm 1"));
+    await user.click(within(card1).getByRole("button", { name: "Chọn lớp này" }));
+
+    await openCourse(user, "vat ly", "SYN1003");
+    const card2 = screen.getByRole("article", { name: "Lớp SYN1003 2" });
+    expect(within(card2).getByText(/ⓘ Học liền tiết với SYN1001 1 nhưng khác cơ sở \(Cầu Giấy ↔ Hòa Lạc\), Thứ 2, tuần 1–3/)).toBeTruthy();
+    await user.click(within(card2).getByRole("button", { name: "Chọn lớp này" }));
+
+    await user.click(screen.getByRole("tab", { name: /^Phương án/ }));
+    const panel = await screen.findByRole("tabpanel");
+    expect(within(panel).getByText(/Cần kiểm tra/)).toBeTruthy();
+    expect(within(panel).getByText(/SYN1001 1 và SYN1003 2 học liền tiết nhưng khác cơ sở \(Cầu Giấy ↔ Hòa Lạc\), Thứ 2, tuần 1–3/)).toBeTruthy();
   });
 });

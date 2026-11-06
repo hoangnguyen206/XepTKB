@@ -267,3 +267,29 @@ test("uet-xlsx fails closed for malformed input and size limit", () => {
   const oversized = uetXlsxAdapter.parse({ ...input(new Uint8Array(20)), maxBytes: 10 });
   assert.ok(oversized.issues.some((item) => item.code === "INPUT_TOO_LARGE"));
 });
+
+test("SEC-M3-103: OOXML reader fails closed on huge mergeCell ranges and out-of-bounds cell/row coordinates", () => {
+  const cases = [
+    syntheticXlsx([{ name: "TKB", rows: [headers, ["K69I", "INT2213", "Lập trình", "3", "INT2213 1", "CL", "LT", "T2", "", "1-2", "203-G2", "GV A", ""]], merges: ["A2:XFD1048576"] }]),
+    syntheticXlsx([{ name: "TKB", rows: [headers, ["K69I", "INT2213", "Lập trình", "3", "INT2213 1", "CL", "LT", "T2", "", "1-2", "203-G2", "GV A", ""]], merges: ["A2:Z200000"] }]),
+    syntheticXlsx([{ name: "TKB", rows: [headers, ["K69I", "INT2213", "Lập trình", "3", "INT2213 1", "CL", "LT", "T2", "", "1-2", "203-G2", "GV A", ""]], merges: ["A2:Z10000"] }]),
+    syntheticXlsx([{
+      name: "TKB",
+      rows: [],
+      rawSheetXml: `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="FXSHRXW2" t="inlineStr"><is><t>x</t></is></c></row></sheetData></worksheet>`,
+    }]),
+    syntheticXlsx([{
+      name: "TKB",
+      rows: [],
+      rawSheetXml: `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="4000000000"><c r="A4000000000" t="inlineStr"><is><t>x</t></is></c></row></sheetData></worksheet>`,
+    }]),
+  ];
+  for (const bytes of cases) {
+    const start = Date.now();
+    const res = uetXlsxAdapter.parse(input(bytes));
+    const elapsed = Date.now() - start;
+    assert.equal(res.sections.length, 0);
+    assert.ok(res.issues.some((i) => i.code === "MALFORMED_INPUT" && i.severity === "error"));
+    assert.ok(elapsed < 200, `expected <200ms rejection, took ${elapsed}ms`);
+  }
+});

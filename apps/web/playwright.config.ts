@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 4180;
+const PORT = Number(process.env.E2E_PORT ?? 4380);
 /** SEC-M3-003: the e2e build allows unpublished data, so it is written apart from the release build in `dist/`. */
 const OUT_DIR = "dist-e2e";
 
@@ -25,5 +25,8 @@ export default defineConfig({
     timeout: 240_000,
     env: { VITE_ALLOW_UNPUBLISHED: "true" },
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    ...(process.env.E2E_WEBKIT === "1" ? [{ name: "webkit", use: { ...devices["Desktop Safari"] } }] : []),
+  ],
 });

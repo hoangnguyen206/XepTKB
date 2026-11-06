@@ -49,6 +49,30 @@ export function registerServiceWorker(): void {
   }).catch(() => undefined);
 }
 
+/**
+ * Re-registers the service worker and repopulates its shell precache after a local-data wipe when the user creates a
+ * new Plan in the same tab without reloading (QA-M3-102). Does not show an update banner or force a page reload.
+ */
+export function ensureServiceWorkerAfterWipe(): void {
+  if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
+  void navigator.serviceWorker
+    .getRegistrations()
+    .then(async (registrations) => {
+      if (registrations.length > 0) return;
+      const reg = await navigator.serviceWorker.register("./sw.js");
+      if (reg.waiting) reg.waiting.postMessage("SKIP_WAITING");
+      reg.addEventListener("updatefound", () => {
+        const worker = reg.installing;
+        worker?.addEventListener("statechange", () => {
+          if (worker.state === "installed") worker.postMessage("SKIP_WAITING");
+        });
+      });
+      const active = reg.active ?? navigator.serviceWorker.controller;
+      if (active) active.postMessage("REPOPULATE_PRECACHE");
+    })
+    .catch(() => undefined);
+}
+
 /** The pending "reload into the new version" action, if a new service worker is waiting. */
 export function usePendingUpdate(): (() => void) | undefined {
   return useSyncExternalStore(

@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 const root = process.cwd();
-const allowedExtensions = new Set([".ts", ".tsx", ".mjs"]);
+const allowedExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const ignoredDirectories = new Set(["node_modules", "dist", "test-results", "playwright-report"]);
 
 const common = [
@@ -48,9 +48,12 @@ function walk(path, rules) {
   }
 }
 
-/** Blanks comments but keeps line breaks, so a match still reports the right line and prose never trips a rule. */
+/** Blanks comments (ignoring `//` or `/*` inside string literals) while keeping line breaks (SEC-M3-005). */
 function stripComments(source) {
-  return source.replace(/\/\*[\s\S]*?\*\/|(?<![:"'`\\])\/\/[^\n]*/g, (comment) => comment.replace(/[^\n]/g, " "));
+  return source.replace(
+    /"(?:\\[\s\S]|[^"\\\n])*"|'(?:\\[\s\S]|[^'\\\n])*'|`(?:\\[\s\S]|[^`\\])*`|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,
+    (match) => (match.startsWith("/") ? match.replace(/[^\n]/g, " ") : match),
+  );
 }
 
 function check(file, rules) {

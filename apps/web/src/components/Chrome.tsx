@@ -70,10 +70,10 @@ function BackupList(props: { db: IDBDatabase }) {
   );
 }
 
-export function Footer(props: { db?: IDBDatabase; onWipe: () => Promise<void> }) {
+export function Footer(props: { db?: IDBDatabase; wipeGeneration?: number; onWipe: () => Promise<void> }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  // Remounting the list after a wipe reloads it, so deleted backups are no longer offered (SEC-M3-006a).
+  // Remounting the list after a wipe (same-tab or BroadcastChannel cross-tab) reloads it, so deleted backups are no longer offered (SEC-M3-006a).
   const [generation, setGeneration] = useState(0);
   return (
     <footer className="app-footer">
@@ -81,7 +81,7 @@ export function Footer(props: { db?: IDBDatabase; onWipe: () => Promise<void> })
       <p>{PRIVACY_NOTE}</p>
       <details className="local-data">
         <summary>Dữ liệu trên máy</summary>
-        {props.db ? <BackupList key={generation} db={props.db} /> : null}
+        {props.db ? <BackupList key={`${generation}-${props.wipeGeneration ?? 0}`} db={props.db} /> : null}
         {confirming ? (
           <div className="actions">
             <p>Xóa phương án, dữ liệu thời khóa biểu đã lưu và bộ nhớ đệm của ứng dụng trên thiết bị này? Không thể hoàn tác.</p>

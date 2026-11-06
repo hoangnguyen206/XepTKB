@@ -105,7 +105,7 @@ export function App() {
           </div>
         ) : null}
       </main>
-      <Footer {...(controller.db() ? { db: controller.db()! } : {})} onWipe={controller.wipe} />
+      <Footer {...(controller.db() ? { db: controller.db()! } : {})} wipeGeneration={controller.wipeGeneration} onWipe={controller.wipe} />
     </>
   );
 }

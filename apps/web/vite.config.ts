@@ -11,7 +11,9 @@ import { defineConfig } from "vitest/config";
 const PRODUCTION_BRANCH = "main";
 if (process.env.CF_PAGES === "1") {
   const branch = process.env.CF_PAGES_BRANCH;
-  process.env.VITE_ALLOW_UNPUBLISHED = branch !== undefined && branch !== "" && branch !== PRODUCTION_BRANCH ? "true" : "false";
+  const allow = branch !== undefined && branch !== "" && branch !== PRODUCTION_BRANCH;
+  process.env.VITE_ALLOW_UNPUBLISHED = allow ? "true" : "false";
+  if (!allow) process.env.NODE_ENV = "production";
 }
 
 /** ADR-0010 §4. Build only: the dev server needs inline scripts for hot reload. */
@@ -113,6 +115,9 @@ self.addEventListener("activate", (event) => {
 });
 self.addEventListener("message", (event) => {
   if (event.data === "SKIP_WAITING") self.skipWaiting();
+  if (event.data === "REPOPULATE_PRECACHE") {
+    event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
+  }
 });
 self.addEventListener("fetch", (event) => {
   const request = event.request;

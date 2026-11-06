@@ -1,19 +1,20 @@
 /** Boot sequence and persistence for the single-page app. */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Plan } from "@ky-nay/domain";
-import type { ArtifactError, LoadedDataset } from "../data/contract.js";
+import { ArtifactError, type LoadedDataset } from "../data/contract.js";
 import { loadDataset, type DatasetCacheLike, type TermOption } from "../data/loader.js";
 import { buildAppCatalog, type AppCatalog } from "../model/catalog.js";
 import { openDb } from "../storage/db.js";
 import { datasetCache, loadSettings, saveSettings, wipeLocalData } from "../storage/local-data.js";
 import { loadPlans, savePlanIfUnchanged } from "../storage/plan-store.js";
+import { ensureServiceWorkerAfterWipe } from "./sw-client.js";
 
 /** Cross-tab messages (QA-M3-005): another tab saved Plans or wiped the device data. */
 type TabMessage = { type: "plans-changed" } | { type: "wiped" };
 const CHANNEL = "ky-nay";
 
-/** ADR-0010 §2 rule 4: the dev server and builds made with VITE_ALLOW_UNPUBLISHED=true may load unpublished data. */
-export const ALLOW_UNPUBLISHED = import.meta.env.DEV || import.meta.env.VITE_ALLOW_UNPUBLISHED === "true";
+/** ADR-0010 §2 rule 4 / SEC-M3-003: dev server and preview builds with VITE_ALLOW_UNPUBLISHED=true may load unpublished data; explicit "false" always disables it. */
+export const ALLOW_UNPUBLISHED = import.meta.env.VITE_ALLOW_UNPUBLISHED === "true" || (import.meta.env.DEV && import.meta.env.VITE_ALLOW_UNPUBLISHED !== "false");
 
 export type Ready = {
   status: "ready";
@@ -40,6 +41,7 @@ function memoryCache(): DatasetCacheLike {
 export function useAppController() {
   const [state, setState] = useState<AppState>({ status: "loading" });
   const [notices, setNotices] = useState<StorageNotice[]>([]);
+  const [wipeGeneration, setWipeGeneration] = useState(0);
   const dbRef = useRef<IDBDatabase | undefined>(undefined);
   const cacheRef = useRef<DatasetCacheLike>(memoryCache());
   const plansRef = useRef<Plan[]>([]);
@@ -58,7 +60,14 @@ export function useAppController() {
 
   const load = useCallback(async (term: string | undefined) => {
     setState({ status: "loading" });
-    const result = await loadDataset(term, { allowUnpublished: ALLOW_UNPUBLISHED, cache: cacheRef.current });
+    let result;
+    try {
+      result = await loadDataset(term, { allowUnpublished: ALLOW_UNPUBLISHED, cache: cacheRef.current });
+    } catch (error) {
+      const failure = error instanceof ArtifactError ? error : new ArtifactError("INVALID_ARTIFACT", error instanceof Error ? error.message : String(error));
+      setState({ status: "unavailable", error: failure, terms: [] });
+      return;
+    }
     if (result.kind === "unavailable") {
       setState({ status: "unavailable", error: result.error, terms: result.terms });
       return;
@@ -106,6 +115,7 @@ export function useAppController() {
   }, [load]);
 
   const persistPlan = useCallback(async (plan: Plan) => {
+    void ensureServiceWorkerAfterWipe();
     // The edit was made on the version this tab showed; captured now, a copy that another tab stored meanwhile
     // (and that this tab may reload before the queued save runs) still counts as a change and is not overwritten.
     const base = plansRef.current.find((item) => item.id === plan.id)?.updatedAt;
@@ -134,6 +144,7 @@ export function useAppController() {
     const db = dbRef.current;
     plansRef.current = [];
     cacheRef.current = db ? datasetCache(db) : memoryCache();
+    setWipeGeneration((n) => n + 1);
     setNotices([{ kind: "info", text }]);
     await load(undefined);
   }, [load]);
@@ -162,6 +173,7 @@ export function useAppController() {
   return {
     state,
     notices,
+    wipeGeneration,
     dismissNotice: (index: number) => setNotices((current) => current.filter((_, position) => position !== index)),
     switchTerm: (term: string) => load(term),
     retry: () => load(state.status === "ready" ? state.dataset.entry.term : undefined),

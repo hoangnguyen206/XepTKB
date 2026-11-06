@@ -9,6 +9,8 @@ export type SyntheticSheet = {
   hiddenCols?: number[];
   /** 1-based row numbers to mark with `<row r="n" hidden="1">`. */
   hiddenRows?: number[];
+  /** Optional raw XML override for the worksheet body (`<sheetData>...</sheetData><mergeCells>...`). */
+  rawSheetXml?: string;
 };
 
 function escapeXml(value: string): string {
@@ -27,6 +29,7 @@ function columnName(index: number): string {
 }
 
 function sheetXml(sheet: SyntheticSheet): string {
+  if (sheet.rawSheetXml) return sheet.rawSheetXml;
   const hiddenRowSet = new Set(sheet.hiddenRows ?? []);
   const colsXml = sheet.hiddenCols?.length
     ? `<cols>${sheet.hiddenCols.map((colNo) => `<col min="${colNo}" max="${colNo}" hidden="1"/>`).join("")}</cols>`

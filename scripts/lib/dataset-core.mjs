@@ -3,6 +3,40 @@
 
 export const SOURCE_TYPES = ["official-timetable", "planned-timetable"];
 
+/** Normalizes an actor name so whitespace/case/diacritic variations cannot bypass two-person review (SEC-M3-101). */
+export function normalizeActor(name) {
+  return String(name ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/gi, "d")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+}
+
+/** Rejects control characters / newlines and excessive length in CLI free-text fields written to Markdown reports (SEC-M3-104). */
+export function sanitizeCliText(value, flagName, maxLen = 240) {
+  const raw = String(value ?? "");
+  if (/[\r\n\0-\x1f\x7f]/.test(raw)) {
+    throw new Error(`${flagName} must be a single line without control characters`);
+  }
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    throw new Error(`${flagName} must not be empty`);
+  }
+  if (trimmed.length > maxLen) {
+    throw new Error(`${flagName} exceeds maximum length (${maxLen} characters)`);
+  }
+  return trimmed;
+}
+
+/** Same relative-path contract as apps/web/src/data/contract.ts `isSafeRelativeUrl` (SEC-M3-002, SEC-M3-104). */
+export function isSafeRelativePath(url) {
+  if (typeof url !== "string" || url.length === 0 || url.length > 256) return false;
+  if (url.startsWith("/") || url.includes("\\") || url.includes("?") || url.includes("#") || url.includes(":") || url.includes("%")) return false;
+  const parts = url.split("/");
+  return parts.every((part) => part.length > 0 && part !== "." && part !== ".." && /^[A-Za-z0-9._-]+$/.test(part));
+}
+
 /** `uet-<term>-<YYYYMMDD in Asia/Ho_Chi_Minh>-<first 8 hex of the source hash>`: unique, sortable, readable. */
 export function datasetVersionFor(term, importedAt, importHash) {
   const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(importedAt)).replace(/-/g, "");
@@ -44,30 +78,44 @@ export function diffSections(previous, next) {
 }
 
 /**
- * Runbook §7 lifecycle: candidate → validated → published, and any of them → retracted. Validation needs a
- * reviewer other than the importer; a single-person review is allowed only with a recorded reason.
+ * Runbook §7 lifecycle: candidate → validated → published, any of them → retracted, and retracted → validated (restore).
+ * Validation and publication require an actor other than the importer; a single-person review/publish is allowed only
+ * with a recorded reason (SEC-M3-101, REV-M3-106).
  * When a candidate was imported with `--accept-new-format`, the Data Reviewer must also confirm the new format
  * at validation time via `--accept-new-format "<reason>"` (REV-M3-102).
  */
 export function nextStatus(entry, action, { actor, importer, singleReviewerReason, newFormatImported, acceptNewFormatReason } = {}) {
-  if (!actor) throw new Error(`${action} needs an actor name`);
+  const normActor = normalizeActor(actor);
+  if (!normActor) throw new Error(`${action} needs an actor name`);
   if (action === "validate") {
     if (entry.status !== "candidate") throw new Error(`only a candidate can be validated (status: ${entry.status})`);
-    if (importer && actor.trim().toLowerCase() === importer.trim().toLowerCase() && !singleReviewerReason) {
+    const normImporter = normalizeActor(importer);
+    if (!normImporter) {
+      throw new Error("cannot validate without an import audit record naming the importer");
+    }
+    if (normActor === normImporter && !singleReviewerReason?.trim()) {
       throw new Error("the reviewer imported this dataset; another person must review it, or record --accept-single-reviewer \"<reason>\"");
     }
-    if (newFormatImported && !acceptNewFormatReason) {
+    if (newFormatImported && !acceptNewFormatReason?.trim()) {
       throw new Error("this candidate was imported with an unreviewed column format; the Data Reviewer must inspect the columns/info labels in the report and pass --accept-new-format \"<reason>\"");
     }
     return "validated";
   }
   if (action === "publish") {
     if (entry.status !== "validated") throw new Error(`only a validated dataset can be published (status: ${entry.status})`);
+    const normImporter = normalizeActor(importer);
+    if (normImporter && normActor === normImporter && !singleReviewerReason?.trim()) {
+      throw new Error("the publisher imported this dataset; another person must publish it, or record --accept-single-reviewer \"<reason>\"");
+    }
     return "published";
   }
   if (action === "retract") {
     if (entry.status === "retracted") throw new Error("already retracted");
     return "retracted";
+  }
+  if (action === "restore") {
+    if (entry.status !== "retracted") throw new Error(`only a retracted dataset can be restored (status: ${entry.status})`);
+    return "validated";
   }
   throw new Error(`unknown action ${action}`);
 }

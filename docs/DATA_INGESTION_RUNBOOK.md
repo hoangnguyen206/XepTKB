@@ -76,7 +76,7 @@ Mỗi diff có old/new dataset version và source row/page. Thay đổi lớn b�
 5. Giữ bản trước để rollback; ghi publishedAt/reviewer/changelog.
 6. Thông báo version/update cho app; không invalidate Plan local mù.
 
-Trạng thái hợp lệ: ở bước parse/intake, file thiếu bộ cột đã duyệt nhận `hold` (CLI `import` dừng với exit 2 trừ khi có `--accept-new-format`) và file có lỗi chặn bị từ chối (`rejected`, không ghi vào `data/published`); trong `data/published/manifest.json`, vòng đời được lưu là `candidate → validated → published`, và bất kỳ trạng thái nào cũng có thể chuyển sang `retracted` ([ADR-0012 §3](adr/ADR-0012-dataset-publish-pipeline.md)). Không xóa artifact cũ trước khi hết retention/rollback window.
+Trạng thái hợp lệ: ở bước parse/intake, file thiếu bộ cột đã duyệt nhận `hold` (CLI `import` dừng với exit 2 trừ khi có `--accept-new-format`) và file có lỗi chặn bị từ chối (`rejected`, không ghi vào `data/published`); trong `data/published/manifest.json`, vòng đời được lưu là `candidate → validated → published`, bất kỳ trạng thái nào cũng có thể chuyển sang `retracted`, và một bản `retracted` có thể được khôi phục về `validated` bằng lệnh `restore` có ghi lý do và audit ([ADR-0012 §3](adr/ADR-0012-dataset-publish-pipeline.md)). Không xóa artifact cũ trước khi hết retention/rollback window.
 
 ## 8. Rollback và correction
 
@@ -128,5 +128,5 @@ File nguồn để **ngoài repo** (ví dụ `Downloads`). Mỗi lệnh dưới 
 3. **Duyệt trên preview** (`https://m3-web-app.xeptkb-63v.pages.dev` hoặc URL nhánh): Data Reviewer đi checklist trong báo cáo, xem vài môn trên điện thoại.
 4. **Xác nhận:** `npm run dataset -- validate <version> --reviewer "<người duyệt>" [--note "..."]`. Người duyệt phải khác người nạp; nếu dự án chỉ có một người thì thêm `--accept-single-reviewer "<lý do>"`, ngoại lệ được ghi vào audit và báo cáo. Nếu bản `candidate` được nạp bằng `--accept-new-format`, người duyệt cũng phải truyền `--accept-new-format "<lý do>"` sau khi đã đọc bảng cột `info` và ghi chú `"tuần"` trong báo cáo.
 5. **Công bố:** `npm run dataset -- publish <version> --by "<Release Manager>"` → commit + push. Bản production (`main`) chỉ hiện dữ liệu `published`, sau khi G4a cho phép deploy production.
-6. **Rollback:** `npm run dataset -- retract <version> --by "<RM>" --reason "<lý do>"` → commit + push; app quay về bản `published` trước đó của kỳ.
+6. **Rollback / khôi phục:** `npm run dataset -- retract <version> --by "<RM>" --reason "<lý do>"` → commit + push; app quay về bản `published` trước đó của kỳ. Nếu cần khôi phục một bản đã `retract` (ví dụ trong G4b drill hoặc sau khi xác nhận nhầm), chạy `npm run dataset -- restore <version> --by "<RM>" --reason "<lý do>"` (đưa về `validated`), sau đó `npm run dataset -- publish <version> --by "<RM>"`.
 7. **Kiểm tra bất kỳ lúc nào:** `npm run dataset -- status`, `npm run dataset -- check` (cũng chạy trong `npm run check`/CI).

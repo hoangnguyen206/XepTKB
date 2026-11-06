@@ -6,19 +6,21 @@
 //                      --document-ref <safe ref> --published-by <source publisher> --actor <importer>
 //                      [--weeks 15] [--start "K67,K68=2026-09-07"]... [--profile profile.json] [--accept-new-format <reason>]
 //   npm run dataset -- validate <version> --reviewer <name> [--note <text>] [--accept-single-reviewer <reason>] [--accept-new-format <reason>]
-//   npm run dataset -- publish  <version> --by <name> [--note <text>]
+//   npm run dataset -- publish  <version> --by <name> [--note <text>] [--accept-single-reviewer <reason>]
 //   npm run dataset -- retract  <version> --by <name> --reason <text>
+//   npm run dataset -- restore  <version> --by <name> --reason <text>
 //   npm run dataset -- status | check
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { assertOutsideRepo, parseArgs, repoRoot } from "./lib/cli.mjs";
-import { SOURCE_TYPES, datasetVersionFor, diffSections, nextStatus, parseStart } from "./lib/dataset-core.mjs";
+import { SOURCE_TYPES, datasetVersionFor, diffSections, isSafeRelativePath, nextStatus, parseStart, sanitizeCliText } from "./lib/dataset-core.mjs";
 
-const DATA_DIR = join(repoRoot, "data", "published");
-const REPORT_DIR = join(repoRoot, "data", "reports");
-const AUDIT_LOG = join(repoRoot, "data", "audit.jsonl");
+const ROOT_DATA_DIR = process.env.DATASET_ROOT_DIR ? resolve(process.env.DATASET_ROOT_DIR) : join(repoRoot, "data");
+const DATA_DIR = join(ROOT_DATA_DIR, "published");
+const REPORT_DIR = join(ROOT_DATA_DIR, "reports");
+const AUDIT_LOG = join(ROOT_DATA_DIR, "audit.jsonl");
 const MANIFEST = join(DATA_DIR, "manifest.json");
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -88,6 +90,12 @@ async function importDataset(file, options) {
   if (!SOURCE_TYPES.includes(options["source-type"])) fail(`--source-type must be one of ${SOURCE_TYPES.join(", ")}`);
   const term = options.term;
   if (!/^\d{4}-\d{4}-h[1-3]$/.test(term)) fail(`--term ${term} must look like 2026-2027-h1`);
+  const termName = sanitizeCliText(options["term-name"], "--term-name");
+  const documentRef = sanitizeCliText(options["document-ref"], "--document-ref");
+  const publishedBy = sanitizeCliText(options["published-by"], "--published-by");
+  const actor = sanitizeCliText(options.actor, "--actor");
+  const newFormatReason = options["accept-new-format"] !== undefined ? sanitizeCliText(options["accept-new-format"], "--accept-new-format") : undefined;
+
   const teachingWeeks = Number(options.weeks ?? 15);
   if (!Number.isInteger(teachingWeeks) || teachingWeeks < 1 || teachingWeeks > 30) fail("--weeks must be 1..30");
   const starts = (options.start ?? []).map(parseStart);
@@ -118,7 +126,7 @@ async function importDataset(file, options) {
   const skipped = Object.values(coverage.skippedRows).reduce((sum, n) => sum + n, 0);
   const unaccounted = coverage.sectionRows - coverage.parsedRows - skipped - coverage.errorRows;
   if (unaccounted !== 0) fail(`${unaccounted} rows with a section id are not accounted for; nothing was written`);
-  if (!coverage.knownFormat && !options["accept-new-format"]) {
+  if (!coverage.knownFormat && !newFormatReason) {
     const extraDesc = coverage.infoColumns?.length ? `; extra (info) columns: ${coverage.infoColumns.join(", ")}` : "";
     fail(`new column set (${coverage.columns.join(", ")}${extraDesc}): review it, add it to KNOWN_FORMATS or pass --accept-new-format "<reason>"`, 2);
   }
@@ -129,16 +137,16 @@ async function importDataset(file, options) {
     schemaVersion: "1.0",
     datasetVersion,
     school: "uet",
-    term: { id: term, school: "uet", name: options["term-name"], teachingWeeks, starts, timezone: "Asia/Ho_Chi_Minh" },
+    term: { id: term, school: "uet", name: termName, teachingWeeks, starts, timezone: "Asia/Ho_Chi_Minh" },
     timeFrame: UET_TIMEFRAME,
   });
   const entry = {
     datasetVersion,
     school: "uet",
     term,
-    termName: options["term-name"],
+    termName,
     status: "candidate",
-    source: { type: options["source-type"], documentRef: options["document-ref"], publishedBy: options["published-by"], importHash },
+    source: { type: options["source-type"], documentRef, publishedBy, importHash },
     parserVersion: result.artifact.parserVersion,
     domainSchemaVersion: SCHEMA_VERSION,
     importedAt,
@@ -148,8 +156,8 @@ async function importDataset(file, options) {
   const diff = previous ? diffSections(loadTimetable(previous).sections, result.sections) : undefined;
   manifest.datasets.push(entry);
   writeManifest(manifest);
-  writeImportReport({ entry, result, coverage, starts, teachingWeeks, previous, diff, actor: options.actor, fileName: basename(path), fileBytes: bytes.length, newFormatReason: options["accept-new-format"] });
-  audit("import", datasetVersion, options.actor, { importHash, parserVersion: entry.parserVersion, sections: result.sections.length, ...(options["accept-new-format"] ? { acceptedNewFormat: options["accept-new-format"] } : {}) });
+  writeImportReport({ entry, result, coverage, starts, teachingWeeks, previous, diff, actor, fileName: basename(path), fileBytes: bytes.length, newFormatReason });
+  audit("import", datasetVersion, actor, { importHash, parserVersion: entry.parserVersion, sections: result.sections.length, ...(newFormatReason ? { acceptedNewFormat: newFormatReason } : {}) });
 
   console.log(`dataset: imported ${datasetVersion} as candidate`);
   console.log(`  ${result.sections.length} sections, ${result.courses.length} courses, ${result.sections.reduce((n, s) => n + s.sessions.length, 0)} sessions; rows ${coverage.parsedRows} parsed, skipped ${JSON.stringify(coverage.skippedRows)}`);
@@ -314,19 +322,27 @@ function writeImportReport({ entry, result, coverage, starts, teachingWeeks, pre
 function changeStatus(action, version, options) {
   const manifest = readManifest();
   const entry = findEntry(manifest, version);
-  const actor = action === "validate" ? options.reviewer : options.by;
-  const importAudit = auditEntries().find((item) => item.action === "import" && item.datasetVersion === version);
+  const rawActor = action === "validate" ? options.reviewer : options.by;
+  if (!rawActor) fail(`${action} needs ${action === "validate" ? "--reviewer" : "--by"}`);
+  const actor = sanitizeCliText(rawActor, action === "validate" ? "--reviewer" : "--by");
+  const note = options.note !== undefined ? sanitizeCliText(options.note, "--note") : undefined;
+  const reason = options.reason !== undefined ? sanitizeCliText(options.reason, "--reason") : undefined;
+  const singleReviewerReason = options["accept-single-reviewer"] !== undefined ? sanitizeCliText(options["accept-single-reviewer"], "--accept-single-reviewer") : undefined;
+  const acceptNewFormatReason = options["accept-new-format"] !== undefined ? sanitizeCliText(options["accept-new-format"], "--accept-new-format") : undefined;
+
+  const entries = auditEntries().filter((item) => item.datasetVersion === version);
+  const importAudit = entries.find((item) => item.action === "import");
   const importer = importAudit?.actor;
   const newFormatImported = Boolean(importAudit?.acceptedNewFormat);
-  if (action === "retract" && !options.reason) fail("retract needs --reason");
+  if ((action === "retract" || action === "restore") && !reason) fail(`${action} needs --reason`);
   let status;
   try {
     status = nextStatus(entry, action, {
       actor,
       importer,
-      singleReviewerReason: options["accept-single-reviewer"],
+      singleReviewerReason,
       newFormatImported,
-      acceptNewFormatReason: options["accept-new-format"],
+      acceptNewFormatReason,
     });
   } catch (error) {
     fail(error.message);
@@ -336,18 +352,18 @@ function changeStatus(action, version, options) {
   if (action === "validate") entry.reviewedAt = at;
   if (action === "publish") entry.publishedAt = at;
   writeManifest(manifest);
-  const exception = action === "validate" && options["accept-single-reviewer"] ? options["accept-single-reviewer"] : undefined;
-  const newFormatReview = action === "validate" && options["accept-new-format"] ? options["accept-new-format"] : undefined;
+  const exception = (action === "validate" || action === "publish") && singleReviewerReason ? singleReviewerReason : undefined;
+  const newFormatReview = action === "validate" && acceptNewFormatReason ? acceptNewFormatReason : undefined;
   audit(action, version, actor, {
     status,
-    ...(options.note ? { note: options.note } : {}),
-    ...(options.reason ? { reason: options.reason } : {}),
+    ...(note ? { note } : {}),
+    ...(reason ? { reason } : {}),
     ...(exception ? { singleReviewerException: exception } : {}),
     ...(newFormatReview ? { acceptedNewFormat: newFormatReview } : {}),
   });
   if (existsSync(reportPath(version))) {
     appendReport(version, [
-      `- ${at} — **${action}** → \`${status}\` by ${actor}${options.note ? `: ${options.note}` : ""}${options.reason ? ` — reason: ${options.reason}` : ""}${exception ? ` — **single-reviewer exception:** ${exception}` : ""}${newFormatReview ? ` — **new format reviewed:** ${newFormatReview}` : ""}.`,
+      `- ${at} — **${action}** → \`${status}\` by ${actor}${note ? `: ${note}` : ""}${reason ? ` — reason: ${reason}` : ""}${exception ? ` — **single-reviewer exception:** ${exception}` : ""}${newFormatReview ? ` — **new format reviewed:** ${newFormatReview}` : ""}.`,
     ]);
   }
   console.log(`dataset: ${version} is now ${status}`);
@@ -366,9 +382,46 @@ function status() {
   }
 }
 
+/** Replays `data/audit.jsonl` for a dataset version and returns any lifecycle/provenance errors (SEC-M3-101). */
+function verifyAuditTrail(entry, allAudits) {
+  if (entry.source?.type === "synthetic-fixture") return [];
+  const problems = [];
+  const history = allAudits.filter((item) => item.datasetVersion === entry.datasetVersion);
+  if (history.length === 0 || history[0].action !== "import") {
+    problems.push(`${entry.datasetVersion}: missing initial import record in data/audit.jsonl`);
+    return problems;
+  }
+  const importRecord = history[0];
+  if (importRecord.importHash !== entry.source?.importHash) {
+    problems.push(`${entry.datasetVersion}: importHash in manifest.json does not match data/audit.jsonl`);
+  }
+  const importer = importRecord.actor;
+  const newFormatImported = Boolean(importRecord.acceptedNewFormat);
+  let currentStatus = "candidate";
+  for (const record of history.slice(1)) {
+    try {
+      currentStatus = nextStatus({ status: currentStatus }, record.action, {
+        actor: record.actor,
+        importer,
+        singleReviewerReason: record.singleReviewerException,
+        newFormatImported,
+        acceptNewFormatReason: record.acceptedNewFormat,
+      });
+    } catch (error) {
+      problems.push(`${entry.datasetVersion}: invalid audit transition (${record.action}): ${error.message}`);
+      return problems;
+    }
+  }
+  if (currentStatus !== entry.status) {
+    problems.push(`${entry.datasetVersion}: manifest status "${entry.status}" does not match audit trail status "${currentStatus}"`);
+  }
+  return problems;
+}
+
 /** Integrity of what ships: every referenced artifact exists with the recorded size and hash; nothing else is there. */
 function check() {
   const manifest = readManifest();
+  const allAudits = auditEntries();
   const problems = [];
   const referenced = new Set(["manifest.json"]);
   const versions = new Set();
@@ -376,11 +429,20 @@ function check() {
     if (versions.has(entry.datasetVersion)) problems.push(`duplicate datasetVersion ${entry.datasetVersion}`);
     versions.add(entry.datasetVersion);
     if (!["candidate", "validated", "published", "retracted"].includes(entry.status)) problems.push(`${entry.datasetVersion}: unknown status ${entry.status}`);
+    problems.push(...verifyAuditTrail(entry, allAudits));
     for (const artifact of entry.artifacts) {
+      if (!isSafeRelativePath(artifact.url)) {
+        problems.push(`${entry.datasetVersion}: unsafe artifact url ${artifact.url}`);
+        continue;
+      }
       referenced.add(artifact.url);
       const target = join(DATA_DIR, artifact.url);
       if (!existsSync(target)) {
         problems.push(`${entry.datasetVersion}: missing ${artifact.url}`);
+        continue;
+      }
+      if (lstatSync(target).isSymbolicLink()) {
+        problems.push(`${entry.datasetVersion}: symlink not allowed at ${artifact.url}`);
         continue;
       }
       const bytes = readFileSync(target);
@@ -389,7 +451,16 @@ function check() {
       if (value.datasetVersion !== entry.datasetVersion) problems.push(`${entry.datasetVersion}: ${artifact.url} names another datasetVersion`);
     }
   }
-  const walk = (dir) => readdirSync(dir).flatMap((name) => (statSync(join(dir, name)).isDirectory() ? walk(join(dir, name)) : [relative(DATA_DIR, join(dir, name)).split("\\").join("/")]));
+  const walk = (dir) => readdirSync(dir).flatMap((name) => {
+    const full = join(dir, name);
+    const rel = relative(DATA_DIR, full).split("\\").join("/");
+    const stat = lstatSync(full);
+    if (stat.isSymbolicLink()) {
+      problems.push(`symlink not allowed in data/published/${rel}`);
+      return [];
+    }
+    return stat.isDirectory() ? walk(full) : [rel];
+  });
   if (existsSync(DATA_DIR)) for (const file of walk(DATA_DIR)) if (!referenced.has(file)) problems.push(`unreferenced file data/published/${file}`);
   if (problems.length > 0) {
     for (const problem of problems) console.error(`  ${problem}`);
@@ -409,10 +480,10 @@ try {
 const { options, positional } = parsed;
 try {
   if (command === "import") await importDataset(positional[0] ?? fail("import needs a file"), options);
-  else if (command === "validate" || command === "publish" || command === "retract") changeStatus(command, positional[0] ?? fail(`${command} needs a dataset version`), options);
+  else if (command === "validate" || command === "publish" || command === "retract" || command === "restore") changeStatus(command, positional[0] ?? fail(`${command} needs a dataset version`), options);
   else if (command === "status") status();
   else if (command === "check") check();
-  else fail("usage: dataset import|validate|publish|retract|status|check (see the header of scripts/dataset.mjs)");
+  else fail("usage: dataset import|validate|publish|retract|restore|status|check (see the header of scripts/dataset.mjs)");
 } catch (error) {
   fail(error.message);
 }
