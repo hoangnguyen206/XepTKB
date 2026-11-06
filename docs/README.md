@@ -2,12 +2,12 @@
 
 > **Status:** draft / docs-first  
 > **Owner:** Product + Tech Lead  
-> **Last reviewed:** 2026-10-25
+> **Last reviewed:** 2026-11-06
 > **Related docs:** [root CLAUDE.md](../CLAUDE.md)
 
 ## Mục đích
 
-Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ vì còn thiếu actor/sign-off độc lập ở các bước tương ứng. M1 parser và M2 domain engine đã được commit và merge vào `main` local (`aba04b0`) với local evidence, nhưng chưa phải bằng chứng publish/release; xem [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md) cho các finding còn mở. Không được coi bộ docs này là bằng chứng build/test/deploy/release hoàn chỉnh.
+Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ ở cấp toàn sản phẩm (M4/M5 còn lại). M1 parser và M2 domain engine đã được commit và push lên `main` với local evidence, nhưng chưa phải bằng chứng publish/release; xem [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md) cho các finding còn mở. M3 (web app + CLI publish pipeline ADR-0012) đã commit trên nhánh `m3-web-app` (`d51c65b`, draft PR #1; CI GitHub tại `2ab03cd` [run 42069057252](https://github.com/hoangnguyen206/XepTKB/actions/runs/42069057252) xanh 05/11/2026), đã hoàn tất **G3 R2 (`2ab03cd`) + G3 R2.1 (`d51c65b`)** và đã được **Owner (Product / Tech Lead / Release Manager) phê duyệt G0, G1 (`REV-M3-103`) cùng gói exception S3 thu hẹp (`EXC-SEC-M3-R2-B/C/D`) lúc `2026-11-06T05:50Z`**: G3a đạt **`qa-pass`**, G3b đạt **`security-pass-with-exception`** (đã gỡ bỏ `security-no-go` trên G4b), G3c đạt **`review-approved`**; xem [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md). Không được coi bộ docs này là bằng chứng deploy production/release công khai hoàn chỉnh.
 
 Đây là bản đồ tài liệu source of truth cho Kỳ Này. Bản brief `Kế hoạch sản phẩm – Tool xếp TKB cho sinh viên VNU.md` là nguồn nghiên cứu ban đầu; khi brief và tài liệu dự án khác nhau, phải mở decision/ADR hoặc hỏi Product/Tech Lead, không tự chọn theo trí nhớ.
 
@@ -66,11 +66,11 @@ Các giá trị sau phải nhất quán ở mọi tài liệu:
 | D-001 | Tên thương hiệu cuối cùng và domain | Open | Product, kiểm tra tên miền/nhãn hiệu |
 | D-002 | Chốt React+Vite hay framework khác | Proposed | Tech Lead sau spike PWA/SSR |
 | D-003 | Backend: **static artifact + CLI admin**; Supabase deferred | **Closed** (Q-003) | Tech Lead + Security 20/10/2026 |
-| D-004 | Hosting/data region và vendor/legal review | Open | Owner + tư vấn pháp lý |
+| D-004 | Hosting/data region và vendor/legal review | **Một phần** (31/10/2026): hosting = **Cloudflare Pages** (owner), cấu hình ở [OPERATIONS §1](OPERATIONS.md); data region/legal review còn mở | Owner + tư vấn pháp lý |
 | D-005 | Browser matrix Tier 1/2 + analytics cookieless aggregate | **Closed** (Q-007/Q-008) | Product + Security 20/10/2026 |
 | D-006 | Có tài khoản/sync trong release đầu không | **Closed**: không | Product 20/10/2026 |
 | D-007 | Fixture policy: synthetic + `test:real` ngoài repo; registration file xóa PII trước khi lưu | **Closed** (Q-006) | Data Ops + Security 20/10/2026 |
-| D-008 | Lịch phát hành cụ thể ngoài cửa sổ 09–15/11/2026 | Open | Product theo thông báo trường |
+| D-008 | Lịch phát hành cụ thể ngoài cửa sổ 09–15/11/2026 | **Một phần** (Q-011, 29/10/2026): tháng 11/2026 là beta nội bộ chỉ M3, không public; ngày public còn mở | Product theo thông báo trường |
 | D-009 | Plan slots P0: 1 draft + 1 final (từ file đăng ký); nhiều nháp P1 | **Closed** (Q-005) | Product 20/10/2026 |
 | D-010 | Export: `.doc` HTML + PNG + ICS + print CSS; không PDF generator | **Closed** (Q-002) | Product 20/10/2026 |
 | D-011 | Week 1 fixture HK II = 15/02/2027 (HK I giữ fixture riêng) | **Closed** (Q-001) | Product 20/10/2026 |
@@ -105,11 +105,25 @@ Các giá trị sau phải nhất quán ở mọi tài liệu:
 - [M2 G3c independent review](evidence/M2-G3c-INDEPENDENT-REVIEW.md) — `review-pass-with-follow-up` do agent role tự soạn; **reopened** bởi audit.
 - [M2 evidence envelope v2](evidence/M2-EVIDENCE-ENVELOPE-v2.md) — tổng hợp các quyết định trên; không còn hiệu lực cho tới khi G3 chạy lại.
 
-M2 đã merge vào `main` local (`aba04b0`, chưa push), nhưng G1 chưa approve và G3 cần chạy lại sau khi sửa finding audit. M2 chưa bao gồm UI/PWA, IndexedDB, export, browser interception, artifact loader, backend/admin publish hoặc real-source validation. G4a/G4b (release) vẫn require M3–M5 completion.
+M2 đã merge vào `main` (`aba04b0`) và đã push cùng fix round audit (`e41a806`, `4681c63`), nhưng G1 chưa approve và G3 cần chạy lại sau khi sửa finding audit. M2 chưa bao gồm UI/PWA, IndexedDB, export, browser interception, artifact loader, backend/admin publish hoặc real-source validation. G4a/G4b (release) vẫn require M3–M5 completion.
 
 ## Audit M0–M2 (25/10/2026)
 
-- [REVIEW-M0M2-AUDIT-001](evidence/M0-M2-AUDIT-2026-10-25.md) — `review-no-go` cho trạng thái "M2 verified": 2 finding đề xuất S1 (Plan chính thức dựng từ nháp; ghép thứ/tiết registration theo tích Descartes), thiếu coverage P0 FR-06 ở parser, 10 finding S2/process, 8 finding S3. Fix round 1–2 (cùng ngày, chưa commit) đã sửa AUD-001, AUD-004…009, AUD-016, áp quyết định Q-009 (lớp `ONL` không hiện trên TKB tuần nhưng vẫn tính tín chỉ) và Q-010 (tuần TKB thắng default TH), cập nhật [ADR-0006](adr/ADR-0006-default-th-weeks.md)/[ADR-0008](adr/ADR-0008-m1-parser-dependencies-local-provenance.md)/[ADR-0009](adr/ADR-0009-m2-domain-engine-schema.md); cần verify độc lập.
+- [REVIEW-M0M2-AUDIT-001](evidence/M0-M2-AUDIT-2026-10-25.md) — `review-no-go` cho trạng thái "M2 verified": 2 finding đề xuất S1 (Plan chính thức dựng từ nháp; ghép thứ/tiết registration theo tích Descartes), thiếu coverage P0 FR-06 ở parser, 10 finding S2/process, 8 finding S3. Fix round 1–3 (cùng ngày, commit `e41a806` + `4681c63`, đã push) đã sửa AUD-001, AUD-004…009, AUD-016, áp quyết định Q-009 (lớp `ONL` không hiện trên TKB tuần nhưng vẫn tính tín chỉ) và Q-010 (tuần TKB thắng default TH), cập nhật [ADR-0006](adr/ADR-0006-default-th-weeks.md)/[ADR-0008](adr/ADR-0008-m1-parser-dependencies-local-provenance.md)/[ADR-0009](adr/ADR-0009-m2-domain-engine-schema.md); cần verify độc lập.
+
+## M3 evidence hiện tại
+
+- [M3 spec](evidence/M3-SPEC.md) (`SPEC-M3-001`, G0) — scope, AC-M3-01…13, quyết định D-M3-1…4 (đóng C-08, C-02); **`g0-approved`** bởi Owner (Product) lúc `2026-11-06T05:50Z`.
+- [ADR-0011 — TKB đổi bộ cột theo kỳ: một adapter, import profile, dấu vân tay định dạng](adr/ADR-0011-timetable-format-variability.md) — **`g1-approved`** bởi Owner (Tech Lead, Data Reviewer) lúc `2026-11-06T05:50Z`.
+- [ADR-0012 — Quy trình nạp/publish dữ liệu: CLI, `data/published` trong repo, deploy cùng site](adr/ADR-0012-dataset-publish-pipeline.md) — **`g1-approved`** bởi Owner (Tech Lead, Release Manager, Data Reviewer) lúc `2026-11-06T05:50Z`; cách dùng ở [runbook §12](DATA_INGESTION_RUNBOOK.md).
+- [ADR-0010 — web app, artifact loader contract, local storage, export](adr/ADR-0010-m3-web-app-artifact-storage-export.md) và [M3 design handoff](evidence/M3-DESIGN-HANDOFF.md) (G1) — **`g1-approved`** bởi Owner (Tech Lead) lúc `2026-11-06T05:50Z`.
+- [M3 implementation handoff](evidence/M3-IMPLEMENTATION-HANDOFF.md) (G2) — viết ban đầu trên `4681c63`, cập nhật qua các fix round tới target `2ab03cd` và `d51c65b` (nhánh `m3-web-app`).
+- G3 lần 1 (25/10/2026, superseded bởi R2): [M3 G3a QA R1](evidence/M3-G3a-QA-REPORT.md) (`qa-no-go`), [M3 G3b security R1](evidence/M3-G3b-SECURITY-REVIEW.md) (`security-pass-with-exception`), [M3 G3c review R1](evidence/M3-G3c-INDEPENDENT-REVIEW.md) (`review-no-go`).
+- **G3 lần 2 — R2 (`2ab03cd`) + R2.1 (`d51c65b`, 05–06/11/2026):** [M3 G3a QA R2](evidence/M3-G3a-QA-REPORT-R2.md) (`TEST-M3-002`, nâng từ `qa-pass-with-follow-up` lên **`qa-pass`** tại `d51c65b`: 0 S0/S1/S2/S3 mở ở phía QA); [M3 G3b security R2](evidence/M3-G3b-SECURITY-REVIEW-R2.md) (`SEC-REVIEW-M3-002`, **`security-pass-with-exception`** tại `d51c65b`, **đã gỡ bỏ `security-no-go` trên G4b dữ liệu thật** và được Owner / Release Manager phê duyệt gói exception S3 thu hẹp `EXC-SEC-M3-R2-B/C/D`); [M3 G3c review R2](evidence/M3-G3c-INDEPENDENT-REVIEW-R2.md) (`REVIEW-M3-002`, đã kết hợp G3a/G3b R2.1, nâng từ `review-no-go` lên **`review-approved`** tại `d51c65b` sau khi đóng cả 12/12 finding kỹ thuật và quy trình `REV-M3-103`).
+- [M3 evidence envelope](evidence/M3-EVIDENCE-ENVELOPE.md) (`EVID-M3-001`) — **`approved`** (`2026-11-06T05:50Z`), tổng hợp lệnh/kết quả, sổ 22 finding R1 + 13 finding R2 đã gộp trùng (#1–#35).
+- [Ảnh màn hình 360/768/1280](evidence/m3-screens/) — dữ liệu mẫu.
+
+M3 (web app + parser ADR-0011 + CLI publish pipeline ADR-0012) đã vượt qua trọn bộ cổng **G0 + G1 + G2 + G3a/G3b/G3c** tại `d51c65b` và đã được Owner phê duyệt lúc `2026-11-06T05:50Z` (`npm run check` exit 0: node:test 101/101, Vitest 60/60, fixtures 6/6, `dataset check` OK; `npm run test:e2e` Playwright Chromium 17/17 + WebKit `REV-M3-002` 3/3; owner đã kiểm preview trên iPhone 12 + Safari ngày 31/10/2026). Sẵn sàng cho đợt nạp dữ liệu thật / beta nội bộ HK II (09–15/11/2026) và khởi động M4.
 
 ## Cách dùng
 

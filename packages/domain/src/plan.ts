@@ -37,17 +37,28 @@ function sectionGroups(section: Section): string[] {
   return [...new Set(section.sessions.map((session) => normalizeGroup(session.group)).filter((group): group is string => Boolean(group) && group !== "CL"))].sort();
 }
 
+function commonSessions(section: Section): Session[] {
+  return section.sessions.filter((session) => {
+    const group = normalizeGroup(session.group);
+    return group === undefined || group === "CL";
+  });
+}
+
+/**
+ * Sessions a pick attends. When the group is missing or no longer exists, the common (`CL`) sessions are still
+ * returned with the error: every group attends them, and dropping them hides real conflicts (REV-M3-001).
+ */
 export function sessionsForPick(section: Section, pick: PlanPick): SessionSelectionResult {
   const issues: DomainIssue[] = [];
   const requested = normalizeGroup(pick.group);
   const groups = sectionGroups(section);
   if (groups.length > 1 && !requested) {
     issues.push(domainIssue("GROUP_REQUIRED", "error", `section ${section.id} requires an explicit group`, { sectionId: section.id }));
-    return { sessions: [], issues };
+    return { sessions: commonSessions(section), issues };
   }
   if (requested && requested !== "CL" && groups.length > 0 && !groups.includes(requested)) {
     issues.push(domainIssue("GROUP_NOT_FOUND", "error", `group ${requested} is not available in section ${section.id}`, { sectionId: section.id }));
-    return { sessions: [], issues };
+    return { sessions: commonSessions(section), issues };
   }
   const sessions = section.sessions.filter((session) => {
     const group = normalizeGroup(session.group);
@@ -147,7 +158,10 @@ export function materializePlan(plan: Plan, catalog: DomainCatalog): PlanResolut
 export function addPlanPick(plan: Plan, pick: PlanPick, catalog: DomainCatalog): { plan?: Plan; issues: readonly DomainIssue[] } {
   const candidate = { ...plan, picks: [...plan.picks, pick] };
   const resolution = resolvePlanPicks(candidate, catalog);
-  if (resolution.issues.some((issue) => issue.severity === "error")) return { issues: resolution.issues };
+  // Only the new pick can be rejected; errors of earlier picks (e.g. after a dataset revision) are reported, not blocking.
+  const sectionId = canonicalSectionId(pick.sectionId);
+  const own = resolution.issues.filter((issue) => issue.severity === "error" && (issue.sectionId === undefined || canonicalSectionId(issue.sectionId) === sectionId));
+  if (own.length > 0) return { issues: own };
   return { plan: candidate, issues: resolution.issues };
 }
 

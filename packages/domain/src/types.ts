@@ -50,6 +50,9 @@ export type Course = {
 
 export type SessionKind = "LT" | "TH" | "BT" | "ONL" | "OTHER";
 
+/** One extra source column of a session row: the header as written and the cell value. */
+export type SessionInfo = { label: string; value: string };
+
 type SessionBase = {
   id: string;
   frame: string;
@@ -61,6 +64,11 @@ type SessionBase = {
   campus?: string;
   lecturers: string[];
   rawNote?: string;
+  /**
+   * ADR-0011 §8: source columns the parser does not use (`SS`, `LT`, `Tự học`, `Đợt thi`…), kept as
+   * header/value pairs and shown to the student as information. Never used for conflicts or weeks.
+   */
+  info?: SessionInfo[];
   source: SourceRef;
   confidence: "deterministic" | "reviewed-fallback" | "manual";
 };

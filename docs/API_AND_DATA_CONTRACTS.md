@@ -2,14 +2,14 @@
 
 > **Status:** proposed  
 > **Owner:** Tech Lead  
-> **Last reviewed:** 2026-10-20
+> **Last reviewed:** 2026-10-25
 > **Related docs:** [Architecture](ARCHITECTURE.md), [Domain model](DOMAIN_MODEL.md), [Security](SECURITY_PRIVACY.md)
 
 ## 1. Phạm vi
 
 MVP chỉ dùng **static artifact contract** (Q-003/Q-004): admin chạy local pipeline → push immutable artifact + manifest lên CDN; **không** có backend control plane trong release đầu. Share link P1 dùng client-side URL encoding, không cần server.
 
-M1 cung cấp parser package và local candidate output; M2 bổ sung pure domain engine cho search/Plan/conflict/date/registration merge/credits. Static artifact loader, public catalog validation và các control API dưới đây chưa được triển khai. Các `POST /api/v1/*` là **target contract** cho giai đoạn sau (account/sync), không implement trong MVP — được giữ để frontend/QA mock trước và không thay đổi boundary.
+M1 cung cấp parser package và local candidate output; M2 bổ sung pure domain engine cho search/Plan/conflict/date/registration merge/credits. M3 (chưa commit, chưa qua G3) cụ thể hóa §3 thành contract chính xác ở [ADR-0010 §2](adr/ADR-0010-m3-web-app-artifact-storage-export.md) — `data/manifest.json` là catalog gồm nhiều entry theo đúng trường ở §3, kèm `timetable.json`/`metadata.json` — và triển khai loader phía client (kiểm tra kích thước, SHA-256, schema, school/term/version, invariant domain). Chưa có hosting/CDN hay pipeline publish (M5); các finding mở về loader (SEC-M3-001/002/004) ghi ở [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md). Các control API dưới đây chưa được triển khai. Các `POST /api/v1/*` là **target contract** cho giai đoạn sau (account/sync), không implement trong MVP — được giữ để frontend/QA mock trước và không thay đổi boundary.
 
 ## 2. Versioning rules
 

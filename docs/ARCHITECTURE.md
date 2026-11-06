@@ -2,7 +2,7 @@
 
 > **Status:** proposed  
 > **Owner:** Tech Lead  
-> **Last reviewed:** 2026-10-20
+> **Last reviewed:** 2026-10-25
 > **Related docs:** [Tech stack](TECH_STACK.md), [Domain model](DOMAIN_MODEL.md), [API contracts](API_AND_DATA_CONTRACTS.md), [Security](SECURITY_PRIVACY.md)
 
 ## 1. Architecture goals
@@ -42,7 +42,7 @@ flowchart TB
     Search[Search/index]
     Engine[Domain engine\nconflict/merge/week]
     LocalParser[Local parser\nregistration .doc]
-    Store[(IndexedDB/Dexie)]
+    Store[(IndexedDB)]
     Export[Export ICS/DOCX/PNG]
     Shell --> Loader --> Engine
     Shell --> Search --> Engine
@@ -141,7 +141,8 @@ Mọi crossing boundary phải có data contract và security review. Nếu cros
 
 ## 10. Architecture decisions cần review
 
-- **M1/M2 status:** M1 provides the offline parser package and M2 provides the pure domain engine plus synthetic fixture evidence. The browser/PWA containers, artifact loader, IndexedDB, UI, export and control plane below remain target architecture for later milestones.
-- Vì chưa có mã nguồn ứng dụng web/PWA, sơ đồ này là target architecture; implementation M1/M2 chỉ covers parser/domain package boundaries và không chứng minh runtime/browser controls.
+- **M1/M2 status:** M1 provides the offline parser package and M2 provides the pure domain engine plus synthetic fixture evidence.
+- **M3 status (2026-10-25):** the browser container now exists in code (uncommitted, not through G3): React/Vite shell, artifact loader + validator (only network module, same-origin `data/*`), search/engine through `@ky-nay/domain`, IndexedDB store (native wrapper, not Dexie — ADR-0010), export via `@ky-nay/export`, hand-written service worker for the app shell. Local parser for registration (M4) and the control plane are still target architecture. Open G3 findings that touch this design (unresolvable picks, retracted-then-offline cache, wipe/service-worker interaction, cross-tab writes, deploy headers) are tracked in [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md).
+- Runtime/browser controls are evidenced only by local automated tests and agent-role G3 reports; no deploy exists yet.
 - Supabase chỉ được bật sau `SECURITY_PRIVACY.md` và data-region review.
 - PDF/LLM/third-party review không được trở thành dependency để xem lịch core.

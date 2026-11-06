@@ -10,7 +10,7 @@
       "input": "registration.doc",
       "dataClass": "synthetic",
       "quirk": "HTML content with deceptive .doc extension, identity fields, multi-day/multi-period rows",
-      "expected": { "sections": 2, "sessions": 5 }
+      "expected": { "sections": 2, "sessions": 3 }
     }
   ]
 }

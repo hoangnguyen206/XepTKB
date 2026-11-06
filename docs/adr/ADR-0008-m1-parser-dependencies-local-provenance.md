@@ -51,3 +51,14 @@ The change is additive to the M0 adapter contract and preserves canonical JSONL 
 ## Amendment 2026-10-25 — browser entry point (AUD-009)
 
 Source: [audit M0–M2](../evidence/M0-M2-AUDIT-2026-10-25.md). The package root `@ky-nay/parser` re-exports the adapter registry, which imports the `uet-xlsx` and `canonical-jsonl` adapters; both use `node:crypto` and are intended for the local admin pipeline (ADR-0007). Browser code (M4 registration import) must import `@ky-nay/parser/registration`, which exposes only `vnu-registration-html`. A test walks that entry's module graph, including `@ky-nay/domain`, and fails on any Node built-in import. Moving `uet-xlsx` into the browser would need a separate decision on synchronous hashing.
+
+## Amendment 2026-10-29 — registration adapter 0.2.0 from the C-09 sample (AUD-002)
+
+Source: [REVIEW-C09-001](../evidence/C09-REGISTRATION-SAMPLE-REVIEW.md). Adapter 0.1.0 rejected a real portal export (unknown `Mã môn học`/`Lớp môn học` headers) and multiplied days by period ranges. `vnu-registration-html@0.2.0`:
+
+1. adds the header synonyms `ma mon hoc`, `lop mon hoc`, `mon hoc`;
+2. pairs days, period ranges and rooms by position, shares a single day/range/room, and skips a row whose counts cannot be paired (`REGISTRATION_OVERRIDE_UNMATCHED`, `field=periodText`);
+3. splits concatenated rooms only when exactly one segmentation exists, otherwise keeps the timetable rooms (`field=room` warning);
+4. rebuilds the section id from the normalized course code (`AAA 9999 9` → `AAA9999 9`) and skips summary rows without course and section.
+
+Output shape is unchanged (`Section`/`Session` schema `0.2.0`, `localOnly` artifact, no hash, no identity fields); only `parserVersion` changes. Rollback: revert to 0.1.0, which cannot read the real export. Re-entry: G1 acknowledgement and G3a/G3b for the registration adapter.

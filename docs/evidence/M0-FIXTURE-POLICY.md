@@ -15,7 +15,7 @@
 - Registration files may be retained only after a documented review removes full name, birth date, student identifier, email, phone and any other direct or indirect personal identifier; when uncertain, do not retain the file. Raw registration bytes are never committed.
 - Every committed fixture has a manifest entry with family, adapter, data class, schema version, expected counts/issues and a quirk note.
 - A malformed or ambiguous case remains a fixture with expected errors; it is not deleted or normalized to make CI green.
-- Real-file count checks, when approved, run through a future `test:real` command with an explicit path outside the repo. No such command or real source is included in M0.
+- Real-file count checks, when approved, run through a future `test:real` command with an explicit path outside the repo. No such command or real source is included in M0. **Update 2026-10-30:** `npm run test:real -- <file> [--adapter …] [--profile …]` exists (`scripts/test-real.mjs`); it refuses paths inside the repository except the ignored real-data folders, prints only counts, issue codes and row coverage (never registration cell values), and fails on errors or unaccounted rows.
 
 ## Committed synthetic coverage
 

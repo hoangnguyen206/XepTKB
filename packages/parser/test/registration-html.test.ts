@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { builtinModules } from "node:module";
+import { isFixedSession } from "@ky-nay/domain";
 import { vnuRegistrationHtmlAdapter } from "../src/vnu-registration-html-adapter.js";
 
 // Tests run from dist/test; the module graph is checked on the TypeScript sources.
@@ -45,7 +46,8 @@ test("registration HTML is parsed locally with multi-day and multi-period rows",
   assert.equal(result.artifact.sha256, undefined);
   assert.equal(result.artifact.fileName, undefined);
   assert.equal(result.sections.length, 2);
-  assert.equal(result.sections[0]!.sessions.length, 4);
+  // AUD-002/C-09: `T2,T6` + `4 - 6, 1 - 3` pairs by position; one room is shared by both slots.
+  assert.deepEqual(result.sections[0]!.sessions.filter(isFixedSession).map((s) => [s.day, s.startPeriod, s.endPeriod, s.room]), [[2, 4, 6, "203-G2"], [6, 1, 3, "203-G2"]]);
   assert.equal(result.sections[1]!.sessions[0]!.day, 7);
   assert.equal(result.sections[1]!.sessions[0]!.campus, "Hòa Lạc");
   const serialized = JSON.stringify(result);
@@ -63,6 +65,52 @@ test("registration adapter keeps ONL rows as one non-fixed session (Q-009)", () 
   assert.equal(online.sessions.length, 1);
   assert.equal(online.sessions[0]!.fixedTime, false);
   assert.equal(result.issues.some((item) => item.severity === "error"), false);
+});
+
+const portalFixture = new URL("../../../../fixtures/redacted-registration/portal-format.doc", import.meta.url);
+
+test("portal export format: positional day/period/room pairing, header synonyms, summary row (C-09)", () => {
+  const result = vnuRegistrationHtmlAdapter.parse({ bytes: readFileSync(portalFixture), fileName: "ket-qua-dang-ky-mon-hoc.doc" });
+  assert.deepEqual(result.issues, []);
+  const slots = Object.fromEntries(result.sections.map((section) => [section.id, section.sessions.filter(isFixedSession).map((s) => `T${s.day} ${s.startPeriod}-${s.endPeriod} ${s.room}`)]));
+  assert.deepEqual(slots, {
+    "SYN1001E 1": ["T3 1-3 101-A", "T5 7-9 102-A"],
+    "SYN1002 10": ["T2 4-6 201-B"],
+    "SYN1003E 2": ["T5 10-12 202-B"],
+    "SYN1004 3": ["T6 1-3 203-B"],
+    "SYN1005 21": ["T6 7-9 204-B"],
+    "SYN1006 4": ["T3 10-12 301-C", "T6 4-6 302-C"],
+    "SYN1007 5": ["T4 7-9 103-A"],
+  });
+  assert.equal(result.sections.find((section) => section.id === "SYN1007 5")!.courseCode, "SYN1007");
+  assert.ok(result.sections.every((section) => section.sessions.every((s) => s.kind === "OTHER" && s.group === undefined)));
+  const serialized = JSON.stringify(result);
+  for (const identity of ["Sinh Viên Mẫu", "01/01/2000", "00000000", "QH-0000-X/XX", "Chương trình mẫu", "500,000", "Học phần"]) {
+    assert.equal(serialized.includes(identity), false, identity);
+  }
+});
+
+function scheduleRow(day: string, periods: string, room: string): string {
+  return html.replace("<td>T7</td><td>9-12</td><td>Hòa Lạc A</td>", `<td>${day}</td><td>${periods}</td><td>${room}</td>`);
+}
+
+test("day and period lists that cannot be paired fail closed", () => {
+  const result = vnuRegistrationHtmlAdapter.parse({ bytes: bytes(scheduleRow("T2,T4,T6", "1 - 3,4 - 6", "101-A")) });
+  assert.equal(result.sections.some((section) => section.id === "MAT1051 2"), false);
+  assert.ok(result.issues.some((item) => item.code === "REGISTRATION_OVERRIDE_UNMATCHED" && item.field === "periodText" && item.sourceRow === 2));
+});
+
+test("rooms that cannot be split per slot are left to the timetable", () => {
+  for (const room of ["Hòa Lạc A", "101-A102-A103-A", "301-G2 306"]) {
+    const result = vnuRegistrationHtmlAdapter.parse({ bytes: bytes(scheduleRow("T2,T6", "1 - 3,4 - 6", room)) });
+    const section = result.sections.find((candidate) => candidate.id === "MAT1051 2")!;
+    assert.deepEqual(section.sessions.filter(isFixedSession).map((s) => [s.day, s.startPeriod, s.room]), [[2, 1, undefined], [6, 4, undefined]], room);
+    assert.ok(result.issues.some((item) => item.code === "REGISTRATION_OVERRIDE_UNMATCHED" && item.field === "room"), room);
+  }
+  for (const room of ["301-G2306-G2", "301-G2, 306-G2"]) {
+    const split = vnuRegistrationHtmlAdapter.parse({ bytes: bytes(scheduleRow("T2,T6", "1 - 3,4 - 6", room)) });
+    assert.deepEqual(split.sections.find((candidate) => candidate.id === "MAT1051 2")!.sessions.map((s) => s.room), ["301-G2", "306-G2"], room);
+  }
 });
 
 test("registration adapter detects content rather than extension and rejects non-HTML", () => {

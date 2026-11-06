@@ -19,6 +19,34 @@ export type SourceInput = {
   };
   /** Adapter-specific upper bound; adapters still apply their own safe default. */
   maxBytes?: number;
+  /** Per-file overrides for quirks that cannot be inferred; recorded in the import report. Adapters ignore unknown keys. */
+  profile?: ImportProfile;
+};
+
+/** PARSER_SPEC §4 import profile: a format change is fixed by a reviewed profile, not by code. */
+export type ImportProfile = {
+  /** Worksheet to read; otherwise the adapter picks the sheet with a complete header. */
+  sheet?: string;
+  /** Folded substrings of worksheet names that list cancelled sections (default: UET config). */
+  cancelledSheetPatterns?: string[];
+  /** How a bare `a - b` in the `Ca` column is read (default "shifts"). */
+  shiftRange?: "shifts" | "periods";
+};
+
+/** Row accounting of a timetable import: every row with a section id ends up parsed, skipped with a reason, or in error. */
+export type ParseCoverage = {
+  sheet: string;
+  headerRow: number;
+  /** Canonical fields found in the header, sorted; part of the format fingerprint. */
+  columns: string[];
+  /** Non-canonical/unused header labels exposed as session `info`, in sheet column order. */
+  infoColumns: string[];
+  /** Whether `columns` + `infoColumns` match a format already reviewed (UET config). An unknown format is imported as `hold`. */
+  knownFormat: boolean;
+  sectionRows: number;
+  parsedRows: number;
+  skippedRows: Record<string, number>;
+  errorRows: number;
 };
 
 export type ParseResult = {
@@ -27,6 +55,7 @@ export type ParseResult = {
   sections: Section[];
   terms: Term[];
   issues: ParseIssue[];
+  coverage?: ParseCoverage;
 };
 
 export interface ParserAdapter {

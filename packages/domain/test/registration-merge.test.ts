@@ -128,6 +128,33 @@ test("registration rows of one section are merged into a single pick", () => {
   assert.equal(result.matched.length, 1);
 });
 
+test("portal rows without kind or group match by day and periods and take the matched TH group (C-09)", () => {
+  const th1: Session = { ...baseSession, id: "th-1", day: 6, startPeriod: 1, endPeriod: 3, kind: "TH", group: "1", room: "Lab-A" };
+  const th2: Session = { ...baseSession, id: "th-2", day: 6, startPeriod: 4, endPeriod: 6, kind: "TH", group: "2", room: "Lab-B" };
+  const multi: Section = { ...baseSection, sessions: [baseSession, th1, th2] };
+  const multiCatalog: DomainCatalog = { ...catalog, sections: [multi] };
+  // One portal row "T2,T6" / "1 - 3,4 - 6": LT on Monday and the group-2 lab on Friday, no kind or group column.
+  const portalSession = (patch: Partial<Session>): Session => {
+    const session = registrationSession({ kind: "OTHER", ...patch });
+    delete (session as { group?: string }).group;
+    return session;
+  };
+  const portalRow: Section = {
+    ...baseSection,
+    source: registrationSource,
+    datasetVersion: "local-registration",
+    sessions: [
+      portalSession({ id: "reg:1:2:1-3" }),
+      portalSession({ id: "reg:1:6:4-6", day: 6, startPeriod: 4, endPeriod: 6, room: "Lab-C" }),
+    ],
+  };
+  const result = mergeRegistration({ plan: draft, catalog: multiCatalog, registrationSections: [portalRow], term });
+  assert.deepEqual(result.plan.picks, [{ sectionId: multi.id, group: "2" }]);
+  assert.deepEqual(result.sections[0]!.sessions.map((session) => session.room), ["305-G2", "Lab-A", "Lab-C"]);
+  assert.equal(result.issues.some((issue) => issue.code === "REGISTRATION_OVERRIDE_UNMATCHED" || issue.code === "REGISTRATION_OVERRIDE_AMBIGUOUS"), false);
+  assert.deepEqual(resolvePlanPicks(result.plan, { ...multiCatalog, sections: result.sections }).issues, []);
+});
+
 
 test("ONL registration joins the final Plan, counts credits and never conflicts (Q-009)", () => {
   const onlineSession: Session = { id: "onl", fixedTime: false, frame: "uet-default", weeks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], weekOrigin: "explicit", kind: "ONL", group: "CL", lecturers: [], source: timetableSource, confidence: "deterministic" };
@@ -143,19 +170,22 @@ test("ONL registration joins the final Plan, counts credits and never conflicts 
   assert.equal(findConflicts(resolvePlanPicks(result.plan, effective).picks).conflicts.length, 0);
 });
 
-function mergeTh(timetableWeeks: Partial<Session>) {
+function mergeTh(timetableWeeks: Partial<Session>, registrationPatch: Partial<Session> = {}) {
   const thBase: Section = { ...baseSection, id: "MAT1051 1", courseCode: "MAT1051", sessions: [{ ...baseSession, id: "th", kind: "TH", room: "A", ...timetableWeeks } as Session] };
   const thCourse: Course = { ...course, code: "MAT1051", altCodes: [], credits: 2 };
   const thCatalog: DomainCatalog = { courses: [thCourse], sections: [thBase], datasetVersion: "m2" };
   const thPlan = createPlan({ id: "p", term: term.id, datasetVersion: "m2", name: "P", planKind: "draft", picks: [{ sectionId: thBase.id }] }, "2026-10-20T00:00:00.000Z");
-  const thRegistration: Section = { ...thBase, datasetVersion: "local-registration", source: registrationSource, sessions: [{ ...thBase.sessions[0]!, id: "reg-th", weeks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], weekOrigin: "parser-default", room: "B" } as Session] };
+  const thRegistration: Section = { ...thBase, datasetVersion: "local-registration", source: registrationSource, sessions: [{ ...thBase.sessions[0]!, id: "reg-th", weeks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], weekOrigin: "parser-default", room: "B", ...registrationPatch } as Session] };
   return mergeRegistration({ plan: thPlan, catalog: thCatalog, registrationSections: [thRegistration], term });
 }
 
 test("TH registration default weeks apply ADR-0006 when the timetable weeks are a parser default", () => {
-  const result = mergeTh({ weeks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], weekOrigin: "parser-default" });
-  assert.deepEqual(result.sections[0]!.sessions[0]!.weeks, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
-  assert.ok(result.issues.some((issue) => issue.code === "REGISTRATION_DEFAULT_WEEKS"));
+  // A portal row has no kind column (C-09); the matched TH timetable session decides.
+  for (const registrationPatch of [{}, { kind: "OTHER" as const }]) {
+    const result = mergeTh({ weeks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], weekOrigin: "parser-default" }, registrationPatch);
+    assert.deepEqual(result.sections[0]!.sessions[0]!.weeks, [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    assert.ok(result.issues.some((issue) => issue.code === "REGISTRATION_DEFAULT_WEEKS"));
+  }
 });
 
 test("explicit timetable weeks win over the TH registration default (Q-010)", () => {

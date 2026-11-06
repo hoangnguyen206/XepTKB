@@ -79,8 +79,76 @@ export const COLUMN_SYNONYMS: Record<string, string[]> = {
   examRound: ["đợt thi", "dot thi"],
 };
 
-/** Required canonical columns (PARSER_SPEC §4 "yes"). */
-export const REQUIRED_COLUMNS = ["courseCode", "courseName", "sectionId", "kind"];
+/**
+ * Required canonical columns (PARSER_SPEC §4 "yes"); a `shift` or `periodText` column is required as well.
+ * `kind` is optional: the HK I 2026–27 timetable has no LT/TH column.
+ */
+export const REQUIRED_COLUMNS = ["courseCode", "courseName", "sectionId", "day"];
+
+/** Columns that may repeat in a header; their values are joined (the HK II layout has two "Ghi chú" columns). */
+export const REPEATABLE_COLUMNS = ["note"];
+
+/** Folded words of worksheet names that list cancelled sections ("Các lớp hủy"); such a sheet is never imported. */
+export const CANCELLED_SHEET_WORDS = ["huy"];
+
+/** Folded headers of columns that carry no information for students (row numbers); never kept as session info. */
+export const INFO_IGNORED_HEADERS = ["stt", "tt"];
+
+/**
+ * Folded header tokens/phrases that indicate personal data (PII) of students or lecturers
+ * and must never be imported into a public timetable artifact (SECURITY_PRIVACY §2, SEC-M3-102).
+ */
+export const FORBIDDEN_HEADER_PATTERNS: RegExp[] = [
+  /\bsdt\b/,
+  /\bdien thoai\b/,
+  /\bphone\b/,
+  /\bmobile\b/,
+  /\bemail\b/,
+  /\be-mail\b/,
+  /\bngay sinh\b/,
+  /\bnam sinh\b/,
+  /\bma sv\b/,
+  /\bmssv\b/,
+  /\bma sinh vien\b/,
+  /\bcccd\b/,
+  /\bcmnd\b/,
+  /\bcan cuoc\b/,
+  /\bdia chi\b/,
+  /\btai khoan\b/,
+];
+
+/** Folded room text of a self-paced online class when the file has no kind column ("Học Online"). */
+export const ONLINE_ROOM_WORDS = ["online"];
+
+export type KnownFormat = {
+  id: string;
+  columns: string[];
+  /** Folded header labels of reviewed non-canonical (`info`) columns permitted in this layout. */
+  infoColumns?: string[];
+};
+
+/**
+ * Column sets already reviewed (format fingerprints, including allowed `info` columns).
+ * Any other canonical or extra column set imports as `hold` with FORMAT_UNRECOGNIZED,
+ * so a new layout or extra column is looked at before publication instead of being trusted silently.
+ */
+export const KNOWN_FORMATS: KnownFormat[] = [
+  {
+    id: "uet-hk1-2026-27-portal",
+    columns: ["courseCode", "courseName", "credits", "day", "group", "lecturer", "room", "sectionId", "shift"],
+    infoColumns: [],
+  },
+  {
+    id: "uet-official-with-kind-and-notes",
+    columns: ["courseCode", "courseName", "credits", "day", "group", "homeClass", "kind", "lecturer", "note", "room", "sectionId", "shift"],
+    infoColumns: ["lt", "ss", "th", "tu hoc"],
+  },
+  {
+    id: "uet-official-with-periods",
+    columns: ["courseCode", "courseName", "credits", "day", "group", "homeClass", "kind", "lecturer", "note", "periodText", "room", "sectionId", "shift"],
+    infoColumns: ["cot 15", "cot 16", "cot 17", "cot 18", "pcgd", "unknown", "x", "y", "z"],
+  },
+];
 
 /** Kind value → canonical SessionKind (configured aliases only, no guessing). */
 export const KIND_ALIASES: Record<string, "LT" | "TH" | "BT" | "ONL" | "OTHER"> = {

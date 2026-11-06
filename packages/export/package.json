@@ -1,0 +1,17 @@
+{
+  "name": "@ky-nay/export",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "dependencies": {
+    "@ky-nay/domain": "0.0.0"
+  }
+}

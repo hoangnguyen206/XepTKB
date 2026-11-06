@@ -42,9 +42,28 @@ export function normalizeSectionId(value: string): string {
   return value.normalize("NFC").replace(/\*/g, "").replace(/\s+/g, " ").trim().toUpperCase();
 }
 
-/** A section id needs a course-like token and a separate section suffix. */
+/**
+ * A section id needs a course-like token and a separate section suffix. `#` is part of a course code: the HK I 2026–27
+ * timetable lists both `AIT3003#` and `AIT3003`, so it marks a distinct course and is never stripped.
+ */
 export function isCanonicalSectionId(value: string): boolean {
-  return /^[A-Z][A-Z0-9._-]*\s+[A-Z0-9][A-Z0-9._/-]*$/.test(value);
+  return /^[A-Z][A-Z0-9._#-]*\s+[A-Z0-9][A-Z0-9._/-]*$/.test(value);
+}
+
+/**
+ * Rebuilds a section id from its normalized course code, so a code written with a space (`EMA 3062 1` for course
+ * `EMA3062`) gets the id `EMA3062 1` in every source. Returns the normalized raw id when it does not start with the code.
+ */
+export function sectionIdFromCourse(rawSection: string, courseCode: string): string {
+  const normalized = normalizeSectionId(rawSection);
+  let index = 0;
+  for (const char of courseCode) {
+    while (normalized[index] === " ") index += 1;
+    if (normalized[index] !== char) return normalized;
+    index += 1;
+  }
+  const suffix = normalized.slice(index);
+  return /^ \S/.test(suffix) ? `${courseCode} ${suffix.trim()}` : normalized;
 }
 
 export function parseNumber(value: string | undefined): number | undefined {
@@ -135,6 +154,27 @@ export function periodsFromShift(value: string | undefined): PeriodRange[] {
   const shift = UET_CONFIG.frame.shifts.find((candidate) => candidate.name === number);
   if (!shift || shift.periods.length === 0) return [];
   return [{ startPeriod: Math.min(...shift.periods), endPeriod: Math.max(...shift.periods) }];
+}
+
+export type ShiftRangeMeaning = "shifts" | "periods";
+
+/**
+ * Reads a `Ca` cell: a shift number or name, an explicit `Tiết a-b`, or a bare range `a - b`. UET writes `Tiết`
+ * whenever it means periods, so a bare range means shifts a..b (`1 - 2` → periods 1–6; confirmed by the owner,
+ * 2026-10-31). An import profile can switch the bare range to periods for a source that writes it differently.
+ */
+export function periodsFromShiftCell(value: string | undefined, meaning: ShiftRangeMeaning = "shifts"): PeriodRange[] {
+  if (!value) return [];
+  const folded = normalizeHeader(value);
+  if (folded.startsWith("tiet")) return parsePeriodRanges(value);
+  const bare = folded.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (!bare) return periodsFromShift(value);
+  const [from, to] = [bare[1]!, bare[2]!];
+  if (meaning === "periods") return [{ startPeriod: Number(from), endPeriod: Number(to) }];
+  const first = UET_CONFIG.frame.shifts.find((shift) => shift.name === from);
+  const last = UET_CONFIG.frame.shifts.find((shift) => shift.name === to);
+  if (!first || !last || Number(from) > Number(to)) return [];
+  return [{ startPeriod: Math.min(...first.periods), endPeriod: Math.max(...last.periods) }];
 }
 
 export function normalizeKind(value: string | undefined): SessionKind {
