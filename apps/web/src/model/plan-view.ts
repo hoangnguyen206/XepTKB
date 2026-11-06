@@ -3,12 +3,15 @@ import {
   calculatePlanCredits,
   canonicalSectionId,
   findConflicts,
+  normalizeGroup,
   resolvePlanPicks,
   resolvePlanWeek1,
+  sessionFieldValue,
   type CreditSummary,
   type DomainIssue,
   type HardConflict,
   type CampusWarning,
+  type Override,
   type Plan,
   type PlanResolution,
 } from "@ky-nay/domain";
@@ -49,7 +52,7 @@ export function buildPlanView(plan: Plan, catalog: AppCatalog): PlanView {
   return {
     resolution,
     unresolved: unresolvedPicks(resolution.issues),
-    sessions: scheduledSessions(resolution.picks, catalog.domain.courses),
+    sessions: scheduledSessions(resolution.picks, catalog.domain.courses, plan.overrides),
     conflicts: report.conflicts,
     campusWarnings: report.warnings,
     credits,
@@ -99,16 +102,38 @@ export function rebasePreview(plan: Plan, catalog: AppCatalog): RebasePreview {
 export function rebasePlan(plan: Plan, catalog: AppCatalog, now: string): Plan {
   const missing = new Set(missingPicks(plan, catalog).map((id) => canonicalSectionId(id)));
   const invalid = invalidGroupPicks(plan, catalog);
+  const rebasedOverrides: Override[] = [];
+  for (const override of plan.overrides) {
+    const section = catalog.sectionById.get(canonicalSectionId(override.target.sectionId));
+    const baseSession = section?.sessions.find((session) => session.id === override.target.sessionId);
+    if (!section || !baseSession) continue;
+    const currentBaseValue = sessionFieldValue(baseSession, override.field);
+    // When the newer published timetable caught up with a registration override, the override is no longer needed.
+    if (override.source === "registration" && JSON.stringify(currentBaseValue) === JSON.stringify(override.to)) continue;
+    rebasedOverrides.push({ ...override, from: currentBaseValue });
+  }
   return {
     ...plan,
     datasetVersion: catalog.entry.datasetVersion,
     picks: plan.picks
       .filter((pick) => !missing.has(canonicalSectionId(pick.sectionId)))
       .map((pick) => (invalid.has(canonicalSectionId(pick.sectionId)) ? { sectionId: pick.sectionId } : pick)),
-    overrides: plan.overrides.filter((override) => {
-      const section = catalog.sectionById.get(canonicalSectionId(override.target.sectionId));
-      return section?.sessions.some((session) => session.id === override.target.sessionId) ?? false;
-    }),
+    overrides: rebasedOverrides,
+    updatedAt: now,
+  };
+}
+
+/** Updates the group of an already-picked section in-place without dropping Plan overrides. */
+export function setPickedGroup(plan: Plan, sectionId: string, group: string, now: string): Plan {
+  const target = canonicalSectionId(sectionId);
+  const normalized = normalizeGroup(group);
+  return {
+    ...plan,
+    picks: plan.picks.map((pick) =>
+      canonicalSectionId(pick.sectionId) === target
+        ? normalized ? { sectionId: pick.sectionId, group: normalized } : { sectionId: pick.sectionId }
+        : pick,
+    ),
     updatedAt: now,
   };
 }

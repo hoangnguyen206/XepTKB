@@ -1,6 +1,7 @@
 /** Plan selection, group resolution and validation for the M2 domain engine. */
 import { domainIssue, type DomainIssue } from "./issues.js";
 import { canonicalSectionId, normalizeCourseCode, normalizeGroup, normalizeSearchText } from "./normalize.js";
+import { applySectionOverrides } from "./registration-merge.js";
 import type { DomainCatalog, Override, Plan, PlanPick, Section, Session, Term } from "./types.js";
 
 export type ResolvedPlanPick = {
@@ -83,17 +84,18 @@ export function resolvePlanPicks(plan: Plan, catalog: DomainCatalog): PlanResolu
       continue;
     }
     seenSections.add(sectionId);
-    const section = sectionsById.get(sectionId);
-    if (!section) {
+    const rawSection = sectionsById.get(sectionId);
+    if (!rawSection) {
       issues.push(domainIssue("SECTION_NOT_FOUND", "error", `section ${sectionId} is not in the dataset`, { sectionId }));
       continue;
     }
-    const courseCode = normalizeCourseCode(section.courseCode);
+    const courseCode = normalizeCourseCode(rawSection.courseCode);
     if (seenCourses.has(courseCode)) {
       issues.push(domainIssue("DUPLICATE_COURSE_SELECTION", "error", `course ${courseCode} is selected more than once`, { sectionId, courseCode }));
       continue;
     }
     seenCourses.add(courseCode);
+    const section = plan.overrides.length > 0 ? applySectionOverrides(rawSection, plan.overrides, catalog).section : rawSection;
     const selection = sessionsForPick(section, pick);
     issues.push(...selection.issues);
     const normalizedGroup = normalizeGroup(pick.group);

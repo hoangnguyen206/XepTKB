@@ -153,6 +153,10 @@ export async function savePlanIfUnchanged(db: IDBDatabase, plan: Plan, expectedU
   });
 }
 
+export async function deletePlan(db: IDBDatabase, planId: string): Promise<void> {
+  await idbDelete(db, "plans", planId);
+}
+
 export async function listBackups(db: IDBDatabase): Promise<{ key: IDBValidKey; value: BackupRecord }[]> {
   return idbEntries<BackupRecord>(db, "backups");
 }

@@ -25,7 +25,8 @@ import {
 
 const ADAPTER_ID = "vnu-registration-html";
 const ADAPTER_VERSION = "0.2.0";
-const DEFAULT_MAX_BYTES = 2 * 1024 * 1024;
+export const MAX_REGISTRATION_BYTES = 2 * 1024 * 1024;
+const DEFAULT_MAX_BYTES = MAX_REGISTRATION_BYTES;
 
 function localName(node: any): string {
   return String(node.localName ?? node.nodeName ?? "").split(":").pop()?.toLowerCase() ?? "";
@@ -54,11 +55,6 @@ function descendants(node: any, name: string): any[] {
 
 function text(node: any): string {
   return String(node?.textContent ?? "").replace(/[ \t\r\n]+/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function attr(node: any, name: string): string | undefined {
-  const value = node?.getAttribute?.(name);
-  return value === null || value === undefined || value === "" ? undefined : String(value);
 }
 
 function issue(code: ParseIssue["code"], severity: ParseIssue["severity"], message: string, details: Partial<ParseIssue> = {}): ParseIssue {
@@ -112,11 +108,6 @@ function createLocalArtifact(_input: SourceInput): ImportArtifact {
 function parseTables(html: string): string[][][] {
   const document = new DOMParser({ onError: () => undefined }).parseFromString(html, "text/html");
   return descendants(document, "table").map((table) => descendants(table, "tr").map((row) => children(row, "th").concat(children(row, "td")).map(text)));
-}
-
-function findColumn(headers: string[], canonical: string): number | undefined {
-  const index = headers.findIndex((header) => mapHeader(header) === canonical);
-  return index >= 0 ? index : undefined;
 }
 
 function splitRows(table: string[][]): { headers: string[]; rows: string[][] } | undefined {

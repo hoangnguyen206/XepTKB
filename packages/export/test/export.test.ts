@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createPlan, findConflicts, resolvePlanPicks, type Course, type DomainCatalog, type Section, type Session, type TimeFrame } from "@ky-nay/domain";
+import { createPlan, findConflicts, resolvePlanPicks, type Course, type DomainCatalog, type Override, type Section, type Session, type TimeFrame } from "@ky-nay/domain";
 import {
   allOccurrences,
   buildGridLayout,
@@ -8,12 +8,14 @@ import {
   buildWordDoc,
   conflictKeys,
   describeConflict,
+  describeOverride,
   escapeText,
   foldLine,
   formatSessionExtras,
   kindText,
   formatWeeks,
   occurrencesForWeek,
+  overrideBadge,
   scheduledSessions,
   toUtcStamp,
   weekOfDate,
@@ -141,4 +143,32 @@ test("Word export escapes every value and lists non-fixed sessions separately", 
   assert.ok(doc.includes("v1 &amp; co"));
   assert.ok(doc.includes("Không có giờ cố định"));
   assert.ok(doc.includes("mso-page-orientation: landscape"));
+});
+
+test("AC-05 scheduledSessions, Word and ICS surface registration override badges and from -> to details", () => {
+  const overrides: Override[] = [
+    { target: { sectionId: "SYN1001 1", sessionId: "a" }, field: "room", from: "301-G2", to: "405-G2", source: "registration" },
+    { target: { sectionId: "SYN1001 1", sessionId: "a" }, field: "periods", from: { startPeriod: 4, endPeriod: 6 }, to: { startPeriod: 7, endPeriod: 9 }, source: "registration" },
+  ];
+  assert.equal(overrideBadge("room"), "Đã đổi phòng");
+  assert.equal(overrideBadge("periods"), "Đã đổi giờ");
+  assert.equal(describeOverride(overrides[0]!), "Phòng học: 301-G2 → 405-G2 (theo ĐKMH)");
+  assert.equal(describeOverride(overrides[1]!), "Tiết học: tiết 4–6 → tiết 7–9 (theo ĐKMH)");
+
+  const overriddenPlan = { ...plan, overrides };
+  const overriddenResolution = resolvePlanPicks(overriddenPlan, catalog);
+  const overriddenSessions = scheduledSessions(overriddenResolution.picks, courses, overrides);
+  const s1 = overriddenSessions.find((item) => item.sectionId === "SYN1001 1")!;
+  assert.equal(s1.room, "405-G2");
+  assert.equal(s1.startPeriod, 7);
+  assert.equal(s1.endPeriod, 9);
+  assert.deepEqual(s1.overrides?.map((item) => item.badge), ["Đã đổi phòng", "Đã đổi giờ"]);
+
+  const doc = buildWordDoc({ title: "Phương án chính thức", meta: [], sessions: [s1], frame, notes: [], disclaimer: "d" });
+  assert.ok(doc.includes("Phòng học: 301-G2 → 405-G2 (theo ĐKMH)"));
+
+  const occ = occurrencesForWeek([s1], 1, "2027-02-15", frame);
+  const ics = buildIcs({ calendarName: "Final", datasetVersion: "v1", sourceLine: "S", disclaimer: "D", generatedAt: "2026-10-25T00:00:00.000Z", occurrences: occ });
+  const unfolded = ics.replace(/\r\n /g, "");
+  assert.ok(unfolded.includes("Thay đổi so với TKB: Phòng học: 301-G2 → 405-G2 (theo ĐKMH)"));
 });

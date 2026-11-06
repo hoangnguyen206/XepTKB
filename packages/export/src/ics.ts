@@ -81,6 +81,7 @@ export function buildIcs(input: IcsInput): string {
       `Lớp ${occurrence.sectionId}${occurrence.group ? ` · nhóm ${occurrence.group}` : ""}${kindText(occurrence.kind) ? ` · ${kindText(occurrence.kind)}` : ""}`,
       `${formatPeriods(occurrence.startPeriod, occurrence.endPeriod)} · tuần ${occurrence.week} (học các tuần ${formatWeeks(occurrence.weeks)})`,
       ...(occurrence.lecturers.length > 0 ? [`Giảng viên: ${occurrence.lecturers.join(", ")}`] : []),
+      ...(occurrence.overrides && occurrence.overrides.length > 0 ? [`Thay đổi so với TKB: ${occurrence.overrides.map((item) => item.detail).join("; ")}`] : []),
       input.sourceLine,
       input.disclaimer,
     ];

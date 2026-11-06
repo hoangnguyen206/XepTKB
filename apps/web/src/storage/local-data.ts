@@ -1,8 +1,20 @@
 /** Dataset cache, settings and the "delete everything on this device" action. */
 import type { LoadedDataset } from "../data/contract.js";
+import type { UnmatchedRegistrationItem } from "../model/registration.js";
 import { idbClearAll, idbDelete, idbEntries, idbGet, idbPut } from "./db.js";
 
-export type Settings = { activeTerm?: string };
+export type TermRegistrationNotes = {
+  unmatched: UnmatchedRegistrationItem[];
+  warnings: string[];
+};
+
+export type Settings = {
+  activeTerm?: string;
+  /** Per-term selected Plan slot (`draft` vs `final`). */
+  activeSlots?: Record<string, "draft" | "final">;
+  /** Per-term PII-free registration unmatched items and warnings for the `final` Plan. */
+  registrationNotes?: Record<string, TermRegistrationNotes>;
+};
 
 /** One cached dataset per term (the last one that passed validation). */
 export function datasetCache(db: IDBDatabase) {
@@ -22,6 +34,22 @@ export async function loadSettings(db: IDBDatabase): Promise<Settings> {
 
 export async function saveSettings(db: IDBDatabase, settings: Settings): Promise<void> {
   await idbPut(db, "settings", settings, "app");
+}
+
+export async function updateSettings(db: IDBDatabase, patch: Partial<Settings>): Promise<Settings> {
+  const current = await loadSettings(db);
+  const next: Settings = {
+    ...current,
+    ...patch,
+    ...(current.activeSlots || patch.activeSlots
+      ? { activeSlots: { ...(current.activeSlots ?? {}), ...(patch.activeSlots ?? {}) } }
+      : {}),
+    ...(current.registrationNotes || patch.registrationNotes
+      ? { registrationNotes: { ...(current.registrationNotes ?? {}), ...(patch.registrationNotes ?? {}) } }
+      : {}),
+  };
+  await saveSettings(db, next);
+  return next;
 }
 
 /**

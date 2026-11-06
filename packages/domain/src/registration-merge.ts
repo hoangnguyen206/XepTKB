@@ -3,8 +3,8 @@
  * Registration is a field-level overlay; source Sections remain immutable.
  */
 import { domainIssue, type DomainIssue } from "./issues.js";
-import { buildCourseCodeAliases, canonicalSectionId, normalizeCourseCode, normalizeGroup, normalizeSectionId, sectionParts } from "./normalize.js";
-import { isFixedSession, type DomainCatalog, type FixedSession, type Override, type Plan, type PlanPick, type Section, type Session, type Term } from "./types.js";
+import { buildCourseCodeAliases, canonicalSectionId, normalizeCourseCode, normalizeGroup, sectionParts } from "./normalize.js";
+import { isFixedSession, type DomainCatalog, type Override, type Plan, type PlanPick, type Section, type Session, type Term } from "./types.js";
 
 export type RegistrationMatch = {
   registrationSection: Section;
@@ -28,7 +28,7 @@ export type RegistrationMergeResult = {
   issues: readonly DomainIssue[];
 };
 
-function fieldValue(session: Session, field: Override["field"]): unknown {
+export function sessionFieldValue(session: Session, field: Override["field"]): unknown {
   if (field === "periods") return isFixedSession(session) ? { startPeriod: session.startPeriod, endPeriod: session.endPeriod } : undefined;
   if (field === "lecturer") return session.lecturers;
   return session[field];
@@ -70,8 +70,8 @@ function maxPeriodFor(session: Session, catalog: DomainCatalog): number {
 }
 
 function equalField(left: Session, right: Session, field: Override["field"]): boolean {
-  const leftValue = fieldValue(left, field);
-  const rightValue = fieldValue(right, field);
+  const leftValue = sessionFieldValue(left, field);
+  const rightValue = sessionFieldValue(right, field);
   if (Array.isArray(leftValue) || Array.isArray(rightValue) || (typeof leftValue === "object" && leftValue !== null) || (typeof rightValue === "object" && rightValue !== null)) {
     return JSON.stringify(leftValue) === JSON.stringify(rightValue);
   }
@@ -173,7 +173,7 @@ function overridesForPair(base: Session, registration: Session, sectionId: strin
   for (const field of fields) {
     if (field === "weeks" && hasDefaultWeeks(nextRegistration)) continue;
     if (!hasField(nextRegistration, field) || equalField(base, nextRegistration, field)) continue;
-    const value = fieldValue(nextRegistration, field);
+    const value = sessionFieldValue(nextRegistration, field);
     const applied = applyField(merged, field, value, teachingWeeks, maxPeriod);
     if (!applied) {
       issues.push(domainIssue("INVALID_OVERRIDE_VALUE", "error", `registration value for ${field} is invalid`, { sectionId, sessionId: base.id, field }));
@@ -183,7 +183,7 @@ function overridesForPair(base: Session, registration: Session, sectionId: strin
     overrides.push({
       target: { sectionId, sessionId: base.id },
       field,
-      from: fieldValue(base, field),
+      from: sessionFieldValue(base, field),
       to: value,
       source: "registration",
       reason: normalizedRegistration.defaulted && field === "weeks" ? "ADR-0006 TH registration default" : "registration result overrides timetable field",
@@ -200,6 +200,7 @@ function applyExistingOverrides(session: Session, sectionId: string, overrides: 
   const issues: DomainIssue[] = [];
   const byField = new Map<string, Override>();
   let next = cloneSession(session);
+  let touchedByRegistration = false;
   const rank = { registration: 1, "admin-correction": 2, user: 3 } as const;
   for (const override of [...relevant].sort((a, b) => rank[a.source] - rank[b.source])) {
     const prior = byField.get(override.field);
@@ -209,10 +210,39 @@ function applyExistingOverrides(session: Session, sectionId: string, overrides: 
     }
     byField.set(override.field, override);
     const applied = applyField(next, override.field, override.to, teachingWeeks, maxPeriod);
-    if (!applied) issues.push(domainIssue("INVALID_OVERRIDE_VALUE", "error", `invalid ${override.field} override for ${sectionId}/${session.id}`, { sectionId, sessionId: session.id, field: override.field }));
-    else next = applied;
+    if (!applied) {
+      issues.push(domainIssue("INVALID_OVERRIDE_VALUE", "error", `invalid ${override.field} override for ${sectionId}/${session.id}`, { sectionId, sessionId: session.id, field: override.field }));
+    } else {
+      next = applied;
+      if (override.source === "registration") touchedByRegistration = true;
+    }
+  }
+  if (touchedByRegistration && next.source.sourceType === "timetable") {
+    next.source = { artifactId: "local-registration", sourceType: "registration" };
   }
   return { session: next, issues };
+}
+
+/** Applies targeted Plan overrides (`registration < admin-correction < user`) to a single catalog section. */
+export function applySectionOverrides(
+  section: Section,
+  overrides: readonly Override[],
+  catalog: DomainCatalog,
+  teachingWeeks = 30,
+): { section: Section; issues: DomainIssue[] } {
+  if (overrides.length === 0) return { section, issues: [] };
+  const aliases = buildCourseCodeAliases(catalog.courses).aliases;
+  const targetSectionId = canonicalSectionId(section.id, aliases);
+  const relevant = overrides.filter((override) => canonicalSectionId(override.target.sectionId, aliases) === targetSectionId);
+  if (relevant.length === 0) return { section, issues: [] };
+  const issues: DomainIssue[] = [];
+  const sessions = section.sessions.map((session) => {
+    const maxWeek = Math.max(teachingWeeks, ...session.weeks, 30);
+    const applied = applyExistingOverrides(session, section.id, relevant, maxWeek, maxPeriodFor(session, catalog));
+    issues.push(...applied.issues);
+    return applied.session;
+  });
+  return { section: { ...section, sessions }, issues };
 }
 
 function nonClassGroups(sessions: readonly Session[]): string[] {

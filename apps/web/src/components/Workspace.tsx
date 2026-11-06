@@ -4,12 +4,14 @@ import { buildGridLayout, conflictKeys, dayLabel, formatDate, formatPeriods, for
 import type { AppCatalog } from "../model/catalog.js";
 import { exportDisclaimer, provenanceLine } from "../model/labels.js";
 import { applyPick, unpick } from "../model/picker.js";
-import { buildPlanView, rebasePlan, type PlanView } from "../model/plan-view.js";
+import { buildPlanView, rebasePlan, setPickedGroup, type PlanView } from "../model/plan-view.js";
 import { defaultWeek, todayInVietnam, weekLabel } from "../model/week.js";
+import type { TermRegistrationNotes } from "../storage/local-data.js";
 import { Notice, TabPanel, Tabs, useMediaQuery, WeekPicker, type WeekChoice } from "./common.js";
 import { ExportPanel } from "./ExportPanel.js";
 import type { Week1Choice } from "./Onboarding.js";
 import { PlanSummary, StalePlanNotice } from "./PlanSummary.js";
+import { RegistrationImportPanel } from "./RegistrationImport.js";
 import { DayList, NonFixedList, WeekGrid } from "./Schedule.js";
 import { SearchPanel } from "./SearchPanel.js";
 import { creditsLine } from "../export/files.js";
@@ -38,6 +40,7 @@ function PrintSheet(props: { plan: Plan; view: PlanView; catalog: AppCatalog; we
         <tbody>
           {fixed.map((session) => {
             const times = periodTimes(catalog.frame, session.startPeriod!, session.endPeriod!);
+            const overrideNote = session.overrides && session.overrides.length > 0 ? ` (${session.overrides.map((item) => item.detail).join("; ")})` : "";
             return (
               <tr key={session.key}>
                 <td>{dayLabel(session.day!)}</td>
@@ -45,7 +48,7 @@ function PrintSheet(props: { plan: Plan; view: PlanView; catalog: AppCatalog; we
                 <td>{session.courseCode} {session.courseName}</td>
                 <td>{session.sectionId}{session.group && session.group !== "CL" ? ` · nhóm ${session.group}` : ""}</td>
                 <td>{kindText(session.kind)}</td>
-                <td>{session.room ?? ""}</td>
+                <td>{session.room ?? ""}{overrideNote}</td>
                 <td>{formatWeeks(session.weeks)}</td>
               </tr>
             );
@@ -59,14 +62,26 @@ function PrintSheet(props: { plan: Plan; view: PlanView; catalog: AppCatalog; we
   );
 }
 
-export function Workspace(props: { plan: Plan; catalog: AppCatalog; onPlanChange: (plan: Plan) => void }) {
-  const { plan, catalog } = props;
+export function Workspace(props: {
+  plan: Plan;
+  draftPlan: Plan;
+  finalPlan?: Plan;
+  activeSlot: "draft" | "final";
+  registrationNotes?: TermRegistrationNotes;
+  catalog: AppCatalog;
+  onPlanChange: (plan: Plan) => void;
+  onSelectSlot: (slot: "draft" | "final") => void;
+  onConfirmRegistration: (finalPlan: Plan, notes: TermRegistrationNotes) => void;
+  onDeleteFinalPlan?: () => void;
+}) {
+  const { plan, draftPlan, finalPlan, activeSlot, catalog } = props;
   const desktop = useMediaQuery("(min-width: 1200px)");
   const view = useMemo(() => buildPlanView(plan, catalog), [plan, catalog]);
   const today = todayInVietnam();
   const [week, setWeek] = useState<WeekChoice>(() => (view.week1 ? defaultWeek(view.week1.date, catalog.term.teachingWeeks, today) : "all"));
   const [tab, setTab] = useState<string>("search");
   const [pickError, setPickError] = useState<string | undefined>(undefined);
+  const [importOpen, setImportOpen] = useState(false);
   const activeTab = desktop && tab === "search" ? "week" : tab;
   const tabs = [
     ...(desktop ? [] : [{ id: "search", label: "Tìm môn" }]),
@@ -81,6 +96,10 @@ export function Workspace(props: { plan: Plan; catalog: AppCatalog; onPlanChange
     [view, weekNumber, catalog.maxPeriod],
   );
   const keys = useMemo(() => conflictKeys(view.conflicts, weekNumber), [view.conflicts, weekNumber]);
+  const activeOverrideCount = useMemo(
+    () => view.sessions.reduce((sum, session) => sum + (session.overrides?.length ?? 0), 0),
+    [view.sessions],
+  );
 
   const onPick = (sectionId: string, group?: string) => {
     const result = applyPick(plan, catalog, group ? { sectionId, group } : { sectionId }, now());
@@ -92,6 +111,10 @@ export function Workspace(props: { plan: Plan; catalog: AppCatalog; onPlanChange
     }
   };
   const onUnpick = (sectionId: string) => props.onPlanChange(unpick(plan, sectionId, now()));
+  const onSelectGroup = (sectionId: string, group: string) => {
+    setPickError(undefined);
+    props.onPlanChange(setPickedGroup(plan, sectionId, group, now()));
+  };
   const onWeek1 = (choice: Week1Choice) => {
     const { cohort: _cohort, week1: _week1, ...rest } = plan;
     props.onPlanChange({ ...rest, ...(choice.cohort ? { cohort: choice.cohort } : {}), ...(choice.week1 ? { week1: choice.week1 } : {}), updatedAt: now() });
@@ -103,15 +126,60 @@ export function Workspace(props: { plan: Plan; catalog: AppCatalog; onPlanChange
       {desktop ? <aside className="pane-left card" aria-label="Tìm và chọn lớp">{search}</aside> : null}
       <div className="pane-main">
         <div className="plan-bar">
-          <h2>{plan.name}</h2>
+          <div className="plan-bar-top">
+            <h2>{plan.name}</h2>
+            <div className="plan-slot-controls">
+              <div className="slot-switcher" role="group" aria-label="Chọn phương án">
+                <button
+                  type="button"
+                  className={`button small ${activeSlot === "draft" ? "primary" : "secondary"}`}
+                  aria-pressed={activeSlot === "draft"}
+                  onClick={() => props.onSelectSlot("draft")}
+                >
+                  Phương án nháp ({draftPlan.picks.length})
+                </button>
+                {finalPlan ? (
+                  <button
+                    type="button"
+                    className={`button small ${activeSlot === "final" ? "primary" : "secondary"}`}
+                    aria-pressed={activeSlot === "final"}
+                    onClick={() => props.onSelectSlot("final")}
+                  >
+                    Phương án chính thức ({finalPlan.picks.length})
+                  </button>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className="button secondary small"
+                aria-expanded={importOpen}
+                onClick={() => setImportOpen((open) => !open)}
+              >
+                {finalPlan ? "Cập nhật từ file ĐKMH" : "Nhập kết quả ĐKMH"}
+              </button>
+            </div>
+          </div>
           <p className="muted">
             {/* AC-M3-11: unknown credits are "chưa rõ", never counted as 0 (QA-M3-008). */}
             {catalog.term.name} · {plan.picks.length} lớp · {view.credits.knownTotal === 0 && view.credits.unknownCourseCodes.length > 0 ? "chưa rõ" : view.credits.knownTotal} tín chỉ
             {view.credits.unknownCourseCodes.length > 0 && view.credits.knownTotal > 0 ? ` + ${view.credits.unknownCourseCodes.length} môn chưa rõ tín chỉ` : ""}
+            {activeOverrideCount > 0 ? <strong className="override-count"> · ★ {activeOverrideCount} thay đổi từ ĐKMH</strong> : null}
             {view.conflicts.length > 0 ? <strong className="conflict-count"> · ⚠ {view.conflicts.length} chỗ trùng lịch</strong> : null}
             {view.unresolved.length > 0 ? <strong className="conflict-count"> · ⚠ {view.unresolved.length} lớp cần xử lý</strong> : null}
           </p>
         </div>
+        {importOpen ? (
+          <RegistrationImportPanel
+            catalog={catalog}
+            draftPlan={draftPlan}
+            {...(finalPlan ? { existingFinalPlan: finalPlan } : {})}
+            onConfirm={(nextFinalPlan, notes) => {
+              setImportOpen(false);
+              props.onConfirmRegistration(nextFinalPlan, notes);
+            }}
+            onClose={() => setImportOpen(false)}
+          />
+        ) : null}
         {view.stale ? <StalePlanNotice plan={plan} catalog={catalog} onRebase={() => props.onPlanChange(rebasePlan(plan, catalog, now()))} /> : null}
         {view.week1Issue ? <Notice tone="warning">Chưa xác định được tuần 1 cho phương án này. Hãy mở Phương án → Thiết lập tuần 1.</Notice> : null}
         {pickError ? <Notice tone="error">{pickError}</Notice> : null}
@@ -139,7 +207,16 @@ export function Workspace(props: { plan: Plan; catalog: AppCatalog; onPlanChange
           ) : null}
         </TabPanel>
         <TabPanel idPrefix="ws" id="plan" active={activeTab === "plan"}>
-          <PlanSummary plan={plan} view={view} catalog={catalog} onUnpick={onUnpick} onWeek1={onWeek1} />
+          <PlanSummary
+            plan={plan}
+            view={view}
+            catalog={catalog}
+            {...(props.registrationNotes ? { registrationNotes: props.registrationNotes } : {})}
+            onUnpick={onUnpick}
+            onSelectGroup={onSelectGroup}
+            onWeek1={onWeek1}
+            {...(props.onDeleteFinalPlan ? { onDeleteFinalPlan: props.onDeleteFinalPlan } : {})}
+          />
           <ExportPanel plan={plan} view={view} catalog={catalog} week={week} />
         </TabPanel>
       </div>
