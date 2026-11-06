@@ -5,7 +5,7 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
 import { AxeBuilder } from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixture.js";
 
 const SCREENSHOTS = process.env.M3_SCREENSHOT_DIR;
 const VIEWPORTS = [

@@ -1,7 +1,7 @@
 # M4 evidence envelope — Registration merge UI
 
 > **Artifact ID:** `EVID-M4-001`  
-> **Artifact status:** `ready` (`approved` by Owner at `2026-11-06T07:30Z`) — G0/G1/G2 authored, independent G3a/G3b/G3c R1 (`12abdbd`) + R1.1 (`6fd1506`) completed (`qa-pass`, `security-pass-with-exception`, `review-approved`), and formally signed off by Owner  
+> **Artifact status:** `ready` (`approved` by Owner at `2026-11-06T07:30Z`) — G0/G1/G2 authored, independent G3a/G3b/G3c R1 (`12abdbd`) + R1.1 (`6fd1506`) completed (`qa-pass`, `security-approved`, `review-approved`), formally signed off by Owner, and inherited M3 S3 code/CI exceptions (`EXC-SEC-M3-R2-B/C/D`) closed ahead of `2026-11-08`  
 > **Canonical gate/sub-gate:** `G0 | G1 | G2 | G3a | G3b | G3c`  
 > **Owner:** Tech Lead + Release Manager  
 > **Last reviewed:** 2026-11-06  
@@ -32,14 +32,16 @@
 
 ## Immutable execution identity
 
-- Branch: `m4-registration-ui` (branched from `main` @ `3c34c89`).
+- Branch: `m4-registration-ui` (branched from `main` @ `3c34c89`, merged into `main` @ `bac83bf`).
 - Target commits:
   - Initial G2 handoff commit (`R1`): `12abdbd`
   - G3 fix round commit (`R1.1`): `6fd1506`
 - Toolchain versions: Node `22.22.2`, npm `12.0.2`, TypeScript `5.9.3`, Vite `8.3.4`, Vitest `5.0.3`, Playwright `1.64.0`.
-- Exact commands + exit codes (2026-11-06 on `6fd1506`):
-  - `npm run check` → exit `0` (`lint` passed, `typecheck` passed, `node:test` `102/102`, `vitest` `68/68`, `fixtures:run` `6/6`, `node scripts/dataset.mjs check` `0 datasets`).
-  - `npm run test:e2e` → exit `0` (Playwright Chromium `19/19` passed).
+- Exact commands + exit codes (2026-11-06):
+  - `npm run check` → exit `0` (`lint` AST + regex passed, `typecheck` passed, `node:test` `106/106`, `vitest` `68/68`, `fixtures:run` `6/6`, `node scripts/dataset.mjs check` `0 datasets`).
+  - `node scripts/dataset.mjs check --base HEAD~1` → exit `0`.
+  - `npm run verify:bundle` → exit `0` (`verify-production-bundle: OK (1 JS asset(s), allowUnpublished:!1, _headers + sw.js present)`).
+  - `npm run test:e2e` → exit `0` (Playwright Chromium `19/19` passed with shared `networkGuard` fixture).
   - `npm audit` & `npm audit --omit=dev` → `0 vulnerabilities`.
 
 ## Data and artefact integrity
@@ -56,9 +58,9 @@
 | --- | --- | --- | --- | --- |
 | [`SPEC-M4-001`](M4-SPEC.md) | `G0` M4 specification (`AC-M4-01..08`, `D-M4-1..3`) | Complete spec covering `FR-09`, `FR-10`, `AC-04`, `AC-05`, `Q-005`, `Q-007` | Approved by Owner (`2026-11-06T07:30Z`) | `g0-approved` |
 | [`ADR-0013`](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md) & [`DESIGN-M4-001`](M4-DESIGN-HANDOFF.md) | `G1` architecture, privacy boundary & threat review | Local-only boundary, `resolvePlanPicks` override application, 2-slot storage design | Approved by Owner (`2026-11-06T07:30Z`) | `g1-approved` |
-| [`IMPL-M4-001`](M4-IMPLEMENTATION-HANDOFF.md) | `G2` implementation + automated test suites | `npm run check` exit `0`, `npm run test:e2e` exit `0` | `102/102` node tests, `68/68` Vitest, `6/6` fixtures, `19/19` E2E passed (`6fd1506`) | `ready-for-verification` |
+| [`IMPL-M4-001`](M4-IMPLEMENTATION-HANDOFF.md) | `G2` implementation + automated test suites | `npm run check` exit `0`, `npm run test:e2e` exit `0` | `106/106` node tests, `68/68` Vitest, `6/6` fixtures, `19/19` E2E passed | `ready-for-verification` |
 | [`TEST-M4-001`](M4-G3a-QA-REPORT.md) | `G3a` independent QA verification (`R1` + `R1.1` @ `6fd1506`) | Verify `AC-M4-01..08`, `AC-04`, `AC-05`, zero open defects | `0` S0/S1/S2/S3 open (`QA-M4-001..003` `verified-fixed`), approved by Owner (`2026-11-06T07:30Z`) | `qa-pass` |
-| [`SEC-REVIEW-M4-001`](M4-G3b-SECURITY-REVIEW.md) | `G3b` independent security & privacy review (`R1` + `R1.1` @ `6fd1506`) | Verify zero network/PII leakage (`AC-04`), XSS/file parser hardening | `0` S0/S1/S2/S3 open for M4 (`SEC-M4-001` `verified-fixed`; 3 inherited M3 S3 exceptions tracked for M5), approved by Owner (`2026-11-06T07:30Z`) | `security-pass-with-exception` |
+| [`SEC-REVIEW-M4-001`](M4-G3b-SECURITY-REVIEW.md) | `G3b` independent security & privacy review (`R1` + `R1.1` @ `6fd1506` + S3 closure) | Verify zero network/PII leakage (`AC-04`), XSS/file parser hardening, AST lint & CI gates | `0` S0/S1/S2/S3 open across M3 & M4 code/CI (`SEC-M4-001`, `SEC-M3-005`, `SEC-M3-101(e)`, `SEC-M3-003(b/d)` `verified-fixed`), approved by Owner (`2026-11-06T07:30Z`) | `security-approved` |
 | [`REVIEW-M4-001`](M4-G3c-INDEPENDENT-REVIEW.md) | `G3c` independent code & architecture review (`R1` + `R1.1` @ `6fd1506`) | Verify domain/export/web implementation and G3a/G3b synthesis | `0` S0/S1/S2/S3 open (`REV-M4-001..004` + `SEC-M4-001` `verified-fixed`), approved by Owner (`2026-11-06T07:30Z`) | `review-approved` |
 
 ## Findings ledger (M4 G3 R1 `12abdbd` → R1.1 `6fd1506`)
@@ -73,9 +75,9 @@
 
 ## Risk and controls
 
-- Privacy/security impact and boundary: High-sensitivity boundary (`AC-04` student registration `.doc`/`.html` containing PII in the raw file). Enforced via in-memory `vnuRegistrationHtmlAdapter.parse` (`localOnly: true`), magic-byte/size guards (`<= 2 MiB`), immediate input clearing, no network capability outside `apps/web/src/data/loader.ts` (enforced by `scripts/lint.mjs` and verified by Playwright network interception), and zero PII in DOM/IndexedDB/console/exports.
-- Findings (ID/severity/status): `5/5` M4 findings (`1 S2`, `4 S3`) are `verified-fixed` at `6fd1506` (`0` open M4 findings).
-- Waiver/exception: `none` new in M4 (inherited M3 S3 exceptions `EXC-SEC-M3-R2-B/C/D` remain tracked under `EVID-M3-001` with expiry `2026-11-08` for M5 `G4a`/`G4b`).
+- Privacy/security impact and boundary: High-sensitivity boundary (`AC-04` student registration `.doc`/`.html` containing PII in the raw file). Enforced via in-memory `vnuRegistrationHtmlAdapter.parse` (`localOnly: true`), magic-byte/size guards (`<= 2 MiB`), immediate input clearing, no network capability outside `apps/web/src/data/loader.ts` (enforced by TypeScript AST + regex analysis in `scripts/lint.mjs` and verified by Playwright `BrowserContext` network interception in `apps/web/e2e/fixture.ts`), and zero PII in DOM/IndexedDB/console/exports.
+- Findings (ID/severity/status): `5/5` M4 findings (`1 S2`, `4 S3`) and all inherited M3 code/CI S3 items (`SEC-M3-005`, `SEC-M3-101(e)`, `SEC-M3-003(b/d)`) are `verified-fixed` (`0` open code/CI findings).
+- Waiver/exception: `none` for code/CI (only the operational `SEC-M3-007` check — running `curl -I` on the live production domain at `G4a` launch — remains in the M5 `G4a` release checklist).
 - Rollback/migration trigger and target: Revert M4 merge commit on `main` if any `S0`/`S1` defect is found; existing `draft` Plans remain readable.
 
 ## Decision and next step
@@ -84,6 +86,6 @@
   - `G0`: **`g0-approved`** (`SPEC-M4-001`)
   - `G1`: **`g1-approved`** (`ADR-0013`, `DESIGN-M4-001`)
   - `G3a`: **`qa-pass`** (`TEST-M4-001`)
-  - `G3b`: **`security-pass-with-exception`** (`SEC-REVIEW-M4-001`, `0` M4 findings open)
+  - `G3b`: **`security-approved`** (`SEC-REVIEW-M4-001`, `0` code/CI findings open)
   - `G3c`: **`review-approved`** (`REVIEW-M4-001`)
-- Next owner action: Merge `m4-registration-ui` into `main` and proceed to M5 release readiness (`G4a/G4b/G5`).
+- Next owner action: Proceed to M5 release readiness (`G4a/G4b/G5`) when ready.

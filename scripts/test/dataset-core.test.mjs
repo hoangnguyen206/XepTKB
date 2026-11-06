@@ -1,12 +1,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { repoRoot } from "../lib/cli.mjs";
-import { datasetVersionFor, diffSections, isSafeRelativePath, nextStatus, normalizeActor, parseStart, sanitizeCliText } from "../lib/dataset-core.mjs";
+import {
+  datasetVersionFor,
+  diffSections,
+  isSafeRelativePath,
+  nextStatus,
+  normalizeActor,
+  parseStart,
+  resolveSiteAllowUnpublished,
+  sanitizeCliText,
+  verifyBaseManifestImmutability,
+} from "../lib/dataset-core.mjs";
 
 test("dataset versions use the Vietnam date and the source hash", () => {
   // 18:30 UTC on 31/10 is already 01/11 in Hà Nội.
@@ -77,6 +88,61 @@ test("CLI free-text sanitizer and relative-path validator fail closed (SEC-M3-10
   assert.equal(isSafeRelativePath("schools/%2e%2e/secret.json"), false);
 });
 
+test("resolveSiteAllowUnpublished fails closed across Cloudflare Pages, Workers Builds, and generic builds (SEC-M3-003)", () => {
+  assert.equal(resolveSiteAllowUnpublished({}), false);
+  assert.equal(resolveSiteAllowUnpublished({ NODE_ENV: "development" }), false);
+  assert.equal(resolveSiteAllowUnpublished({ VITE_ALLOW_UNPUBLISHED: "true" }), true);
+  assert.equal(resolveSiteAllowUnpublished({ CF_PAGES: "1", CF_PAGES_BRANCH: "main", VITE_ALLOW_UNPUBLISHED: "true", NODE_ENV: "development" }), false);
+  assert.equal(resolveSiteAllowUnpublished({ CF_PAGES: "1", CF_PAGES_BRANCH: "" }), false);
+  assert.equal(resolveSiteAllowUnpublished({ CF_PAGES: "1", CF_PAGES_BRANCH: "m4-preview" }), true);
+  assert.equal(resolveSiteAllowUnpublished({ WORKERS_CI: "1", WORKERS_CI_BRANCH: "main", VITE_ALLOW_UNPUBLISHED: "true" }), false);
+  assert.equal(resolveSiteAllowUnpublished({ WORKERS_CI: "1", WORKERS_CI_BRANCH: "preview-1" }), true);
+  assert.equal(resolveSiteAllowUnpublished({ WORKERS_CI: "1", WORKERS_CI_BRANCH: "release", PRODUCTION_BRANCH: "release" }), false);
+});
+
+test("verifyBaseManifestImmutability enforces append-only manifest and immutable artifact hashes across commits (SEC-M3-101e)", () => {
+  const baseEntry = {
+    datasetVersion: "uet-2026-2027-h1-20261101-abcdef01",
+    status: "published",
+    source: { importHash: "sha256:abcdef01" },
+    artifacts: [
+      { kind: "timetable", url: "schools/uet/terms/2026-2027-h1/v1/timetable.json", sha256: "1111", bytes: 100 },
+      { kind: "metadata", url: "schools/uet/terms/2026-2027-h1/v1/metadata.json", sha256: "2222", bytes: 50 },
+    ],
+  };
+  const baseManifest = { schemaVersion: "1.0", datasets: [baseEntry] };
+
+  // Legitimate status change (`published` -> `retracted`) and appending a new version passes.
+  assert.deepEqual(
+    verifyBaseManifestImmutability(baseManifest, {
+      schemaVersion: "1.0",
+      datasets: [
+        { ...baseEntry, status: "retracted" },
+        { ...baseEntry, datasetVersion: "uet-2026-2027-h1-20261102-99999999", status: "candidate" },
+      ],
+    }),
+    [],
+  );
+
+  // Deleting an existing entry fails.
+  assert.match(verifyBaseManifestImmutability(baseManifest, { schemaVersion: "1.0", datasets: [] })[0], /must not be deleted/);
+
+  // Rewriting an artifact hash in the manifest fails.
+  const tamperedHash = {
+    schemaVersion: "1.0",
+    datasets: [
+      {
+        ...baseEntry,
+        artifacts: [
+          { ...baseEntry.artifacts[0], sha256: "forged9999", bytes: 102 },
+          baseEntry.artifacts[1],
+        ],
+      },
+    ],
+  };
+  assert.match(verifyBaseManifestImmutability(baseManifest, tamperedHash)[0], /immutable artifact "timetable"/);
+});
+
 test("CLI round-trip: import -> validate -> publish -> retract -> restore -> publish -> check & site-data (REV-M3-105, REV-M3-106, SEC-M3-101, SEC-M3-104)", async () => {
   const { syntheticXlsx } = await import(pathToFileURL(join(repoRoot, "packages/parser/dist/test/synthetic-xlsx.js")).href);
   const { validateCourse, validateSection } = await import(pathToFileURL(join(repoRoot, "packages/domain/dist/src/index.js")).href);
@@ -130,6 +196,10 @@ test("CLI round-trip: import -> validate -> publish -> retract -> restore -> pub
     const pub = runCli(["publish", version, "--by", "Release Manager"]);
     assert.equal(pub.status, 0, pub.stderr);
 
+    // Snapshot base manifest right after publication (simulating the base git commit).
+    const baseManifestSnapshot = join(tmp, "base-manifest.json");
+    copyFileSync(manifestPath, baseManifestSnapshot);
+
     // 4. Retract -> Restore -> Publish (REV-M3-106 drill).
     const ret = runCli(["retract", version, "--by", "Release Manager", "--reason", "drill retract"]);
     assert.equal(ret.status, 0, ret.stderr);
@@ -138,12 +208,13 @@ test("CLI round-trip: import -> validate -> publish -> retract -> restore -> pub
     const pub2 = runCli(["publish", version, "--by", "Release Manager", "--note", "re-published after restore"]);
     assert.equal(pub2.status, 0, pub2.stderr);
 
-    // 5. `dataset check` passes and timetable payload satisfies domain invariants.
-    const chk = runCli(["check"]);
+    // 5. `dataset check` (with `--base-manifest`) passes and timetable payload satisfies domain invariants.
+    const chk = runCli(["check", "--base-manifest", baseManifestSnapshot]);
     assert.equal(chk.status, 0, chk.stderr);
     const finalManifest = JSON.parse(readFileSync(manifestPath, "utf8"));
     const ttUrl = finalManifest.datasets[0].artifacts.find((a) => a.kind === "timetable").url;
-    const ttPayload = JSON.parse(readFileSync(join(dataRoot, "published", ttUrl), "utf8"));
+    const ttFile = join(dataRoot, "published", ttUrl);
+    const ttPayload = JSON.parse(readFileSync(ttFile, "utf8"));
     for (const c of ttPayload.courses) assert.deepEqual(validateCourse(c).filter((i) => i.severity === "error"), []);
     for (const s of ttPayload.sections) assert.deepEqual(validateSection(s).filter((i) => i.severity === "error"), []);
 
@@ -155,7 +226,20 @@ test("CLI round-trip: import -> validate -> publish -> retract -> restore -> pub
     });
     assert.equal(siteRes.status, 0, siteRes.stderr);
 
-    // 7. SEC-M3-101(d): deleting audit.jsonl causes `dataset check` to fail closed.
+    // 7. SEC-M3-101(e): rewriting `timetable.json` on disk AND updating its sha256/bytes in `manifest.json`
+    // is caught by `dataset check --base-manifest`!
+    const mutatedBytes = Buffer.from(readFileSync(ttFile, "utf8").replace("203-G2", "999-G2"), "utf8");
+    writeFileSync(ttFile, mutatedBytes);
+    const mutatedManifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    const ttArt = mutatedManifest.datasets[0].artifacts.find((a) => a.kind === "timetable");
+    ttArt.sha256 = createHash("sha256").update(mutatedBytes).digest("hex");
+    ttArt.bytes = mutatedBytes.length;
+    writeFileSync(manifestPath, `${JSON.stringify(mutatedManifest, null, 2)}\n`);
+    const chkTampered = runCli(["check", "--base-manifest", baseManifestSnapshot]);
+    assert.notEqual(chkTampered.status, 0);
+    assert.match(chkTampered.stderr, /immutable artifact "timetable"/);
+
+    // 8. SEC-M3-101(d): deleting audit.jsonl causes `dataset check` to fail closed.
     unlinkSync(join(dataRoot, "audit.jsonl"));
     const chkNoAudit = runCli(["check"]);
     assert.notEqual(chkNoAudit.status, 0);

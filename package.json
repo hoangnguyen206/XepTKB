@@ -19,6 +19,7 @@
     "check": "npm run lint && npm run typecheck && npm test && npm run fixtures:run && node scripts/dataset.mjs check",
     "dev": "npm run build && npm run dev -w @ky-nay/web",
     "build:web": "npm run build && npm run build:site -w @ky-nay/web",
+    "verify:bundle": "npm run build:web && node scripts/verify-production-bundle.mjs",
     "dataset": "npm run build && node scripts/dataset.mjs",
     "clean": "node -e \"import('node:fs').then(fs=>{for(const p of ['packages/domain/dist','packages/parser/dist','packages/export/dist','apps/web/dist'])fs.rmSync(p,{recursive:true,force:true})})\""
   },

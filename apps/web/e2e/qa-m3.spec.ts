@@ -4,7 +4,7 @@
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixture.js";
 
 type Json = Record<string, unknown>;
 const source = { artifactId: "qa-e2e:synthetic", sourceType: "timetable" };

@@ -9,13 +9,23 @@
 //   npm run dataset -- publish  <version> --by <name> [--note <text>] [--accept-single-reviewer <reason>]
 //   npm run dataset -- retract  <version> --by <name> --reason <text>
 //   npm run dataset -- restore  <version> --by <name> --reason <text>
-//   npm run dataset -- status | check
+//   npm run dataset -- status | check [--base <git-ref>] [--base-manifest <path>]
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { assertOutsideRepo, parseArgs, repoRoot } from "./lib/cli.mjs";
-import { SOURCE_TYPES, datasetVersionFor, diffSections, isSafeRelativePath, nextStatus, parseStart, sanitizeCliText } from "./lib/dataset-core.mjs";
+import {
+  SOURCE_TYPES,
+  datasetVersionFor,
+  diffSections,
+  isSafeRelativePath,
+  nextStatus,
+  parseStart,
+  sanitizeCliText,
+  verifyBaseManifestImmutability,
+} from "./lib/dataset-core.mjs";
 
 const ROOT_DATA_DIR = process.env.DATASET_ROOT_DIR ? resolve(process.env.DATASET_ROOT_DIR) : join(repoRoot, "data");
 const DATA_DIR = join(ROOT_DATA_DIR, "published");
@@ -418,11 +428,53 @@ function verifyAuditTrail(entry, allAudits) {
   return problems;
 }
 
+/** Loads a base manifest from a git revision (`--base <ref>`) or a file (`--base-manifest <path>`) for SEC-M3-101(e). */
+function loadBaseManifest(options, problems) {
+  if (options["base-manifest"]) {
+    const file = resolve(options["base-manifest"]);
+    if (!existsSync(file)) {
+      problems.push(`base manifest file not found: ${options["base-manifest"]}`);
+      return undefined;
+    }
+    return JSON.parse(readFileSync(file, "utf8"));
+  }
+  const explicitRef = options.base;
+  const ref = explicitRef ?? (!process.env.DATASET_ROOT_DIR ? "HEAD" : undefined);
+  if (!ref) return undefined;
+  if (!/^[A-Za-z0-9._/~^-]+$/.test(ref) || ref.startsWith("-")) {
+    problems.push(`invalid --base git ref "${ref}"`);
+    return undefined;
+  }
+  const revCheck = spawnSync("git", ["rev-parse", "--verify", `${ref}^{commit}`], { cwd: repoRoot, encoding: "utf8" });
+  if (revCheck.status !== 0) {
+    if (explicitRef) problems.push(`cannot resolve --base git ref "${ref}"`);
+    return undefined;
+  }
+  const relManifest = relative(repoRoot, MANIFEST).split("\\").join("/");
+  const catCheck = spawnSync("git", ["cat-file", "-e", `${ref}:${relManifest}`], { cwd: repoRoot });
+  if (catCheck.status !== 0) return undefined;
+  const shown = spawnSync("git", ["show", `${ref}:${relManifest}`], { cwd: repoRoot, encoding: "utf8" });
+  if (shown.status !== 0) {
+    problems.push(`failed to read ${ref}:${relManifest}`);
+    return undefined;
+  }
+  try {
+    return JSON.parse(shown.stdout);
+  } catch (error) {
+    problems.push(`invalid JSON in ${ref}:${relManifest}: ${error.message}`);
+    return undefined;
+  }
+}
+
 /** Integrity of what ships: every referenced artifact exists with the recorded size and hash; nothing else is there. */
-function check() {
+function check(options = {}) {
   const manifest = readManifest();
   const allAudits = auditEntries();
   const problems = [];
+  const baseManifest = loadBaseManifest(options, problems);
+  if (baseManifest) {
+    problems.push(...verifyBaseManifestImmutability(baseManifest, manifest));
+  }
   const referenced = new Set(["manifest.json"]);
   const versions = new Set();
   for (const entry of manifest.datasets) {
@@ -482,7 +534,7 @@ try {
   if (command === "import") await importDataset(positional[0] ?? fail("import needs a file"), options);
   else if (command === "validate" || command === "publish" || command === "retract" || command === "restore") changeStatus(command, positional[0] ?? fail(`${command} needs a dataset version`), options);
   else if (command === "status") status();
-  else if (command === "check") check();
+  else if (command === "check") check(options);
   else fail("usage: dataset import|validate|publish|retract|restore|status|check (see the header of scripts/dataset.mjs)");
 } catch (error) {
   fail(error.message);

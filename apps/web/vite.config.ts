@@ -4,16 +4,20 @@ import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
 /**
- * ADR-0010 §2 rule 4 / SEC-M3-003 on Cloudflare Pages (`CF_PAGES=1`): a preview branch may show unpublished
- * (synthetic) data; the production branch never does, whatever the dashboard variables say. Set before Vite reads
- * `VITE_*` variables from the environment.
+ * ADR-0010 §2 rule 4 / SEC-M3-003: determines whether a production bundle (`vite build`) may load unpublished
+ * (`candidate` / `validated`) datasets.
+ * - On Cloudflare Pages (`CF_PAGES=1`) or Workers Builds (`WORKERS_CI=1`), only a non-production preview branch
+ *   may enable it; the production branch (`PRODUCTION_BRANCH`, default `"main"`) is always `false` regardless of
+ *   dashboard environment variables (`VITE_ALLOW_UNPUBLISHED` or `NODE_ENV`).
+ * - Outside preview CI, `vite build` defaults to `false` unless `VITE_ALLOW_UNPUBLISHED === "true"` is explicitly set.
  */
-const PRODUCTION_BRANCH = "main";
-if (process.env.CF_PAGES === "1") {
-  const branch = process.env.CF_PAGES_BRANCH;
-  const allow = branch !== undefined && branch !== "" && branch !== PRODUCTION_BRANCH;
-  process.env.VITE_ALLOW_UNPUBLISHED = allow ? "true" : "false";
-  if (!allow) process.env.NODE_ENV = "production";
+export function resolveBuildAllowUnpublished(env: Record<string, string | undefined> = process.env): boolean {
+  const prodBranch = env.PRODUCTION_BRANCH?.trim() || "main";
+  if (env.CF_PAGES === "1" || env.WORKERS_CI === "1") {
+    const branch = (env.CF_PAGES_BRANCH ?? env.WORKERS_CI_BRANCH)?.trim();
+    return Boolean(branch && branch !== prodBranch && env.VITE_ALLOW_UNPUBLISHED !== "false");
+  }
+  return env.VITE_ALLOW_UNPUBLISHED === "true";
 }
 
 /** ADR-0010 §4. Build only: the dev server needs inline scripts for hot reload. */
@@ -139,17 +143,34 @@ self.addEventListener("fetch", (event) => {
 `;
 }
 
-export default defineConfig({
-  base: "./",
-  plugins: [react(), contentSecurityPolicy(), hostHeaders(), serviceWorker()],
-  build: {
-    sourcemap: false,
-    target: "es2022",
-  },
-  test: {
-    environment: "jsdom",
-    setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}"],
-    restoreMocks: true,
-  },
+export default defineConfig(({ command }) => {
+  const isBuild = command === "build";
+  const allowUnpublished = isBuild ? resolveBuildAllowUnpublished(process.env) : undefined;
+  if (isBuild) {
+    process.env.VITE_ALLOW_UNPUBLISHED = allowUnpublished ? "true" : "false";
+    process.env.NODE_ENV = "production";
+  }
+  return {
+    base: "./",
+    ...(isBuild
+      ? {
+          define: {
+            "import.meta.env.VITE_ALLOW_UNPUBLISHED": JSON.stringify(allowUnpublished ? "true" : "false"),
+            "import.meta.env.DEV": "false",
+            "import.meta.env.PROD": "true",
+          },
+        }
+      : {}),
+    plugins: [react(), contentSecurityPolicy(), hostHeaders(), serviceWorker()],
+    build: {
+      sourcemap: false,
+      target: "es2022",
+    },
+    test: {
+      environment: "jsdom",
+      setupFiles: ["./src/test/setup.ts"],
+      include: ["src/**/*.test.{ts,tsx}"],
+      restoreMocks: true,
+    },
+  };
 });

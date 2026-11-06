@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { repoRoot } from "./lib/cli.mjs";
-import { isSafeRelativePath } from "./lib/dataset-core.mjs";
+import { isSafeRelativePath, resolveSiteAllowUnpublished } from "./lib/dataset-core.mjs";
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const fail = (message) => {
@@ -20,9 +20,7 @@ if (!existsSync(manifestPath)) fail("data/published/manifest.json is missing");
 if (lstatSync(manifestPath).isSymbolicLink()) fail("symlink not allowed at data/published/manifest.json");
 
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-const isProductionOnly =
-  process.env.VITE_ALLOW_UNPUBLISHED === "false"
-  || process.env.CF_PAGES_BRANCH === "main" || (process.env.CF_PAGES === "1" && !process.env.CF_PAGES_BRANCH);
+const isProductionOnly = !resolveSiteAllowUnpublished(process.env);
 
 // SEC-M3-003(c) / SEC-M3-104(c): only copy verified, non-symlinked files referenced by the manifest;
 // on production builds, strip candidate/validated entries and their artifacts so unpublished data is never served.

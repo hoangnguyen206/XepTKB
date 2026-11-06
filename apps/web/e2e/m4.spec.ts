@@ -3,7 +3,7 @@
  */
 import { readFileSync } from "node:fs";
 import { AxeBuilder } from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixture.js";
 
 const VIEWPORTS = [
   { name: "360", width: 360, height: 780 },

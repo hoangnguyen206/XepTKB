@@ -3,6 +3,21 @@
 
 export const SOURCE_TYPES = ["official-timetable", "planned-timetable"];
 
+/**
+ * Fail-closed preview vs production rule (ADR-0010 §2 rule 4 / SEC-M3-003):
+ * - On Cloudflare Pages (`CF_PAGES=1`) or Workers Builds (`WORKERS_CI=1`), only a non-production preview branch
+ *   may enable unpublished datasets; the production branch (`PRODUCTION_BRANCH`, default `"main"`) is always `false`.
+ * - Outside preview CI, defaults to `false` unless `VITE_ALLOW_UNPUBLISHED === "true"` is explicitly passed.
+ */
+export function resolveSiteAllowUnpublished(env = process.env) {
+  const prodBranch = env.PRODUCTION_BRANCH?.trim() || "main";
+  if (env.CF_PAGES === "1" || env.WORKERS_CI === "1") {
+    const branch = (env.CF_PAGES_BRANCH ?? env.WORKERS_CI_BRANCH)?.trim();
+    return Boolean(branch && branch !== prodBranch && env.VITE_ALLOW_UNPUBLISHED !== "false");
+  }
+  return env.VITE_ALLOW_UNPUBLISHED === "true";
+}
+
 /** Normalizes an actor name so whitespace/case/diacritic variations cannot bypass two-person review (SEC-M3-101). */
 export function normalizeActor(name) {
   return String(name ?? "")
@@ -118,4 +133,47 @@ export function nextStatus(entry, action, { actor, importer, singleReviewerReaso
     return "validated";
   }
   throw new Error(`unknown action ${action}`);
+}
+
+/**
+ * Verifies that `currentManifest` preserves append-only entries and immutable artifact records
+ * relative to `baseManifest` from a base git commit/branch (ADR-0012 §4/§6, SEC-M3-101(e)).
+ */
+export function verifyBaseManifestImmutability(baseManifest, currentManifest) {
+  const problems = [];
+  const baseDatasets = baseManifest?.datasets ?? [];
+  const currentByVersion = new Map((currentManifest?.datasets ?? []).map((item) => [item.datasetVersion, item]));
+
+  for (const baseEntry of baseDatasets) {
+    const ver = baseEntry.datasetVersion;
+    const curEntry = currentByVersion.get(ver);
+    if (!curEntry) {
+      problems.push(`${ver}: dataset entry existed in base manifest (${baseEntry.status}) and must not be deleted`);
+      continue;
+    }
+    if (curEntry.source?.importHash !== baseEntry.source?.importHash) {
+      problems.push(`${ver}: immutable source.importHash changed relative to base manifest (${baseEntry.source?.importHash} -> ${curEntry.source?.importHash})`);
+    }
+    if ((baseEntry.status === "published" || baseEntry.status === "retracted") && curEntry.status === "candidate") {
+      problems.push(`${ver}: status "${baseEntry.status}" in base manifest cannot be downgraded to "candidate"`);
+    }
+    const baseArtifacts = baseEntry.artifacts ?? [];
+    const curArtifacts = curEntry.artifacts ?? [];
+    if (curArtifacts.length !== baseArtifacts.length) {
+      problems.push(`${ver}: artifact count changed relative to base manifest (${baseArtifacts.length} -> ${curArtifacts.length})`);
+      continue;
+    }
+    for (const baseArt of baseArtifacts) {
+      const curArt = curArtifacts.find((a) => a.kind === baseArt.kind);
+      if (
+        !curArt ||
+        curArt.url !== baseArt.url ||
+        curArt.sha256 !== baseArt.sha256 ||
+        curArt.bytes !== baseArt.bytes
+      ) {
+        problems.push(`${ver}: immutable artifact "${baseArt.kind}" (${baseArt.url}) changed url/size/hash relative to base manifest`);
+      }
+    }
+  }
+  return problems;
 }

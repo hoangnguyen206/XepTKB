@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
@@ -23,6 +25,16 @@ jobs:
         run: npm ci
       - name: Lint, typecheck, unit/component tests, parser fixtures
         run: npm run check
+      - name: Verify published dataset immutability against base git ref (SEC-M3-101e)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_REF="origin/${{ github.base_ref }}"
+          else
+            BASE_REF="HEAD~1"
+          fi
+          node scripts/dataset.mjs check --base "$BASE_REF"
+      - name: Verify production bundle disables allowUnpublished and emits headers/SW (SEC-M3-003b/d, SEC-M3-007)
+        run: npm run verify:bundle
 
   e2e:
     runs-on: ubuntu-latest
