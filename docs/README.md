@@ -2,12 +2,12 @@
 
 > **Status:** draft / docs-first  
 > **Owner:** Product + Tech Lead  
-> **Last reviewed:** 2026-10-25
+> **Last reviewed:** 2026-11-06
 > **Related docs:** [root CLAUDE.md](../CLAUDE.md)
 
 ## Mục đích
 
-Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ vì còn thiếu actor/sign-off độc lập ở các bước tương ứng. M1 parser và M2 domain engine đã được commit và push lên `main` với local evidence, nhưng chưa phải bằng chứng publish/release; xem [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md) cho các finding còn mở. M3 (web app) đã commit trên nhánh `m3-web-app` (`82cb85b`, draft PR #1, CI GitHub xanh 29/10/2026) nhưng chưa merge vào `main` và **chưa qua G3** (1 S1 mở); xem [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md). Không được coi bộ docs này là bằng chứng build/test/deploy/release hoàn chỉnh.
+Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ vì còn thiếu actor/sign-off độc lập ở các bước tương ứng. M1 parser và M2 domain engine đã được commit và push lên `main` với local evidence, nhưng chưa phải bằng chứng publish/release; xem [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md) cho các finding còn mở. M3 (web app + CLI publish pipeline ADR-0012) đã commit trên nhánh `m3-web-app` (`2ab03cd`, draft PR #1, CI GitHub [run 42069057252](https://github.com/hoangnguyen206/XepTKB/actions/runs/42069057252) xanh 05/11/2026) và đã chạy lại G3 lần 2 (R2): đã đóng S1 (`QA-M3-001 = REV-M3-001`) và mọi S2 cũ của web app (G3a `qa-pass-with-follow-up`, G3b `security-pass-with-exception` cho code M3), nhưng vẫn **chưa qua trọn bộ G3** vì G3c `review-no-go` và G3b `security-no-go` cho G4b dữ liệu thật do 2 lỗi S2 ở đường parser/pipeline (`REV-M3-101` và `REV-M3-102 = SEC-M3-102 = QA-M3-105`); xem [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md). Không được coi bộ docs này là bằng chứng build/test/deploy/release hoàn chỉnh.
 
 Đây là bản đồ tài liệu source of truth cho Kỳ Này. Bản brief `Kế hoạch sản phẩm – Tool xếp TKB cho sinh viên VNU.md` là nguồn nghiên cứu ban đầu; khi brief và tài liệu dự án khác nhau, phải mở decision/ADR hoặc hỏi Product/Tech Lead, không tự chọn theo trí nhớ.
 
@@ -117,14 +117,13 @@ M2 đã merge vào `main` (`aba04b0`) và đã push cùng fix round audit (`e41a
 - [ADR-0011 — TKB đổi bộ cột theo kỳ: một adapter, import profile, dấu vân tay định dạng](adr/ADR-0011-timetable-format-variability.md) — ready, G1 chờ acknowledgement.
 - [ADR-0012 — Quy trình nạp/publish dữ liệu: CLI, `data/published` trong repo, deploy cùng site](adr/ADR-0012-dataset-publish-pipeline.md) — ready, G1 chờ acknowledgement; cách dùng ở [runbook §12](DATA_INGESTION_RUNBOOK.md).
 - [ADR-0010 — web app, artifact loader contract, local storage, export](adr/ADR-0010-m3-web-app-artifact-storage-export.md) và [M3 design handoff](evidence/M3-DESIGN-HANDOFF.md) (G1) — Tech Lead chưa acknowledge; ADR có mục "Status after G3" liệt kê các điểm contract còn mở.
-- [M3 implementation handoff](evidence/M3-IMPLEMENTATION-HANDOFF.md) (G2) — viết khi code chưa commit trên `4681c63`; code nay ở `82cb85b` (nhánh `m3-web-app`).
-- [M3 G3a QA](evidence/M3-G3a-QA-REPORT.md) — `qa-no-go` (QA-M3-001 S1).
-- [M3 G3b security](evidence/M3-G3b-SECURITY-REVIEW.md) — `security-pass-with-exception` (7 × S3; exception chưa được Release Manager chấp thuận).
-- [M3 G3c review](evidence/M3-G3c-INDEPENDENT-REVIEW.md) — `review-no-go` (REV-M3-001 S1, thiếu envelope).
-- [M3 evidence envelope](evidence/M3-EVIDENCE-ENVELOPE.md) (`EVID-M3-001`) — lệnh/kết quả, sổ 21 finding đã gộp trùng (1 S1, 6 S2, 14 S3), điều kiện chạy lại G3.
+- [M3 implementation handoff](evidence/M3-IMPLEMENTATION-HANDOFF.md) (G2) — viết ban đầu trên `4681c63`, cập nhật qua các fix round tới target `2ab03cd` (nhánh `m3-web-app`).
+- G3 lần 1 (25/10/2026, superseded bởi R2): [M3 G3a QA R1](evidence/M3-G3a-QA-REPORT.md) (`qa-no-go`), [M3 G3b security R1](evidence/M3-G3b-SECURITY-REVIEW.md) (`security-pass-with-exception`), [M3 G3c review R1](evidence/M3-G3c-INDEPENDENT-REVIEW.md) (`review-no-go`).
+- **G3 lần 2 — R2 (05–06/11/2026, tại commit `2ab03cd`):** [M3 G3a QA R2](evidence/M3-G3a-QA-REPORT-R2.md) (`TEST-M3-002`, `qa-pass-with-follow-up`: 0 S0/S1/S2 mở, 5 S3 mới `QA-M3-101`…`105` + 2 S3 cũ `partially-fixed`); [M3 G3b security R2](evidence/M3-G3b-SECURITY-REVIEW-R2.md) (`SEC-REVIEW-M3-002`, `security-pass-with-exception` cho code M3, nhưng **`security-no-go` cho G4b dữ liệu thật** tới khi sửa `SEC-M3-102` S2 hoặc Release Manager duyệt `EXC-SEC-M3-R2-A`; 1 S2 + 7 S3 mở, exception R1 hết hạn **08/11/2026**); [M3 G3c review R2](evidence/M3-G3c-INDEPENDENT-REVIEW-R2.md) (`REVIEW-M3-002`, đã kết hợp G3a/G3b R2, `review-no-go`: đóng S1/S2 cũ của web app, còn 2 S2 ở đường parser/pipeline dữ liệu thật `REV-M3-101` và `REV-M3-102 = SEC-M3-102 = QA-M3-105`, cộng 1 S2 process `REV-M3-103` và các S3).
+- [M3 evidence envelope](evidence/M3-EVIDENCE-ENVELOPE.md) (`EVID-M3-001`) — tổng hợp lệnh/kết quả, sổ 22 finding R1 + 13 finding R2 đã gộp trùng (#1–#35), điều kiện trước beta HK II.
 - [Ảnh màn hình 360/768/1280](evidence/m3-screens/) — dữ liệu mẫu.
 
-M3 chưa được sang G4a/G4b. Owner sẽ tự sửa các finding; mọi sửa đổi mở lại G2/G3a/G3c (và G3b nếu chạm loader, storage, CSP hoặc service worker). Ngày 29/10/2026 đã sửa finding 1–2 (S1/S2, chờ G3 chạy lại) và chốt C-09 bằng sample thật ([REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md)). Ngày 30/10/2026: sửa S2 #3–6 và 13/14 S3 (một số một phần, xem envelope), parser TKB đọc được file TKB HK I thật theo [ADR-0011](adr/ADR-0011-timetable-format-variability.md), quyết định Q-012 (ghi chú chỉ là thông tin).
+Phần web app M3 đã sạch S0/S1/S2 sau G3 R2 tại `2ab03cd` (CI [run 42069057252](https://github.com/hoangnguyen206/XepTKB/actions/runs/42069057252) xanh; owner đã kiểm preview trên iPhone 12 + Safari ngày 31/10/2026), nhưng M3 vẫn chưa qua trọn bộ G3 để sang G4a/G4b. Trước đợt beta HK II (09–15/11/2026) cần xử lý hai việc: (1) sửa hoặc áp quy trình duyệt bắt buộc bởi Data Reviewer cho `SEC-M3-102 = REV-M3-102 = QA-M3-105` (cột thừa/cột ẩn) và `REV-M3-101` (ghi chú tuần khớp một phần), và (2) Release Manager phê duyệt lại các exception S3 trước khi hết hạn ngày **08/11/2026**.
 
 ## Cách dùng
 

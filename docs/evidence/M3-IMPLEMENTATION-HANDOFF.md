@@ -1,12 +1,12 @@
 # M3 implementation handoff — Core UI & export
 
 > **Artifact ID:** `IMPL-M3-001`  
-> **Artifact status:** `blocked` — G3a/G3c `no-go` ngày 2026-10-25; xem mục Verification outcome và [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md)  
+> **Artifact status:** `needs_review` — G3 R2 tại `2ab03cd` đã đóng S1/S2 của web app (G3a `qa-pass-with-follow-up`, G3b `security-pass-with-exception` cho code M3), nhưng G3c `review-no-go` và G3b `security-no-go` cho G4b dữ liệu thật do `REV-M3-101` và `REV-M3-102 = SEC-M3-102 = QA-M3-105`; xem [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md)  
 > **Canonical gate:** `G2`  
 > **Task/PR:** `M3 Core UI & export`  
 > **Owner:** Tech Lead  
-> **Implementer:** Frontend/Coder (Claude Code agent session, 2026-10-25)  
-> **Last reviewed:** 2026-10-25  
+> **Implementer:** Frontend/Coder (Claude Code agent session, 2026-10-25 .. 2026-11-01)  
+> **Last reviewed:** 2026-11-06  
 > **Related docs:** [M3 spec](M3-SPEC.md), [M3 design handoff](M3-DESIGN-HANDOFF.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [QA plan](../QA_TEST_PLAN.md)  
 > **Evidence envelope:** [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md)  
 > **Receiving owner / acknowledgement:** Tester (G3a), Security Reviewer (G3b), Independent Reviewer (G3c) — pending
@@ -137,8 +137,21 @@ No change to `@ky-nay/domain` or `@ky-nay/parser` source in M3. Domain schema st
   - host choice and real response headers (SEC-M3-007);
   - campus-warning and keyboard-to-export tests (REV-M3-008).
 
+## Fix round 2026-10-31 .. 2026-11-01 (`b705104` .. `2ab03cd`)
+
+- **`b705104`:** unmapped timetable columns become session `info` ([ADR-0011 §8](../adr/ADR-0011-timetable-format-variability.md)); Cloudflare Pages build configuration ([OPERATIONS §1](../OPERATIONS.md)); Q-013 decisions recorded.
+- **`f384f7b`:** on Cloudflare Pages (`CF_PAGES=1`), `ALLOW_UNPUBLISHED` is decided from `CF_PAGES_BRANCH` and never enabled on `main` (SEC-M3-003).
+- **`08401c4`:** service worker precaches `./` instead of `/index.html` and strips the `redirected` flag on offline navigation fallback so hosts that redirect `/index.html` → `/` work offline (HOST-M3-001).
+- **`2ab03cd`:** dataset publish pipeline CLI (`scripts/dataset.mjs`, `scripts/lib/dataset-core.mjs`, `scripts/site-data.mjs`, `apps/web/src/data/published.test.ts`, [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [DATA_INGESTION_RUNBOOK §12](../DATA_INGESTION_RUNBOOK.md)); `kindText` hides the generic `OTHER` ("Khác") label when displaying sessions without a kind column.
+- **Verification outcome (G3 R2, 2026-11-05/06 at `2ab03cd`, CI [run 42069057252](https://github.com/hoangnguyen206/XepTKB/actions/runs/42069057252) green):**
+  - `npm run check` exit 0 (node:test 94/94, Vitest 54/54, fixtures 6/6, `dataset check` OK); `npm run test:e2e` exit 0 (Playwright Chromium 17/17).
+  - G3a R2 ([TEST-M3-002](M3-G3a-QA-REPORT-R2.md)): `qa-pass-with-follow-up`.
+  - G3b R2 ([SEC-REVIEW-M3-002](M3-G3b-SECURITY-REVIEW-R2.md)): `security-pass-with-exception` for M3 code; `security-no-go` for G4b real datasets until `SEC-M3-102` is resolved or `EXC-SEC-M3-R2-A` is approved.
+  - G3c R2 ([REVIEW-M3-002](M3-G3c-INDEPENDENT-REVIEW-R2.md)): `review-no-go` due to two S2 parser/pipeline findings (`REV-M3-101`, `REV-M3-102 = SEC-M3-102 = QA-M3-105`). Consolidated register in [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md).
+
 ## Handoff decision
 
+- Recommendation (2026-11-01, verified in G3 R2 2026-11-05/06): `g2-ready-for-verification` at immutable target `2ab03cd`; web app M3 findings #1–#6 and #22 are verified fixed, while real-dataset parser/pipeline findings `REV-M3-101` and `REV-M3-102 = SEC-M3-102 = QA-M3-105` remain open before G4b / HK II beta.
 - Recommendation (2026-10-30): `ready-for-verification` for findings 1–6 and the S3 items marked fixed; the G3 re-run must use the commit that contains this round. The implementer does not self-approve.
 - Recommendation (2026-10-29): `ready-for-verification` for findings 1–2 only; M3 stays `g2-blocked` overall until findings 3–6 are fixed or accepted. The implementer does not self-approve.
 - Earlier recommendation (2026-10-25): `g2-blocked` until the S1/S2 findings are fixed (owner will fix later).

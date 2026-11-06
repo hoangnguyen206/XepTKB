@@ -2,7 +2,7 @@
 
 > **Status:** draft — Q-001..Q-008 đã approve 20/10/2026; milestone M0–M5 chờ Product sign-off G0
 > **Owner:** Tech Lead + Release Manager
-> **Last reviewed:** 2026-10-25
+> **Last reviewed:** 2026-11-06
 > **Related docs:** [PRD](PRD.md), [QA plan](QA_TEST_PLAN.md), [Data ingestion runbook](DATA_INGESTION_RUNBOOK.md), [Audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md)
 
 ## 1. Nguyên tắc lập kế hoạch
@@ -39,6 +39,11 @@ Thứ tự phụ thuộc cứng: M0 → M1 → M2 → M3 → M4 → M5. Trong t�
 **CI checkpoint (29/10/2026):** lần chạy GitHub Actions đầu tiên ([run 40123890415](https://github.com/hoangnguyen206/XepTKB/actions/runs/40123890415), `main` @ `4681c63`, 25/10) **fail** ở bước test: Node 20.20.2 không mở rộng glob trong `node --test` (`Could not find '.../packages/*/dist/test/*.test.js'`); lint và typecheck pass. Change set M3 đã commit `82cb85b` trên nhánh `m3-web-app`, mở draft PR #1; CI trên PR ([run 40907344256](https://github.com/hoangnguyen206/XepTKB/actions/runs/40907344256), Node 22.23.4, ubuntu-24.04) **xanh**: job `check` (lint, typecheck, node:test 78/78, Vitest 39/39, fixtures 5/5) và job `e2e` (Playwright 14/14). `main` vẫn đỏ cho tới khi merge PR #1, việc này phải chờ M3 qua G3.
 
 **M5-lite checkpoint (01/11/2026, cho beta Q-011):** quy trình nạp/publish theo [ADR-0012](adr/ADR-0012-dataset-publish-pipeline.md): CLI `npm run dataset -- import|validate|publish|retract|status|check`, dữ liệu ở `data/published` deploy cùng site; preview hiện `candidate`, production chỉ `published`; `dataset check` + `published.test.ts` trong CI. Chạy thử với TKB HK I thật: 1077 lớp, qua loader của app, đầu-cuối 215 ms tải / 15 ms tìm. Chưa làm: G4b drill (import → validate → publish → retract), admin UI (cắt theo §7.3), deploy production (chờ G3/G4a).
+
+**M3 G3 R2 checkpoint (05–06/11/2026):** chạy lại độc lập G3a/G3b/G3c trên commit cố định `2ab03cd` (nhánh `m3-web-app`, draft PR #1; CI GitHub [run 42069057252](https://github.com/hoangnguyen206/XepTKB/actions/runs/42069057252) xanh: node:test 94/94, Vitest 54/54, fixtures 6/6, `dataset check` OK, Playwright 17/17):
+- **G3a R2 ([TEST-M3-002](evidence/M3-G3a-QA-REPORT-R2.md)):** `qa-pass-with-follow-up` — đã đóng S1 (`QA-M3-001 = REV-M3-001`) và mọi S2 cũ của web app (#2–#7, #22); 5 S3 mới (`QA-M3-101`…`105`) và 2 S3 cũ `partially-fixed` (`#10`, `#19`).
+- **G3b R2 ([SEC-REVIEW-M3-002](evidence/M3-G3b-SECURITY-REVIEW-R2.md)):** `security-pass-with-exception` cho code M3 tại `2ab03cd`, nhưng **`security-no-go` cho G4b dữ liệu thật** cho tới khi xử lý `SEC-M3-102` (S2, cột ngoài danh sách/cột ẩn trong file TKB được công bố qua `info` mà không qua review) hoặc Release Manager phê duyệt và thực thi `EXC-SEC-M3-R2-A`; các exception R1 hết hạn ngày **08/11/2026**.
+- **G3c R2 ([REVIEW-M3-002](evidence/M3-G3c-INDEPENDENT-REVIEW-R2.md), đã kết hợp G3a/G3b R2):** `review-no-go` — phần web app M3 đạt, nhưng đường parser/pipeline nạp TKB thật còn 2 lỗi S2 về toàn vẹn dữ liệu (`REV-M3-101` ghi chú tuần khớp một phần sinh tuần `explicit` sai, và `REV-M3-102 = SEC-M3-102 = QA-M3-105` dấu vân tay định dạng bỏ qua cột mới ngoài danh sách chuẩn), cộng 1 S2 process (`REV-M3-103` G0/G1 chưa có actor/date) và các S3. Chi tiết tổng hợp tại [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md).
 
 ### Fallback
 
@@ -200,7 +205,7 @@ Tất cả 8 quyết định đã được Product Owner approve. Chi tiết s�
 | C-08 | Onboarding cohort vs ngày | **Đề xuất trong M3 (D-M3-1), chờ Product xác nhận** — onboarding có 2 đường: chọn khóa (week1 từ `Term.starts[]`) hoặc tự nhập ngày Thứ Hai của tuần 1 |
 | C-10 | TKB thật đổi bộ cột theo kỳ; adapter `uet-xlsx@0.1.0` đọc TKB HK I 2026–27 thật ra 0 lớp | **Resolved (pending G1/G3), 30/10/2026** — một adapter + import profile + dấu vân tay định dạng ([ADR-0011](adr/ADR-0011-timetable-format-variability.md)); file thật: 1077 lớp, 1467 buổi, 0 lỗi, độ phủ đủ (`npm run test:real`). `Ca 1 - 2` = ca 1–2 đã được owner xác nhận (Q-013). Còn mở: chưa có file thật định dạng 17 cột (chỉ ảnh chụp; bản tổng hợp cùng bố cục nằm trong test) |
 | C-09 | Format registration file thật chưa confirm | **Resolved (pending Data Reviewer verification), 29/10/2026** — owner cung cấp 1 file thật HK I 2026–27 (giữ ngoài repo); fixture markup thật đã thay toàn bộ giá trị ở `fixtures/redacted-registration/`; adapter `0.1.0` đọc file thật ra 0 lớp, `0.2.0` ghép theo vị trí; xem [REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md). Còn mở: chỉ 1 mẫu (chưa thấy dòng học lại/hủy/ONL/3 thứ) |
-| C-10 | Thứ tự ưu tiên export | **Resolved** — Q-002: cut order PDF→DOCX; giữ ICS+PNG |
+| C-11 (trước đây trùng mã C-10) | Thứ tự ưu tiên export | **Resolved** — Q-002: cut order PDF→DOCX; giữ ICS+PNG |
 
 ## 11. Traceability update sau decisions (đã thực hiện)
 
