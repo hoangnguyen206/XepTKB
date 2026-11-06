@@ -1,9 +1,9 @@
 # Test report — M3 Core UI & export, G3a chạy lại (R2)
 
 > **Artifact ID:** `TEST-M3-002`  
-> **Artifact status:** `needs_review` — báo cáo do agent ở vai trò Tester viết; cần người (Owner/Release Manager) ghi nhận  
+> **Artifact status:** `approved` — đã được Owner (Product / Tech Lead / Release Manager) ghi nhận lúc `2026-11-06T05:50Z`  
 > **Canonical gate:** `G3a`  
-> **Status:** `qa-pass` tại `d51c65b` (đề xuất; nâng từ `qa-pass-with-follow-up` tại `2ab03cd` sau khi toàn bộ `QA-M3-101`…`105` và `#19` đã `verified-fixed`; xem phụ lục R2.1 cuối báo cáo)  
+> **Status:** `qa-pass` tại `d51c65b` (nâng từ `qa-pass-with-follow-up` tại `2ab03cd` sau khi toàn bộ `QA-M3-101`…`105` và `#19` đã `verified-fixed`; xem phụ lục R2.1 cuối báo cáo)  
 > **Owner:** Tester (agent role)  
 > **Last reviewed:** 2026-11-06  
 > **Related docs:** [M3 spec](M3-SPEC.md), [M3 implementation handoff](M3-IMPLEMENTATION-HANDOFF.md), [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md), [G3a lần 1 (TEST-M3-001)](M3-G3a-QA-REPORT.md), [QA plan](../QA_TEST_PLAN.md), [ADR-0009](../adr/ADR-0009-m2-domain-engine-schema.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0011](../adr/ADR-0011-timetable-format-variability.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [Implementation plan Q-011/Q-012/Q-013](../IMPLEMENTATION_PLAN.md), [Data ingestion runbook §12](../DATA_INGESTION_RUNBOOK.md)  

@@ -1,14 +1,14 @@
 # M3 spec — Core UI & export
 
 > **Artifact ID:** `SPEC-M3-001`  
-> **Artifact status:** `ready`  
+> **Artifact status:** `approved`  
 > **Canonical gate:** `G0`  
 > **Owner:** Product Spec  
-> **Last reviewed:** 2026-10-25  
+> **Last reviewed:** 2026-11-06  
 > **Related docs:** [Implementation plan §2/§4](../IMPLEMENTATION_PLAN.md), [PRD](../PRD.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [M3 design handoff](M3-DESIGN-HANDOFF.md)  
 > **Evidence envelope:** [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md)  
-> **Decision actor / UTC timestamp:** Owner yêu cầu triển khai M3 trong phiên làm việc 2026-10-25; chưa có G0 sign-off chính thức (actor/date) — xem mục 9  
-> **Receiving owner / acknowledgement:** Frontend/Coder (implementation), Tester, Security Reviewer, Independent Reviewer — pending
+> **Decision actor / UTC timestamp:** Owner (Product / Tech Lead) phê duyệt G0 cho `SPEC-M3-001` và các quyết định `D-M3-1…4` (đóng `C-08`, `C-02`) vào `2026-11-06T05:50Z`  
+> **Receiving owner / acknowledgement:** Frontend/Coder (implementation), Tester, Security Reviewer, Independent Reviewer — acknowledged (`EVID-M3-001`)
 
 ## 1. Source and traceability
 
@@ -100,7 +100,7 @@ Sinh viên mở app trên điện thoại hoặc máy tính, chọn kỳ và tu�
 
 ## 9. Handoff and G0 decision
 
-- Implementer: Frontend/Coder (phiên agent). Tester/Security/Reviewer: agent độc lập theo role (không phải sign-off của người).
-- Definition of Ready: `ready` theo nội dung spec; các quyết định D-M3-1…4 là giả định chờ Product xác nhận.
-- G0 decision: `g0-blocked` về hình thức cho tới khi Product ghi actor/date; owner đã yêu cầu triển khai M3 trong phiên 2026-10-25, nên implementation tiến hành và mọi thay đổi cần Product xác nhận được liệt kê trong handoff.
-- Trạng thái sau G3 (2026-10-25): AC-M3-03 và AC-M3-12 **chưa đạt** ở kịch bản dataset mới đổi nhóm của lớp đã chọn (QA-M3-001 = REV-M3-001, S1); AC-M3-06, -07, -11 có finding S2/S3. Danh sách đầy đủ và điều kiện chạy lại G3: [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md). Spec không đổi; các quyết định D-M3-1…4 vẫn chờ Product.
+- Implementer: Frontend/Coder (phiên agent). Tester/Security/Reviewer: agent độc lập theo role.
+- Definition of Ready: `approved` — các quyết định D-M3-1…4 (đóng `C-08`, `C-02`) đã được Owner (Product) xác nhận ngày `2026-11-06`.
+- G0 decision: **`g0-approved`** bởi Owner (Product) lúc `2026-11-06T05:50Z` (`REV-M3-103` closed).
+- Trạng thái sau G3 R2.1 (2026-11-06, tại `d51c65b`): toàn bộ AC-M3-01…13 đã **pass** ở G3a/G3b/G3c R2.1 ([EVID-M3-001](M3-EVIDENCE-ENVELOPE.md)).

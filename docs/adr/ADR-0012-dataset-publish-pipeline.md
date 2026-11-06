@@ -1,12 +1,12 @@
 # ADR-0012 — Dataset publish pipeline: CLI, data/published in the repository, deployed with the site
 
 > **Artifact ID:** `ADR-0012`
-> **Artifact status:** `ready` — G1 acknowledgement pending (Tech Lead, Release Manager, Data Reviewer)
+> **Artifact status:** `approved` — G1 acknowledged by Owner (Tech Lead, Release Manager, Data Reviewer) on `2026-11-06T05:50Z`
 > **Canonical gate:** `G1` (G4b drill evidence later)
 > **Date:** 2026-11-01
 > **Owner:** Tech Lead + Release Manager
-> **Decision owner:** Product (owner asked to start the pipeline on 2026-11-01)
-> **Last reviewed:** 2026-11-01
+> **Decision owner:** Product (owner asked to start the pipeline on 2026-11-01; G1 signed off on 2026-11-06)
+> **Last reviewed:** 2026-11-06
 > **Related docs:** [ADR-0007](ADR-0007-static-artifact-cli-admin.md), [ADR-0010 §2](ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0011](ADR-0011-timetable-format-variability.md), [Data ingestion runbook §12](../DATA_INGESTION_RUNBOOK.md), [Operations §1](../OPERATIONS.md), [Implementation plan Q-011](../IMPLEMENTATION_PLAN.md)
 > **Evidence envelope:** generated import reports in `data/reports/`; tests listed under Verification
 

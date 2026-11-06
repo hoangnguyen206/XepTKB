@@ -1,7 +1,7 @@
 # ADR-0011 — Timetable layouts that change every term: one adapter, import profile, format fingerprint
 
 > **Artifact ID:** `ADR-0011`
-> **Artifact status:** `ready` — G1 acknowledgement pending (Tech Lead, Data Reviewer)
+> **Artifact status:** `approved` — G1 acknowledged by Owner (Tech Lead, Data Reviewer) on `2026-11-06T05:50Z`
 > **Canonical gate:** `G1`
 > **Date:** 2026-10-30
 > **Owner:** Data Parser + Tech Lead

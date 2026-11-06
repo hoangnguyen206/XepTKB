@@ -1,8 +1,8 @@
 # Review — M3 Core UI & export, G3c independent review (lần 2)
 
 > **Artifact ID:** `REVIEW-M3-002` (thay thế quyết định của [REVIEW-M3-001](M3-G3c-INDEPENDENT-REVIEW.md) ngày 2026-10-25)
-> **Artifact status:** `needs_review` — báo cáo do agent ở vai trò Independent Reviewer viết, đã kết hợp kết quả G3a R2 và G3b R2; cần người (Tech Lead/Release Manager) xác nhận.
-> **Status:** `review-approved` (về mặt kỹ thuật tại `d51c65b`; nâng từ `review-no-go` tại `2ab03cd` sau khi toàn bộ `REV-M3-101`, `REV-M3-102`, `REV-M3-104`…`107`, `REV-M3-008` đã `verified-fixed`; chỉ còn điều kiện sign-off G0/G1 của người `REV-M3-103` trước G4a/G4b — xem phụ lục R2.1 cuối báo cáo)
+> **Artifact status:** `approved` — đã được Owner (Tech Lead / Release Manager) xác nhận lúc `2026-11-06T05:50Z`
+> **Status:** `review-approved` (nâng từ `review-no-go` tại `2ab03cd` sau khi toàn bộ `REV-M3-101`, `REV-M3-102`, `REV-M3-104`…`107`, `REV-M3-008` đã `verified-fixed` tại `d51c65b` và Owner đã ký nhận G0/G1 `REV-M3-103` lúc `2026-11-06T05:50Z` — xem phụ lục R2.1 cuối báo cáo)
 > **Canonical gate:** `G3c`
 > **Owner:** Independent Reviewer (agent role)
 > **Last reviewed:** 2026-11-06 (kèm phụ lục hậu kiểm R2.1 tại `d51c65b`)
@@ -323,8 +323,8 @@ Cả ba cổng G3a R2 ([TEST-M3-002](M3-G3a-QA-REPORT-R2.md)), G3b R2 ([SEC-REVI
   - **`REV-M3-106` (S3):** **`verified-fixed`** — thêm lệnh `restore <version> --by <name> --reason <text>` (`retracted → validated`) trong `dataset-core.mjs` & `dataset.mjs`, đồng bộ với `DATA_INGESTION_RUNBOOK.md` §7/§12 và `ADR-0012` §2/§3; kiểm chứng bằng test round-trip trong `dataset-core.test.mjs:133-139`.
   - **`REV-M3-107` (S3):** **`verified-fixed`** — đã đồng bộ `ADR-0010` §4 + bảng Status, `DOMAIN_MODEL` §3, `IMPLEMENTATION_PLAN` (`C-11`), tên test `m3.spec.ts:94`, `M3-IMPLEMENTATION-HANDOFF.md` và `M3-EVIDENCE-ENVELOPE.md`.
   - **`REV-M3-008` (S3):** **`verified-fixed`** — đã bổ sung test tự động cho cảnh báo chuyển cơ sở trong ngày (`model.test.ts:42-53`, `App.test.tsx:142-162`) và đường bàn phím tới bước tải `.ics` (`m3.spec.ts:161-170`).
-  - **`REV-M3-103` (S2 process):** **open (human gate action)** — việc ghi nhận actor/date của người cho G0 (`SPEC-M3-001`, `D-M3-1…4`, `C-02`, `C-08`) và G1 (`ADR-0009` amendment, `ADR-0010`, `ADR-0011`, `ADR-0012`) thuộc thẩm quyền của Product / Tech Lead / Data Reviewer trước khi mở G4a/G4b.
+  - **`REV-M3-103` (S2 process):** **`verified-fixed` (`2026-11-06T05:50Z`)** — Owner (Product / Tech Lead / Data Reviewer) đã ghi nhận actor/date phê duyệt cho G0 (`SPEC-M3-001`, `D-M3-1…4`, `C-02`, `C-08`) và G1 (`DESIGN-M3-001`, `ADR-0009` amendment, `ADR-0010`, `ADR-0011`, `ADR-0012`).
 - **Kết hợp với G3a R2.1 và G3b R2.1 tại `d51c65b`:**
   - G3a R2.1: **`qa-pass`** (0 S0/S1/S2/S3 mở).
-  - G3b R2.1: **`security-pass-with-exception`**, **gỡ bỏ `security-no-go` cho G4b** (0 S0/S1/S2 mở; 3 mục S3 phần dư nhẹ cho CI/G4a/M4).
-  - **Quyết định G3c cập nhật tại `d51c65b`:** **`review-approved`** cho toàn bộ phần kỹ thuật (code, parser, pipeline, test, tài liệu), chờ người (Product / Tech Lead / Release Manager) ghi nhận `REV-M3-103` (G0/G1) và xác nhận báo cáo gate.
+  - G3b R2.1: **`security-pass-with-exception`**, **gỡ bỏ `security-no-go` cho G4b** (0 S0/S1/S2 mở; 3 mục S3 phần dư nhẹ đã được Owner / Release Manager duyệt trong `EXC-SEC-M3-R2-B/C/D`).
+  - **Quyết định G3c cập nhật:** **`review-approved`** (toàn bộ 12/12 finding kỹ thuật và quy trình đều đã đóng; đã được Owner xác nhận lúc `2026-11-06T05:50Z`).

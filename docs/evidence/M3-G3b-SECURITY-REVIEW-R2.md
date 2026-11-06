@@ -1,14 +1,14 @@
 # M3 security review R2 — kiểm lại SEC-M3-001…007, dataset pipeline, parser, privacy boundary (G3b)
 
 > **Artifact ID:** `SEC-REVIEW-M3-002`
-> **Trạng thái/Status:** `needs_review`. Đây là báo cáo do agent viết, cần người xác nhận.
-> **Canonical gate:** `G3b` (implementation verification), lần chạy lại thứ 2
+> **Trạng thái/Status:** `approved` — đã được Owner (Release Manager / Tech Lead) xác nhận và phê duyệt gói exception S3 thu hẹp `EXC-SEC-M3-R2-B/C/D` lúc `2026-11-06T05:50Z`
+> **Canonical gate:** `G3b` (implementation verification), lần chạy lại thứ 2 + hậu kiểm R2.1
 > **Owner:** Security Reviewer (agent role)
 > **Last reviewed:** 2026-11-06 (kèm phụ lục hậu kiểm R2.1 tại `d51c65b`)
 > **Related docs:** [Security & privacy](../SECURITY_PRIVACY.md), [M0 G1 threat/data-flow](M0-G1-threat-data-flow.md), [G3b R1](M3-G3b-SECURITY-REVIEW.md), [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md), [IMPL-M3-001](M3-IMPLEMENTATION-HANDOFF.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0011](../adr/ADR-0011-timetable-format-variability.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [Operations §1](../OPERATIONS.md), [Data ingestion runbook §12](../DATA_INGESTION_RUNBOOK.md), [C-09 review](C09-REGISTRATION-SAMPLE-REVIEW.md), [Audit M0–M2](M0-M2-AUDIT-2026-10-25.md)
 > **Evidence envelope:** mục [Evidence Envelope](#evidence-envelope) bên dưới. Ledger tổng là [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md).
-> **Decision actor / UTC timestamp:** Claude subagent đóng vai Security Reviewer, **không phải sign-off của người**. quyết định R2 ghi lúc 2026-11-05T17:17Z; phụ lục hậu kiểm R2.1 tại `d51c65b` ghi lúc 2026-11-06T05:39Z
-> **Receiving owner / acknowledgement:** cần người xác nhận gồm Release Manager (exception), Tech Lead (ADR-0012 control), Data Parser và Data Reviewer (SEC-M3-102/103), Frontend (SEC-M3-001/006). Hiện **chưa ai xác nhận**.
+> **Decision actor / UTC timestamp:** Claude subagent đóng vai Security Reviewer (quyết định R2 lúc 2026-11-05T17:17Z; phụ lục hậu kiểm R2.1 tại `d51c65b` lúc 2026-11-06T05:39Z); được Owner (Release Manager / Tech Lead) xác nhận và ký duyệt exception S3 thu hẹp lúc `2026-11-06T05:50Z`
+> **Receiving owner / acknowledgement:** Owner (Release Manager / Tech Lead / Data Reviewer) — acknowledged (`2026-11-06T05:50Z`)
 
 **Lưu ý.** Báo cáo này do một agent viết khi đóng vai Security Reviewer, không phải Security Reviewer là người. Người trong vai đó cần đọc và xác nhận (acknowledge) quyết định bên dưới. Exception nào đề xuất ở đây cũng chưa có hiệu lực cho tới khi Release Manager chấp thuận.
 

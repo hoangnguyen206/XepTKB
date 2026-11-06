@@ -1,12 +1,12 @@
 # ADR-0010 — M3 web app, artifact loader contract, local storage and export
 
 > **Artifact ID:** `ADR-0010`  
-> **Artifact status:** `ready` — G1 acknowledgement pending; G3 found open items (see Status after G3)  
+> **Artifact status:** `approved` — G1 acknowledged by Owner (Tech Lead) on `2026-11-06T05:50Z`; G3 R2.1 verified at `d51c65b`  
 > **Canonical gate:** `G1`  
 > **Date:** 2026-10-25  
 > **Owner:** Tech Lead + Frontend  
 > **Decision owner:** Tech Lead (Security consulted for CSP/storage boundary)  
-> **Last reviewed:** 2026-10-25  
+> **Last reviewed:** 2026-11-06  
 > **Related docs:** [M3 spec](../evidence/M3-SPEC.md), [M3 design handoff](../evidence/M3-DESIGN-HANDOFF.md), [ADR-0001](ADR-0001-react-vite-monorepo.md), [Tech stack](../TECH_STACK.md), [API and data contracts §3](../API_AND_DATA_CONTRACTS.md), [Domain model §9](../DOMAIN_MODEL.md), [Security & privacy §5](../SECURITY_PRIVACY.md)  
 > **Evidence envelope:** [EVID-M3-001](../evidence/M3-EVIDENCE-ENVELOPE.md)
 
@@ -141,8 +141,8 @@ Loader rules (fail closed):
 
 ## Approval and risk acceptance
 
-- Decision: `g1-blocked` pending Tech Lead acknowledgement (actor/date). Implementation proceeds on the owner's instruction of 2026-10-25 and is recorded as such.
-- Risk exception: none.
+- Decision: **`g1-approved`** by Owner (Tech Lead) on `2026-11-06T05:50Z` (`REV-M3-103` closed).
+- Risk exception: see `EVID-M3-001` (`EXC-SEC-M3-R2-B/C/D` approved by Owner / Release Manager on `2026-11-06T05:50Z`).
 
 ## Implementation notes (2026-10-25)
 

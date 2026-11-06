@@ -1,12 +1,13 @@
 # M3 design handoff — Core UI & export
 
 > **Artifact ID:** `DESIGN-M3-001`  
-> **Artifact status:** `ready`  
+> **Artifact status:** `approved`  
 > **Canonical gate:** `G1`  
 > **Owner:** Tech Lead + Frontend  
-> **Last reviewed:** 2026-10-25  
+> **Last reviewed:** 2026-11-06  
 > **Related docs:** [M3 spec](M3-SPEC.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [Architecture](../ARCHITECTURE.md), [Domain model](../DOMAIN_MODEL.md), [Security & privacy](../SECURITY_PRIVACY.md)  
-> **Evidence envelope:** [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md)
+> **Evidence envelope:** [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md)  
+> **Decision actor / UTC timestamp:** Owner (Tech Lead) phê duyệt G1 lúc `2026-11-06T05:50Z`
 
 ## Context and source
 
@@ -51,7 +52,7 @@ See ADR-0010 options table (dependency set, catalog shape, ICS shape, PNG approa
 
 ## Approval
 
-- Product scope approval: pending (see SPEC-M3-001 §9).
-- Tech Lead design approval: pending.
-- Security consultation: CSP/storage/SW reviewed at G3b by an independent agent; human sign-off pending.
-- Decision: `g1-blocked` until acknowledged; implementation proceeds on owner instruction (2026-10-25).
+- Product scope approval: approved by Owner (Product) on `2026-11-06T05:50Z` (see SPEC-M3-001 §9).
+- Tech Lead design approval: approved by Owner (Tech Lead) on `2026-11-06T05:50Z`.
+- Security consultation: CSP/storage/SW reviewed at G3b R1/R2/R2.1 by an independent agent and acknowledged by Owner (Release Manager) on `2026-11-06T05:50Z`.
+- Decision: **`g1-approved`** (`2026-11-06T05:50Z`, `REV-M3-103` closed).

@@ -1,8 +1,8 @@
 # ADR-0009 — M2 domain engine contract and schema migration
 
-> **Status:** ready; G1 acknowledgement pending
+> **Status:** approved (G1 acknowledged by Owner / Tech Lead on `2026-11-06T05:50Z`, including amendments through 2026-10-30)
 > **Owner:** Tech Lead + Coder
-> **Last reviewed:** 2026-10-25
+> **Last reviewed:** 2026-11-06
 > **Related docs:** [Implementation plan](../IMPLEMENTATION_PLAN.md), [Domain model](../DOMAIN_MODEL.md), [Parser spec](../PARSER_SPEC.md), [QA plan](../QA_TEST_PLAN.md), [ADR-0006](ADR-0006-default-th-weeks.md)
 
 ## Context

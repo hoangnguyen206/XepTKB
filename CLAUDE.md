@@ -1,6 +1,6 @@
 # Kỳ Này — Hướng dẫn làm việc cho Claude Code và Agent
 
-> **Status:** draft / M0–M2 implementation present; M3 web app + dataset CLI implemented on branch `m3-web-app` (`d51c65b`, draft PR #1, not merged); G3 R2.1 completed (`qa-pass`, `security-pass-with-exception` with G4b `security-no-go` lifted, `review-approved` technical; pending human G0/G1 sign-off `REV-M3-103` and S3 exception sign-off)
+> **Status:** draft / M0–M2 implementation present; M3 web app + dataset CLI implemented on branch `m3-web-app` (`d51c65b`, draft PR #1); M3 G0 + G1 + G2 + G3a/G3b/G3c (R2.1) approved (`qa-pass`, `security-pass-with-exception` with G4b `security-no-go` lifted, `review-approved`; Owner signed off `2026-11-06T05:50Z`)
 > **Owner:** Tech Lead  
 > **Last reviewed:** 2026-11-06
 > **Source of truth:** các tài liệu trong `docs/`; bản brief chỉ là nguồn đầu vào ban đầu.
@@ -81,7 +81,7 @@ Một task chỉ hoàn thành khi đạt gate tương ứng trong [Agent workflo
 - docs, changelog, rollback/monitoring và handoff được cập nhật;
 - không dùng dữ liệu thật trong CI hoặc log.
 
-Các tài liệu sản phẩm vẫn ở `draft`/`proposed`; M1 parser, M2 domain packages và web app M3 có local test/evidence và M3 đã qua kiểm định kỹ thuật G3 R2.1 (`d51c65b`), nhưng G0–G5 chưa đóng hoàn toàn cho tới khi có actor/date sign-off của người cho G0/G1 (`REV-M3-103`) và exception S3 của G3b. Không điền giả trạng thái app build/test/release.
+Các tài liệu sản phẩm ở cấp toàn dự án vẫn ở `draft`/`proposed` (M4/M5 chưa hoàn tất); riêng milestone M3 đã vượt qua trọn bộ cổng G0 + G1 + G2 + G3a/G3b/G3c (R2.1 tại `d51c65b`) kèm sign-off của Owner lúc `2026-11-06T05:50Z`. Không điền giả trạng thái deploy production hay release khi chưa chạy G4a/G4b/G5.
 
 ## 6. Quy tắc cho Agent
 
