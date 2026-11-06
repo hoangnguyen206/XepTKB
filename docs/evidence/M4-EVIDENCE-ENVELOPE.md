@@ -1,12 +1,12 @@
 # M4 evidence envelope — Registration merge UI
 
 > **Artifact ID:** `EVID-M4-001`  
-> **Artifact status:** `in_progress` — G0/G1/G2 authored and automated checks passing; awaiting independent G3a/G3b/G3c verification and human Owner gate approval  
+> **Artifact status:** `needs_review` — G0/G1/G2 authored, independent G3a/G3b/G3c R1 (`12abdbd`) + R1.1 (`6fd1506`) completed (`qa-pass`, `security-pass-with-exception`, `review-approved`); awaiting human Owner gate sign-off  
 > **Canonical gate/sub-gate:** `G0 | G1 | G2 | G3a | G3b | G3c`  
 > **Owner:** Tech Lead + Release Manager  
 > **Last reviewed:** 2026-11-06  
-> **Related docs:** [M4 spec](M4-SPEC.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [M4 design handoff](M4-DESIGN-HANDOFF.md), [M4 implementation handoff](M4-IMPLEMENTATION-HANDOFF.md)  
-> **Decision actor / UTC timestamp:** `pending` (awaiting G3a/G3b/G3c completion and human Owner sign-off)  
+> **Related docs:** [M4 spec](M4-SPEC.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [M4 design handoff](M4-DESIGN-HANDOFF.md), [M4 implementation handoff](M4-IMPLEMENTATION-HANDOFF.md), [M4 G3a QA report](M4-G3a-QA-REPORT.md), [M4 G3b security review](M4-G3b-SECURITY-REVIEW.md), [M4 G3c independent review](M4-G3c-INDEPENDENT-REVIEW.md)  
+> **Decision actor / UTC timestamp:** `pending` (awaiting human Owner sign-off on `G0`, `G1`, `G3a/G3b/G3c`)  
 > **Receiving owner / acknowledgement:** Product (`G0`), Tech Lead + Security (`G1`), Tester (`G3a`), Security Reviewer (`G3b`), Independent Reviewer (`G3c`)
 
 ## Source and traceability
@@ -21,19 +21,26 @@
 - Base commit: `3c34c89` (`main`).
 - PRD requirement IDs / AC IDs: `FR-09`, `FR-10`, `NFR-03`, `AC-04`, `AC-05` (`AC-M4-01`..`AC-M4-08`).
 - P0 completeness claim: `yes` for the M4 slice (`FR-09`, `FR-10`, `AC-04`, `AC-05`); product-wide P0 overall awaits M5 release gates (`G4a/G4b/G5`).
-- Related ADR/design/spec/handoff IDs:
+- Related ADR/design/spec/handoff/G3 IDs:
   - `SPEC-M4-001`: [`docs/evidence/M4-SPEC.md`](M4-SPEC.md)
   - `ADR-0013`: [`docs/adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md`](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md)
   - `DESIGN-M4-001`: [`docs/evidence/M4-DESIGN-HANDOFF.md`](M4-DESIGN-HANDOFF.md)
   - `IMPL-M4-001`: [`docs/evidence/M4-IMPLEMENTATION-HANDOFF.md`](M4-IMPLEMENTATION-HANDOFF.md)
+  - `TEST-M4-001`: [`docs/evidence/M4-G3a-QA-REPORT.md`](M4-G3a-QA-REPORT.md)
+  - `SEC-REVIEW-M4-001`: [`docs/evidence/M4-G3b-SECURITY-REVIEW.md`](M4-G3b-SECURITY-REVIEW.md)
+  - `REVIEW-M4-001`: [`docs/evidence/M4-G3c-INDEPENDENT-REVIEW.md`](M4-G3c-INDEPENDENT-REVIEW.md)
 
 ## Immutable execution identity
 
 - Branch: `m4-registration-ui` (branched from `main` @ `3c34c89`).
+- Target commits:
+  - Initial G2 handoff commit (`R1`): `12abdbd`
+  - G3 fix round commit (`R1.1`): `6fd1506`
 - Toolchain versions: Node `22.22.2`, npm `12.0.2`, TypeScript `5.9.3`, Vite `8.3.4`, Vitest `5.0.3`, Playwright `1.64.0`.
-- Exact commands + exit codes (2026-11-06):
+- Exact commands + exit codes (2026-11-06 on `6fd1506`):
   - `npm run check` → exit `0` (`lint` passed, `typecheck` passed, `node:test` `102/102`, `vitest` `68/68`, `fixtures:run` `6/6`, `node scripts/dataset.mjs check` `0 datasets`).
   - `npm run test:e2e` → exit `0` (Playwright Chromium `19/19` passed).
+  - `npm audit` & `npm audit --omit=dev` → `0 vulnerabilities`.
 
 ## Data and artefact integrity
 
@@ -49,19 +56,32 @@
 | --- | --- | --- | --- | --- |
 | [`SPEC-M4-001`](M4-SPEC.md) | `G0` M4 specification (`AC-M4-01..08`, `D-M4-1..3`) | Complete spec covering `FR-09`, `FR-10`, `AC-04`, `AC-05`, `Q-005`, `Q-007` | Authored (`in-review`, awaiting human Owner `G0` sign-off) | `in-review` |
 | [`ADR-0013`](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md) & [`DESIGN-M4-001`](M4-DESIGN-HANDOFF.md) | `G1` architecture, privacy boundary & threat review | Local-only boundary, `resolvePlanPicks` override application, 2-slot storage design | Authored (`in-review`, awaiting human Owner `G1` sign-off) | `in-review` |
-| [`IMPL-M4-001`](M4-IMPLEMENTATION-HANDOFF.md) | `G2` implementation + automated test suites | `npm run check` exit `0`, `npm run test:e2e` exit `0` | `102/102` node tests, `65/65` Vitest, `6/6` fixtures, `19/19` E2E passed | `ready-for-verification` |
-| `TEST-M4-001` (`docs/evidence/M4-G3a-QA-REPORT.md`) | `G3a` independent QA verification | Verify `AC-M4-01..08`, `AC-04`, `AC-05` | Pending subagent execution | `pending` |
-| `SEC-REVIEW-M4-001` (`docs/evidence/M4-G3b-SECURITY-REVIEW.md`) | `G3b` independent security & privacy review | Verify zero network/PII leakage (`AC-04`), XSS/file parser hardening | Pending subagent execution | `pending` |
-| `REVIEW-M4-001` (`docs/evidence/M4-G3c-INDEPENDENT-REVIEW.md`) | `G3c` independent code & architecture review | Verify domain/export/web implementation and G3a/G3b synthesis | Pending subagent execution | `pending` |
+| [`IMPL-M4-001`](M4-IMPLEMENTATION-HANDOFF.md) | `G2` implementation + automated test suites | `npm run check` exit `0`, `npm run test:e2e` exit `0` | `102/102` node tests, `68/68` Vitest, `6/6` fixtures, `19/19` E2E passed (`6fd1506`) | `ready-for-verification` |
+| [`TEST-M4-001`](M4-G3a-QA-REPORT.md) | `G3a` independent QA verification (`R1` + `R1.1` @ `6fd1506`) | Verify `AC-M4-01..08`, `AC-04`, `AC-05`, zero open defects | `0` S0/S1/S2/S3 open (`QA-M4-001..003` `verified-fixed`) | `qa-pass` |
+| [`SEC-REVIEW-M4-001`](M4-G3b-SECURITY-REVIEW.md) | `G3b` independent security & privacy review (`R1` + `R1.1` @ `6fd1506`) | Verify zero network/PII leakage (`AC-04`), XSS/file parser hardening | `0` S0/S1/S2/S3 open for M4 (`SEC-M4-001` `verified-fixed`; 3 inherited M3 S3 exceptions tracked for M5) | `security-pass-with-exception` |
+| [`REVIEW-M4-001`](M4-G3c-INDEPENDENT-REVIEW.md) | `G3c` independent code & architecture review (`R1` + `R1.1` @ `6fd1506`) | Verify domain/export/web implementation and G3a/G3b synthesis | `0` S0/S1/S2/S3 open (`REV-M4-001..004` + `SEC-M4-001` `verified-fixed`) | `review-approved` |
+
+## Findings ledger (M4 G3 R1 `12abdbd` → R1.1 `6fd1506`)
+
+| # | ID | Severity | Summary | Resolution at `6fd1506` | Status |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `QA-M4-001` / `REV-M4-001` | `S2` | `rebasePlan` matched `session.id === override.target.sessionId` literally, which could drop overrides if a new `.xlsx` version shifted `sourceRow` | Added `findOverrideTargetSession` in `packages/domain/src/registration-merge.ts` + `resolveOverrideTargets` and `droppedOverrides` warning in `apps/web/src/model/plan-view.ts` & `PlanSummary.tsx` + regression test | `verified-fixed` |
+| 2 | `QA-M4-002` / `REV-M4-002` | `S3` | `renderPng` drew overridden sessions at their new time/room but did not draw override badge/detail text on the canvas block | Updated `apps/web/src/export/png.ts` to draw `★ ${overrideBadges}` and `from → to` details + added unit test in `png.test.ts` | `verified-fixed` |
+| 3 | `QA-M4-003` / `REV-M4-003` | `S3` | `RegistrationImport.tsx` `catch` did not clear prior `preview`; `controller.ts` called `updateSettings` outside `saveChainRef`; missing UI tests for re-import button & in-app browser banner | Cleared `setPreview(undefined)` in `catch`, serialized `updateSettings` in `saveChainRef.current`, added UI tests in `m4-registration.test.tsx` | `verified-fixed` |
+| 4 | `REV-M4-004` | `S3` | `M4-IMPLEMENTATION-HANDOFF.md` & `M4-EVIDENCE-ENVELOPE.md` listed `Plan storage envelope 1.0.0` and `vnu-registration-html@0.1.0` instead of `0.2.0` | Updated both docs to `0.2.0` | `verified-fixed` |
+| 5 | `SEC-M4-001` | `S3` | `splitRooms` in `vnu-registration-html-adapter.ts` had no length cap before backtracking (`O(L^2)` on oversized room strings) and table picker selected first table with `>= 1` synonym | Added `MAX_ROOM_TEXT_LENGTH = 128` in `splitRooms` and preferred candidate table matching all 5 `REQUIRED_COLUMNS` + regression test | `verified-fixed` |
 
 ## Risk and controls
 
 - Privacy/security impact and boundary: High-sensitivity boundary (`AC-04` student registration `.doc`/`.html` containing PII in the raw file). Enforced via in-memory `vnuRegistrationHtmlAdapter.parse` (`localOnly: true`), magic-byte/size guards (`<= 2 MiB`), immediate input clearing, no network capability outside `apps/web/src/data/loader.ts` (enforced by `scripts/lint.mjs` and verified by Playwright network interception), and zero PII in DOM/IndexedDB/console/exports.
-- Findings (ID/severity/status): Pending `G3a`/`G3b`/`G3c`.
-- Waiver/exception: `none` (inherited M3 S3 exceptions `EXC-SEC-M3-R2-B/C/D` remain tracked under `EVID-M3-001` with expiry `2026-11-08`).
-- Rollback/migration trigger and target: Revert M4 merge commit on `main` if any `S0`/`S1` defect is found.
+- Findings (ID/severity/status): `5/5` M4 findings (`1 S2`, `4 S3`) are `verified-fixed` at `6fd1506` (`0` open M4 findings).
+- Waiver/exception: `none` new in M4 (inherited M3 S3 exceptions `EXC-SEC-M3-R2-B/C/D` remain tracked under `EVID-M3-001` with expiry `2026-11-08` for M5 `G4a`/`G4b`).
+- Rollback/migration trigger and target: Revert M4 merge commit on `main` if any `S0`/`S1` defect is found; existing `draft` Plans remain readable.
 
 ## Decision and next step
 
-- Recommendation/gate decision: `in_progress` — ready for parallel `G3a` (QA), `G3b` (Security), and `G3c` (Independent Review) verification.
-- Next owner action: Run `G3a`, `G3b`, `G3c` subagents on `m4-registration-ui`, resolve any findings, and present `G0`/`G1`/`G3` artifacts to Owner for approval.
+- Recommendation/gate decision:
+  - `G3a`: **`qa-pass`** (`TEST-M4-001`)
+  - `G3b`: **`security-pass-with-exception`** (`SEC-REVIEW-M4-001`, `0` M4 findings open)
+  - `G3c`: **`review-approved`** (`REVIEW-M4-001`)
+- Next owner action: Present `G0` (`SPEC-M4-001`), `G1` (`ADR-0013`, `DESIGN-M4-001`), and `G3` (`TEST-M4-001`, `SEC-REVIEW-M4-001`, `REVIEW-M4-001`, `EVID-M4-001`) to the human Owner (Product / Tech Lead / Security / Release Manager) for formal gate sign-off and PR merge into `main`.
