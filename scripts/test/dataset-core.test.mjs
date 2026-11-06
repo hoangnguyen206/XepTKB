@@ -39,6 +39,11 @@ test("status transitions follow the runbook and keep two people in the loop", ()
   assert.equal(nextStatus({ status: "candidate" }, "validate", { actor: "Reviewer", importer: "Parser" }), "validated");
   assert.throws(() => nextStatus({ status: "candidate" }, "validate", { actor: "owner", importer: "Owner" }), /another person/);
   assert.equal(nextStatus({ status: "candidate" }, "validate", { actor: "owner", importer: "Owner", singleReviewerReason: "internal beta, one maintainer" }), "validated");
+  assert.throws(() => nextStatus({ status: "candidate" }, "validate", { actor: "Reviewer", importer: "Parser", newFormatImported: true }), /--accept-new-format/);
+  assert.equal(
+    nextStatus({ status: "candidate" }, "validate", { actor: "Reviewer", importer: "Parser", newFormatImported: true, acceptNewFormatReason: "reviewed extra info columns" }),
+    "validated",
+  );
   assert.throws(() => nextStatus({ status: "candidate" }, "publish", { actor: "RM" }), /only a validated/);
   assert.equal(nextStatus({ status: "validated" }, "publish", { actor: "RM" }), "published");
   assert.equal(nextStatus({ status: "published" }, "retract", { actor: "RM" }), "retracted");

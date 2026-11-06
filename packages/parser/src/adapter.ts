@@ -37,9 +37,11 @@ export type ImportProfile = {
 export type ParseCoverage = {
   sheet: string;
   headerRow: number;
-  /** Canonical fields found in the header, sorted; the format fingerprint. */
+  /** Canonical fields found in the header, sorted; part of the format fingerprint. */
   columns: string[];
-  /** Whether `columns` matches a format already reviewed (UET config). An unknown format is imported as `hold`. */
+  /** Non-canonical/unused header labels exposed as session `info`, in sheet column order. */
+  infoColumns: string[];
+  /** Whether `columns` + `infoColumns` match a format already reviewed (UET config). An unknown format is imported as `hold`. */
   knownFormat: boolean;
   sectionRows: number;
   parsedRows: number;

@@ -4,6 +4,11 @@ export type SyntheticSheet = {
   name: string;
   rows: string[][];
   merges?: string[];
+  state?: "visible" | "hidden" | "veryHidden";
+  /** 1-based column numbers to mark with `<col min="n" max="n" hidden="1"/>`. */
+  hiddenCols?: number[];
+  /** 1-based row numbers to mark with `<row r="n" hidden="1">`. */
+  hiddenRows?: number[];
 };
 
 function escapeXml(value: string): string {
@@ -22,16 +27,25 @@ function columnName(index: number): string {
 }
 
 function sheetXml(sheet: SyntheticSheet): string {
+  const hiddenRowSet = new Set(sheet.hiddenRows ?? []);
+  const colsXml = sheet.hiddenCols?.length
+    ? `<cols>${sheet.hiddenCols.map((colNo) => `<col min="${colNo}" max="${colNo}" hidden="1"/>`).join("")}</cols>`
+    : "";
   const rows = sheet.rows.map((row, rowIndex) => {
-    const cells = row.map((value, colIndex) => value === "" ? "" : `<c r="${columnName(colIndex)}${rowIndex + 1}" t="inlineStr"><is><t>${escapeXml(value)}</t></is></c>`).join("");
-    return `<row r="${rowIndex + 1}">${cells}</row>`;
+    const rowNo = rowIndex + 1;
+    const hiddenAttr = hiddenRowSet.has(rowNo) ? ` hidden="1"` : "";
+    const cells = row.map((value, colIndex) => value === "" ? "" : `<c r="${columnName(colIndex)}${rowNo}" t="inlineStr"><is><t>${escapeXml(value)}</t></is></c>`).join("");
+    return `<row r="${rowNo}"${hiddenAttr}>${cells}</row>`;
   }).join("");
   const merges = sheet.merges?.length ? `<mergeCells count="${sheet.merges.length}">${sheet.merges.map((ref) => `<mergeCell ref="${ref}"/>`).join("")}</mergeCells>` : "";
-  return `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetData>${rows}</sheetData>${merges}</worksheet>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${colsXml}<sheetData>${rows}</sheetData>${merges}</worksheet>`;
 }
 
 export function syntheticXlsx(sheets: SyntheticSheet[]): Uint8Array {
-  const workbookSheets = sheets.map((sheet, index) => `<sheet name="${escapeXml(sheet.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join("");
+  const workbookSheets = sheets.map((sheet, index) => {
+    const stateAttr = sheet.state && sheet.state !== "visible" ? ` state="${sheet.state}"` : "";
+    return `<sheet name="${escapeXml(sheet.name)}" sheetId="${index + 1}"${stateAttr} r:id="rId${index + 1}"/>`;
+  }).join("");
   const relationships = sheets.map((_, index) => `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${index + 1}.xml"/>`).join("");
   const files: Record<string, Uint8Array> = {
     "[Content_Types].xml": strToU8(`<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/></Types>`),

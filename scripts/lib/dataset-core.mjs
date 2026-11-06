@@ -46,13 +46,18 @@ export function diffSections(previous, next) {
 /**
  * Runbook §7 lifecycle: candidate → validated → published, and any of them → retracted. Validation needs a
  * reviewer other than the importer; a single-person review is allowed only with a recorded reason.
+ * When a candidate was imported with `--accept-new-format`, the Data Reviewer must also confirm the new format
+ * at validation time via `--accept-new-format "<reason>"` (REV-M3-102).
  */
-export function nextStatus(entry, action, { actor, importer, singleReviewerReason } = {}) {
+export function nextStatus(entry, action, { actor, importer, singleReviewerReason, newFormatImported, acceptNewFormatReason } = {}) {
   if (!actor) throw new Error(`${action} needs an actor name`);
   if (action === "validate") {
     if (entry.status !== "candidate") throw new Error(`only a candidate can be validated (status: ${entry.status})`);
     if (importer && actor.trim().toLowerCase() === importer.trim().toLowerCase() && !singleReviewerReason) {
       throw new Error("the reviewer imported this dataset; another person must review it, or record --accept-single-reviewer \"<reason>\"");
+    }
+    if (newFormatImported && !acceptNewFormatReason) {
+      throw new Error("this candidate was imported with an unreviewed column format; the Data Reviewer must inspect the columns/info labels in the report and pass --accept-new-format \"<reason>\"");
     }
     return "validated";
   }

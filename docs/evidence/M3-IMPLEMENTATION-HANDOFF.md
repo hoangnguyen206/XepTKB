@@ -149,6 +149,19 @@ No change to `@ky-nay/domain` or `@ky-nay/parser` source in M3. Domain schema st
   - G3b R2 ([SEC-REVIEW-M3-002](M3-G3b-SECURITY-REVIEW-R2.md)): `security-pass-with-exception` for M3 code; `security-no-go` for G4b real datasets until `SEC-M3-102` is resolved or `EXC-SEC-M3-R2-A` is approved.
   - G3c R2 ([REVIEW-M3-002](M3-G3c-INDEPENDENT-REVIEW-R2.md)): `review-no-go` due to two S2 parser/pipeline findings (`REV-M3-101`, `REV-M3-102 = SEC-M3-102 = QA-M3-105`). Consolidated register in [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md).
 
+## Fix round 2026-11-06 (S2 remediation: `REV-M3-101` & `SEC-M3-102 = REV-M3-102 = QA-M3-105`)
+
+- **`REV-M3-101` (`packages/parser/src/weeks.ts`, `scripts/dataset.mjs`, `packages/parser/test/weeks.test.ts`):**
+  - Week patterns (`WEEK_RANGE`, `WEEK_FROM`, `WEEK_LIST`) are accepted as `explicit` only when the week clause is completely consumed (`isCompleteClause`) and no residual `"tuần"` tokens remain outside the benign frequency phrase `N ca/M tuần`.
+  - Partial or unreviewed `"tuần"` phrasings (`"Học tuần 1 đến tuần 8"`, `"Học tuần 9 đến hết"`, `"Học từ tuần 3 đến tuần 10"`, `"Tuần 1-8"`, etc.) never silently truncate to partial `explicit` weeks; they keep default weeks (`weekOrigin: "parser-default"`) and emit `UNPARSED_NOTE` with `rawValue`.
+  - `scripts/dataset.mjs` (`writeImportReport`) adds a `Week notes ("tuần")` table and a Data Reviewer checklist item.
+- **`SEC-M3-102 = REV-M3-102 = QA-M3-105` (`packages/parser/src/ooxml.ts`, `uet-config.ts`, `adapter.ts`, `uet-xlsx-adapter.ts`, `scripts/dataset.mjs`, `scripts/lib/dataset-core.mjs`, `scripts/test-real.mjs`, `packages/parser/test/uet-xlsx.test.ts`):**
+  - `ooxml.ts` skips hidden/veryHidden worksheets (`state="hidden"|"veryHidden"`), hidden columns (`<col hidden="1">`), and hidden rows (`<row hidden="1">`).
+  - `uet-config.ts` adds `FORBIDDEN_HEADER_PATTERNS` (blocking PII column headers with `UNSUPPORTED_INPUT` error and excluding them from `session.info`) and `infoColumns` per format in `KNOWN_FORMATS`.
+  - `uet-xlsx-adapter.ts` includes `infoColumns` in `formatFingerprint` and `ParseCoverage`, so any unreviewed non-canonical column sets `artifact.status = "hold"` and emits `FORMAT_UNRECOGNIZED`; `UNKNOWN_COLUMN` now carries `rawValue: label`.
+  - `scripts/dataset.mjs` & `scripts/lib/dataset-core.mjs` print `Extra (info) columns` in the import report and require the Data Reviewer to confirm `--accept-new-format` at `validate` when a candidate was imported with `--accept-new-format`.
+- **Verification:** `npm run check` exit 0 (`lint` pass, `typecheck` pass, `node:test` 98/98, Vitest 54/54, fixtures 6/6, `dataset check` OK). Ready for narrow G3b/G3c re-verification.
+
 ## Handoff decision
 
 - Recommendation (2026-11-01, verified in G3 R2 2026-11-05/06): `g2-ready-for-verification` at immutable target `2ab03cd`; web app M3 findings #1–#6 and #22 are verified fixed, while real-dataset parser/pipeline findings `REV-M3-101` and `REV-M3-102 = SEC-M3-102 = QA-M3-105` remain open before G4b / HK II beta.

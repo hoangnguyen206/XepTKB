@@ -5,7 +5,7 @@
 //   npm run dataset -- import <file.xlsx> --term <id> --term-name <name> --source-type official-timetable|planned-timetable
 //                      --document-ref <safe ref> --published-by <source publisher> --actor <importer>
 //                      [--weeks 15] [--start "K67,K68=2026-09-07"]... [--profile profile.json] [--accept-new-format <reason>]
-//   npm run dataset -- validate <version> --reviewer <name> [--note <text>] [--accept-single-reviewer <reason>]
+//   npm run dataset -- validate <version> --reviewer <name> [--note <text>] [--accept-single-reviewer <reason>] [--accept-new-format <reason>]
 //   npm run dataset -- publish  <version> --by <name> [--note <text>]
 //   npm run dataset -- retract  <version> --by <name> --reason <text>
 //   npm run dataset -- status | check
@@ -119,7 +119,8 @@ async function importDataset(file, options) {
   const unaccounted = coverage.sectionRows - coverage.parsedRows - skipped - coverage.errorRows;
   if (unaccounted !== 0) fail(`${unaccounted} rows with a section id are not accounted for; nothing was written`);
   if (!coverage.knownFormat && !options["accept-new-format"]) {
-    fail(`new column set (${coverage.columns.join(", ")}): review it, add it to KNOWN_FORMATS or pass --accept-new-format "<reason>"`, 2);
+    const extraDesc = coverage.infoColumns?.length ? `; extra (info) columns: ${coverage.infoColumns.join(", ")}` : "";
+    fail(`new column set (${coverage.columns.join(", ")}${extraDesc}): review it, add it to KNOWN_FORMATS or pass --accept-new-format "<reason>"`, 2);
   }
 
   const base = `schools/uet/terms/${term}/${datasetVersion}`;
@@ -152,10 +153,66 @@ async function importDataset(file, options) {
 
   console.log(`dataset: imported ${datasetVersion} as candidate`);
   console.log(`  ${result.sections.length} sections, ${result.courses.length} courses, ${result.sections.reduce((n, s) => n + s.sessions.length, 0)} sessions; rows ${coverage.parsedRows} parsed, skipped ${JSON.stringify(coverage.skippedRows)}`);
+  if (coverage.infoColumns?.length) console.log(`  extra (info) columns: ${coverage.infoColumns.join(", ")}`);
   if (diff) console.log(`  vs ${previous.datasetVersion}: +${diff.added.length} −${diff.removed.length} ~${diff.changed.length} sections`);
   if (starts.length === 0) console.log("  note: no --start given; students will enter the week-1 date themselves");
   console.log(`  report: ${relative(repoRoot, reportPath(datasetVersion))}`);
   console.log("  next: commit and push; review it on the preview URL, then `npm run dataset -- validate` by a second person");
+}
+
+function summarizeInfoColumns(sessions, infoColumns = []) {
+  if (infoColumns.length === 0) return ["- None."];
+  const rows = infoColumns.map((label) => {
+    const values = [];
+    let countSessions = 0;
+    for (const session of sessions) {
+      for (const item of session.info ?? []) {
+        if (item.label === label) {
+          countSessions += 1;
+          if (!values.includes(item.value) && values.length < 3) values.push(item.value);
+        }
+      }
+    }
+    const sample = values.length > 0 ? values.map((v) => `\`${v.replace(/\|/g, "\\|")}\``).join(", ") : "*(all empty)*";
+    return `| \`${label.replace(/\|/g, "\\|")}\` | ${countSessions} | ${sample} |`;
+  });
+  return [
+    "| Column header (`info.label`) | Non-empty sessions | Sample values |",
+    "| --- | --- | --- |",
+    ...rows,
+  ];
+}
+
+function summarizeWeekNotes(sessions, warnings) {
+  const unparsedNotes = new Set(warnings.filter((w) => w.code === "UNPARSED_NOTE" && w.rawValue).map((w) => w.rawValue));
+  const byNote = new Map();
+  for (const session of sessions) {
+    const raw = session.rawNote;
+    if (!raw) continue;
+    const folded = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (!/\btuan\b/.test(folded) && !unparsedNotes.has(raw)) continue;
+    const existing = byNote.get(raw);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      byNote.set(raw, {
+        rawNote: raw,
+        weekOrigin: session.weekOrigin ?? "unknown",
+        weeks: session.weeks.join(","),
+        unparsed: unparsedNotes.has(raw),
+        count: 1,
+      });
+    }
+  }
+  if (byNote.size === 0) return ["- None."];
+  return [
+    "| Note (`rawNote`) | Week origin | Resolved weeks | Sessions |",
+    "| --- | --- | --- | --- |",
+    ...[...byNote.values()].map((item) => {
+      const originLabel = item.unparsed ? `${item.weekOrigin} (⚠ \`UNPARSED_NOTE\` — review required)` : item.weekOrigin;
+      return `| \`${item.rawNote.replace(/\|/g, "\\|")}\` | ${originLabel} | \`${item.weeks}\` | ${item.count} |`;
+    }),
+  ];
 }
 
 function writeImportReport({ entry, result, coverage, starts, teachingWeeks, previous, diff, actor, fileName, fileBytes, newFormatReason }) {
@@ -166,6 +223,7 @@ function writeImportReport({ entry, result, coverage, starts, teachingWeeks, pre
   const firstOf = (code) => warnings.filter((issue) => issue.code === code).slice(0, 5).map((issue) => `${issue.sourceRow ?? "-"}${issue.rawValue ? ` (${issue.rawValue})` : ""}`).join(", ");
   const list = (items, limit = 40) => (items.length === 0 ? "none" : `${items.slice(0, limit).join(", ")}${items.length > limit ? ` … (+${items.length - limit})` : ""}`);
   const today = entry.importedAt.slice(0, 10);
+  const extraColsText = coverage.infoColumns?.length ? coverage.infoColumns.join(", ") : "none";
   const lines = [
     `# Data import report — UET ${entry.termName} (${entry.datasetVersion})`,
     "",
@@ -190,7 +248,7 @@ function writeImportReport({ entry, result, coverage, starts, teachingWeeks, pre
     "## Parser identity",
     "",
     `- Parser: \`${entry.parserVersion}\`; domain schema \`${entry.domainSchemaVersion}\``,
-    `- Sheet \`${coverage.sheet}\`, header row ${coverage.headerRow}; columns: ${coverage.columns.join(", ")} — format ${coverage.knownFormat ? "reviewed" : `**new**, accepted on import: ${newFormatReason}`}`,
+    `- Sheet \`${coverage.sheet}\`, header row ${coverage.headerRow}; columns: ${coverage.columns.join(", ")}; extra (\`info\`) columns: ${extraColsText} — format ${coverage.knownFormat ? "reviewed" : `**new**, accepted on import: ${newFormatReason}`}`,
     "",
     "## Parse summary",
     "",
@@ -210,6 +268,14 @@ function writeImportReport({ entry, result, coverage, starts, teachingWeeks, pre
     "| Code | Count | First rows (value) |",
     "| --- | --- | --- |",
     ...Object.entries(byCode).sort((a, b) => b[1] - a[1]).map(([code, n]) => `| \`${code}\` | ${n} | ${firstOf(code)} |`),
+    "",
+    "## Extra (info) columns",
+    "",
+    ...summarizeInfoColumns(sessions, coverage.infoColumns ?? []),
+    "",
+    "## Week notes (\"tuần\")",
+    "",
+    ...summarizeWeekNotes(sessions, warnings),
     "",
     "## Output integrity",
     "",
@@ -231,13 +297,15 @@ function writeImportReport({ entry, result, coverage, starts, teachingWeeks, pre
     "",
     "- [ ] Right school/term/source document/status; week-1 dates match the academic calendar.",
     "- [ ] Counts plausible for this version of the timetable (it changes until registration ends).",
+    "- [ ] Extra (`info`) columns listed above were checked; none carry schedule weeks or personal data (PII).",
+    "- [ ] Week notes containing \"tuần\" listed above were checked against the source file; any `UNPARSED_NOTE` warning was reviewed.",
     "- [ ] Sampled on the preview URL: a few courses, a multi-shift `Ca`, a cancelled class absent, an online/untimed class, a lab group.",
     "- [ ] Warnings read; diff read; room/time changes have a reason.",
     "- [ ] No blocking errors; reviewer is not the importer (or the exception is recorded below).",
     "",
     "## Decision log",
     "",
-    `- ${entry.importedAt} — **imported** as \`candidate\` by ${actor}.`,
+    `- ${entry.importedAt} — **imported** as \`candidate\` by ${actor}${newFormatReason ? ` — **new format on import:** ${newFormatReason}` : ""}.`,
   ];
   mkdirSync(REPORT_DIR, { recursive: true });
   writeFileSync(reportPath(entry.datasetVersion), `${lines.join("\n")}\n`);
@@ -247,11 +315,19 @@ function changeStatus(action, version, options) {
   const manifest = readManifest();
   const entry = findEntry(manifest, version);
   const actor = action === "validate" ? options.reviewer : options.by;
-  const importer = auditEntries().find((item) => item.action === "import" && item.datasetVersion === version)?.actor;
+  const importAudit = auditEntries().find((item) => item.action === "import" && item.datasetVersion === version);
+  const importer = importAudit?.actor;
+  const newFormatImported = Boolean(importAudit?.acceptedNewFormat);
   if (action === "retract" && !options.reason) fail("retract needs --reason");
   let status;
   try {
-    status = nextStatus(entry, action, { actor, importer, singleReviewerReason: options["accept-single-reviewer"] });
+    status = nextStatus(entry, action, {
+      actor,
+      importer,
+      singleReviewerReason: options["accept-single-reviewer"],
+      newFormatImported,
+      acceptNewFormatReason: options["accept-new-format"],
+    });
   } catch (error) {
     fail(error.message);
   }
@@ -261,9 +337,18 @@ function changeStatus(action, version, options) {
   if (action === "publish") entry.publishedAt = at;
   writeManifest(manifest);
   const exception = action === "validate" && options["accept-single-reviewer"] ? options["accept-single-reviewer"] : undefined;
-  audit(action, version, actor, { status, ...(options.note ? { note: options.note } : {}), ...(options.reason ? { reason: options.reason } : {}), ...(exception ? { singleReviewerException: exception } : {}) });
+  const newFormatReview = action === "validate" && options["accept-new-format"] ? options["accept-new-format"] : undefined;
+  audit(action, version, actor, {
+    status,
+    ...(options.note ? { note: options.note } : {}),
+    ...(options.reason ? { reason: options.reason } : {}),
+    ...(exception ? { singleReviewerException: exception } : {}),
+    ...(newFormatReview ? { acceptedNewFormat: newFormatReview } : {}),
+  });
   if (existsSync(reportPath(version))) {
-    appendReport(version, [`- ${at} — **${action}** → \`${status}\` by ${actor}${options.note ? `: ${options.note}` : ""}${options.reason ? ` — reason: ${options.reason}` : ""}${exception ? ` — **single-reviewer exception:** ${exception}` : ""}.`]);
+    appendReport(version, [
+      `- ${at} — **${action}** → \`${status}\` by ${actor}${options.note ? `: ${options.note}` : ""}${options.reason ? ` — reason: ${options.reason}` : ""}${exception ? ` — **single-reviewer exception:** ${exception}` : ""}${newFormatReview ? ` — **new format reviewed:** ${newFormatReview}` : ""}.`,
+    ]);
   }
   console.log(`dataset: ${version} is now ${status}`);
   if (action === "publish") console.log("  next: commit and push; production shows it after the next production deploy");

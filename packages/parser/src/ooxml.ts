@@ -3,6 +3,7 @@ import { DOMParser } from "@xmldom/xmldom";
 
 const MAX_ENTRY_BYTES = 16 * 1024 * 1024;
 const MAX_TOTAL_XML_BYTES = 32 * 1024 * 1024;
+const MAX_COL_INDEX = 16383; // XFD (16,384 columns in OOXML)
 
 type ZipEntries = Map<string, Uint8Array>;
 
@@ -34,6 +35,10 @@ function descendants(node: any, name: string): any[] {
 function attr(node: any, name: string): string | undefined {
   const value = node?.getAttribute?.(name);
   return value === null || value === undefined || value === "" ? undefined : String(value);
+}
+
+function isHiddenAttr(value: string | undefined): boolean {
+  return value === "1" || value?.toLowerCase() === "true";
 }
 
 function parseXml(bytes: Uint8Array, part: string): any {
@@ -129,7 +134,7 @@ function cellValue(cell: any, strings: string[]): string {
   return raw;
 }
 
-function fillMergedCells(rows: string[][], mergeRefs: string[]): void {
+function fillMergedCells(rows: string[][], mergeRefs: string[], hiddenRows: Set<number>, hiddenCols: Set<number>): void {
   for (const reference of mergeRefs) {
     const [start, endValue] = reference.split(":");
     const end = endValue ?? start;
@@ -141,11 +146,14 @@ function fillMergedCells(rows: string[][], mergeRefs: string[]): void {
     const endRow = Number(endMatch[2]) - 1;
     const startCol = columnIndex(startMatch[1]!);
     const endCol = columnIndex(endMatch[1]!);
+    if (hiddenRows.has(startRow) || hiddenCols.has(startCol)) continue;
     const value = rows[startRow]?.[startCol] ?? "";
     if (!value) continue;
     for (let row = startRow; row <= endRow; row += 1) {
+      if (hiddenRows.has(row)) continue;
       const target = rows[row] ?? (rows[row] = []);
       for (let col = startCol; col <= endCol; col += 1) {
+        if (hiddenCols.has(col)) continue;
         if (!target[col]) target[col] = value;
       }
     }
@@ -181,6 +189,9 @@ export function readOoxmlWorkbook(bytes: Uint8Array): OoxmlWorkbook {
   const strings = sharedStrings(entries);
   const sheets: OoxmlSheet[] = [];
   for (const sheet of descendants(workbook, "sheet")) {
+    // SEC-M3-102: never read hidden or veryHidden worksheets into a public timetable artifact.
+    const state = attr(sheet, "state")?.toLowerCase();
+    if (state === "hidden" || state === "veryhidden") continue;
     const name = attr(sheet, "name") ?? `sheet-${sheets.length + 1}`;
     const relationship = attr(sheet, "r:id") ?? attr(sheet, "id");
     const target = relationship ? targets.get(relationship) : undefined;
@@ -189,23 +200,42 @@ export function readOoxmlWorkbook(bytes: Uint8Array): OoxmlWorkbook {
     const document = parseXml(sheetBytes, target);
     const data = descendants(document, "sheetData")[0];
     if (!data) continue;
+    const hiddenCols = new Set<number>();
+    for (const col of descendants(document, "col")) {
+      if (!isHiddenAttr(attr(col, "hidden"))) continue;
+      const minRaw = Number(attr(col, "min"));
+      const maxRaw = Number(attr(col, "max") ?? attr(col, "min"));
+      if (!Number.isInteger(minRaw) || minRaw < 1 || !Number.isInteger(maxRaw) || maxRaw < minRaw) continue;
+      const minCol = Math.min(MAX_COL_INDEX, minRaw - 1);
+      const maxCol = Math.min(MAX_COL_INDEX, maxRaw - 1);
+      for (let c = minCol; c <= maxCol; c += 1) hiddenCols.add(c);
+    }
+    const hiddenRows = new Set<number>();
     const rows: string[][] = [];
     const rowNumbers: number[] = [];
     let fallbackRow = 1;
     for (const row of directChildren(data, "row")) {
       const rowNumber = Number(attr(row, "r") ?? fallbackRow);
       fallbackRow = rowNumber + 1;
+      if (isHiddenAttr(attr(row, "hidden"))) {
+        hiddenRows.add(rowNumber - 1);
+        continue;
+      }
       const values: string[] = [];
       for (const cell of directChildren(row, "c")) {
         const ref = attr(cell, "r");
         const index = ref ? columnIndex(ref) : values.length;
+        if (hiddenCols.has(index)) {
+          values[index] = "";
+          continue;
+        }
         values[index] = cellValue(cell, strings);
       }
       rows[rowNumber - 1] = values;
       rowNumbers[rowNumber - 1] = rowNumber;
     }
     const merges = descendants(document, "mergeCell").map((merge) => attr(merge, "ref")).filter((ref): ref is string => Boolean(ref));
-    fillMergedCells(rows, merges);
+    fillMergedCells(rows, merges, hiddenRows, hiddenCols);
     sheets.push({ name, rows, rowNumbers });
   }
   if (sheets.length === 0) throw new Error("OOXML workbook has no readable worksheets");

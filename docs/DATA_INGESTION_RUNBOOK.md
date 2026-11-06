@@ -60,7 +60,7 @@ Mỗi diff có old/new dataset version và source row/page. Thay đổi lớn b�
 - [ ] Required columns được nhận bằng tên, không dựa vị trí.
 - [ ] Count/summary so với fixture/source expectation.
 - [ ] Sample các edge case: merged, note override, tuần lẻ, ONL, T7, campus, group.
-- [ ] Không còn blocking errors; warnings có giải thích/owner.
+- [ ] Không còn blocking errors; warnings có giải thích/owner; danh sách cột thông tin (`info`) và các ghi chú có từ `"tuần"` trong báo cáo đã được kiểm tra.
 - [ ] Diff đã đọc; các đổi phòng/giờ có lý do.
 - [ ] Link/citation gốc được phép hiển thị.
 - [ ] Security review ở G1 nếu source/boundary mới có PII, vendor hoặc auth; G3b verification sau implementation.
@@ -76,7 +76,7 @@ Mỗi diff có old/new dataset version và source row/page. Thay đổi lớn b�
 5. Giữ bản trước để rollback; ghi publishedAt/reviewer/changelog.
 6. Thông báo version/update cho app; không invalidate Plan local mù.
 
-Trạng thái hợp lệ: `candidate → hold` (thiếu evidence/chờ sửa) hoặc `candidate → validated → published`; candidate có lỗi bị `rejected`; published có lỗi bị `retracted`. Không xóa artifact cũ trước khi hết retention/rollback window.
+Trạng thái hợp lệ: ở bước parse/intake, file thiếu bộ cột đã duyệt nhận `hold` (CLI `import` dừng với exit 2 trừ khi có `--accept-new-format`) và file có lỗi chặn bị từ chối (`rejected`, không ghi vào `data/published`); trong `data/published/manifest.json`, vòng đời được lưu là `candidate → validated → published`, và bất kỳ trạng thái nào cũng có thể chuyển sang `retracted` ([ADR-0012 §3](adr/ADR-0012-dataset-publish-pipeline.md)). Không xóa artifact cũ trước khi hết retention/rollback window.
 
 ## 8. Rollback và correction
 
@@ -126,7 +126,7 @@ File nguồn để **ngoài repo** (ví dụ `Downloads`). Mỗi lệnh dưới 
 
    Lệnh tạo entry `candidate`, artifact, báo cáo `data/reports/<version>.md` (có diff với bản trước) và dòng audit. Lệnh từ chối nếu có lỗi chặn, dòng chưa giải thích, file trùng hoặc bộ cột chưa duyệt. Sau đó commit + push → Cloudflare dựng preview.
 3. **Duyệt trên preview** (`https://m3-web-app.xeptkb-63v.pages.dev` hoặc URL nhánh): Data Reviewer đi checklist trong báo cáo, xem vài môn trên điện thoại.
-4. **Xác nhận:** `npm run dataset -- validate <version> --reviewer "<người duyệt>" [--note "..."]`. Người duyệt phải khác người nạp; nếu dự án chỉ có một người thì thêm `--accept-single-reviewer "<lý do>"`, ngoại lệ được ghi vào audit và báo cáo.
+4. **Xác nhận:** `npm run dataset -- validate <version> --reviewer "<người duyệt>" [--note "..."]`. Người duyệt phải khác người nạp; nếu dự án chỉ có một người thì thêm `--accept-single-reviewer "<lý do>"`, ngoại lệ được ghi vào audit và báo cáo. Nếu bản `candidate` được nạp bằng `--accept-new-format`, người duyệt cũng phải truyền `--accept-new-format "<lý do>"` sau khi đã đọc bảng cột `info` và ghi chú `"tuần"` trong báo cáo.
 5. **Công bố:** `npm run dataset -- publish <version> --by "<Release Manager>"` → commit + push. Bản production (`main`) chỉ hiện dữ liệu `published`, sau khi G4a cho phép deploy production.
 6. **Rollback:** `npm run dataset -- retract <version> --by "<RM>" --reason "<lý do>"` → commit + push; app quay về bản `published` trước đó của kỳ.
 7. **Kiểm tra bất kỳ lúc nào:** `npm run dataset -- status`, `npm run dataset -- check` (cũng chạy trong `npm run check`/CI).

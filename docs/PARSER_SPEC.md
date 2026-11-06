@@ -65,12 +65,12 @@ PDF scan/image không nằm trong MVP; nếu dùng OCR/LLM, output là candidate
 
 Unknown columns không được tự gán canonical field. Header recognition dùng normalized Unicode/case/whitespace, không dùng index cột. Thiếu cột bắt buộc → `MISSING_REQUIRED_COLUMN` nêu tên cột.
 
-**Cột ngoài danh sách là thông tin (Q-013, [ADR-0011 §8](adr/ADR-0011-timetable-format-variability.md)).** Mọi cột adapter không dùng tới (cột lạ như `SS`, `LT`, `TH`, `Tự học`, `PCGD`, hoặc canonical chưa dùng như `Đợt thi`) được giữ ở `Session.info` dạng `{ label: <tiêu đề cột như trong file>, value }`. Ô trống được bỏ qua, cột số thứ tự (`STT`, `TT`) bị bỏ, tối đa 30 cột và 300 ký tự mỗi giá trị. Thông tin này hiển thị cho sinh viên cùng ghi chú và không bao giờ dùng để tính tuần hay trùng lịch. `UNKNOWN_COLUMN` vẫn báo một lần cho mỗi cột lạ, để Data Reviewer xem có nên đưa cột đó vào danh sách canonical.
+**Cột ngoài danh sách là thông tin (Q-013, [ADR-0011 §8](adr/ADR-0011-timetable-format-variability.md), `SEC-M3-102`).** Mọi cột hiển thị mà adapter không dùng tới (cột lạ như `SS`, `LT`, `TH`, `Tự học`, `PCGD`, hoặc canonical chưa dùng như `Đợt thi`) được giữ ở `Session.info` dạng `{ label: <tiêu đề cột như trong file>, value }`. Sheet ẩn (`state="hidden"|"veryHidden"`), cột ẩn (`<col hidden="1">`) và dòng ẩn (`<row hidden="1">`) trong OOXML bị bỏ qua hoàn toàn; tiêu đề cột khớp deny-list dữ liệu cá nhân (`FORBIDDEN_HEADER_PATTERNS`: `sđt`, `điện thoại`, `email`, `ngày sinh`, `mã sv`, `cccd`, …) bị chặn bằng lỗi `UNSUPPORTED_INPUT` và không bao giờ đưa vào `info`. Ô trống được bỏ qua, cột số thứ tự (`STT`, `TT`) bị bỏ, tối đa 30 cột và 300 ký tự mỗi giá trị. Thông tin này hiển thị cho sinh viên cùng ghi chú và không bao giờ dùng để tính tuần hay trùng lịch. `UNKNOWN_COLUMN` vẫn báo một lần kèm `rawValue: <tên cột>` cho mỗi cột lạ, để Data Reviewer xem có nên đưa cột đó vào danh sách canonical.
 
 ### Định dạng thay đổi giữa các kỳ ([ADR-0011](adr/ADR-0011-timetable-format-variability.md))
 
 - Một adapter `uet-xlsx` cho mọi kỳ; không viết adapter theo kỳ.
-- **Dấu vân tay định dạng:** tập canonical field của header. Tập đã review nằm trong `KNOWN_FORMATS` (`uet-config.ts`); tập lạ → artifact `status: "hold"` + warning `FORMAT_UNRECOGNIZED`, không được publish trước khi Data Reviewer xem và thêm vào danh sách.
+- **Dấu vân tay định dạng:** tập canonical field của header cùng danh sách cột thông tin (`infoColumns`) đã duyệt. Tập đã review nằm trong `KNOWN_FORMATS` (`uet-config.ts`); tập canonical lạ hoặc có cột `info` chưa duyệt → artifact `status: "hold"` + warning `FORMAT_UNRECOGNIZED`, dừng `dataset import` (exit 2) trước khi Data Reviewer xem và thêm vào danh sách (hoặc ký nhận qua `--accept-new-format`).
 - **Import profile** (`SourceInput.profile`, JSON đi kèm file, được ghi vào báo cáo nạp): `sheet`, `cancelledSheetPatterns`, `shiftRange`. Cách ghi lạ được sửa bằng profile đã review, không sửa code.
 - **Sheet lớp hủy:** sheet có tên chứa từ `hủy` không bao giờ được nạp; mã lớp trong đó bị loại khỏi sheet chính kèm `SECTION_CANCELLED`.
 - **Độ phủ (`ParseResult.coverage`):** mọi dòng có mã lớp phải thành `parsed`, `skipped` (có lý do) hoặc `error`; `npm run test:real -- <file>` báo `unaccounted` khác 0 là lỗi.
@@ -117,7 +117,8 @@ Parser tuần phải trả `weeks: number[]`, không giữ range string làm log
 | `Học tuần 11-15` | `[11..15]` |
 | `Học từ tuần 14` | `[14..teachingWeeks]` |
 | `Học tuần 4,7,10,14,15` | explicit list |
-| `Học 1 ca/10 tuần`, `thi đợt 2` và mọi ghi chú khác không có pattern tuần | default `[1..teachingWeeks]`, `weekOrigin=parser-default`, **không warning**; nội dung giữ ở `rawNote` và hiển thị cho sinh viên (Q-012) |
+| `Học 1 ca/10 tuần`, `thi đợt 2` và mọi ghi chú khác không có từ `tuần` ngoài cụm `N ca/M tuần` | default `[1..teachingWeeks]`, `weekOrigin=parser-default`, **không warning**; nội dung giữ ở `rawNote` và hiển thị cho sinh viên (Q-012) |
+| ghi chú có từ `tuần` nhưng khớp một phần hoặc chưa chuẩn (`Học tuần 1 đến tuần 8`, `Học từ tuần 3 đến tuần 10`, `Tuần 1-8`, …) | default `[1..teachingWeeks]`, `weekOrigin=parser-default`, **warning `UNPARSED_NOTE`** kèm `rawValue`; liệt kê trong import report để Data Reviewer ký (`REV-M3-101`) |
 | date range `2/3 - 19/4` | quy đổi theo `Term.week1`, timezone, cần test |
 | `Học tiết 9-12` | period override 9..12 |
 | không ghi tuần | default `[1..teachingWeeks]`, `weekOrigin=parser-default`, không warning (Q-012) |
@@ -163,7 +164,7 @@ M2 bổ sung matching/merge thuần trong `packages/domain`: candidate registrat
 ### Warnings — cần review/hiển thị
 
 - `UNKNOWN_COLUMN`
-- `UNPARSED_NOTE` — không còn phát từ 2026-10-30 (Q-012: ghi chú chỉ là thông tin); giữ trong taxonomy để tương thích
+- `UNPARSED_NOTE` — phát khi ghi chú nhắc tới từ `tuần` (ngoài cụm tần suất `N ca/M tuần`) theo cách viết chưa duyệt hoặc khớp một phần (`REV-M3-101`), giữ tuần mặc định `weekOrigin=parser-default` để Data Reviewer kiểm tra; ghi chú thông thường không chứa `tuần` không phát warning (Q-012)
 - `DEFAULT_WEEKS_APPLIED` — parser không còn phát (Q-012); tuần mặc định được ghi bằng `weekOrigin=parser-default`
 - `SECTION_CANCELLED` — lớp nằm trong sheet lớp hủy, không nạp
 - `FORMAT_UNRECOGNIZED` — bộ cột chưa review, artifact `hold`

@@ -123,7 +123,7 @@ M2 đã merge vào `main` (`aba04b0`) và đã push cùng fix round audit (`e41a
 - [M3 evidence envelope](evidence/M3-EVIDENCE-ENVELOPE.md) (`EVID-M3-001`) — tổng hợp lệnh/kết quả, sổ 22 finding R1 + 13 finding R2 đã gộp trùng (#1–#35), điều kiện trước beta HK II.
 - [Ảnh màn hình 360/768/1280](evidence/m3-screens/) — dữ liệu mẫu.
 
-Phần web app M3 đã sạch S0/S1/S2 sau G3 R2 tại `2ab03cd` (CI [run 42069057252](https://github.com/hoangnguyen206/XepTKB/actions/runs/42069057252) xanh; owner đã kiểm preview trên iPhone 12 + Safari ngày 31/10/2026), nhưng M3 vẫn chưa qua trọn bộ G3 để sang G4a/G4b. Trước đợt beta HK II (09–15/11/2026) cần xử lý hai việc: (1) sửa hoặc áp quy trình duyệt bắt buộc bởi Data Reviewer cho `SEC-M3-102 = REV-M3-102 = QA-M3-105` (cột thừa/cột ẩn) và `REV-M3-101` (ghi chú tuần khớp một phần), và (2) Release Manager phê duyệt lại các exception S3 trước khi hết hạn ngày **08/11/2026**.
+Phần web app M3 đã sạch S0/S1/S2 sau G3 R2 tại `2ab03cd` (CI [run 42069057252](https://github.com/hoangnguyen206/XepTKB/actions/runs/42069057252) xanh; owner đã kiểm preview trên iPhone 12 + Safari ngày 31/10/2026). Bản sửa cho cả 2 lỗi S2 ở đường nạp dữ liệu (`REV-M3-101` và `SEC-M3-102 = REV-M3-102 = QA-M3-105`) đã được triển khai ngày 06/11/2026 (`fix-ready-for-reverify`, node:test 98/98, Vitest 54/54, fixtures 6/6). Trước đợt beta HK II (09–15/11/2026) cần: (1) chạy lại G3b/G3c phạm vi hẹp trên commit mới, và (2) Release Manager phê duyệt lại các exception S3 trước khi hết hạn ngày **08/11/2026**.
 
 ## Cách dùng
 

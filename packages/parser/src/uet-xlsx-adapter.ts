@@ -32,7 +32,15 @@ import {
   periodsFromShiftCell,
   sectionIdFromCourse,
 } from "./normalize.js";
-import { CANCELLED_SHEET_WORDS, INFO_IGNORED_HEADERS, KNOWN_FORMATS, ONLINE_ROOM_WORDS, REPEATABLE_COLUMNS, REQUIRED_COLUMNS } from "./uet-config.js";
+import {
+  CANCELLED_SHEET_WORDS,
+  FORBIDDEN_HEADER_PATTERNS,
+  INFO_IGNORED_HEADERS,
+  KNOWN_FORMATS,
+  ONLINE_ROOM_WORDS,
+  REPEATABLE_COLUMNS,
+  REQUIRED_COLUMNS,
+} from "./uet-config.js";
 import { parseNote } from "./weeks.js";
 
 const ADAPTER_ID = "uet-xlsx";
@@ -66,6 +74,11 @@ function rowValue(record: RowRecord, field: string): string | undefined {
 function hasWord(value: string, words: readonly string[]): boolean {
   const folded = foldText(value).split(/[^a-z0-9]+/);
   return words.some((word) => folded.includes(word));
+}
+
+function isForbiddenHeader(label: string): boolean {
+  const folded = foldText(label);
+  return FORBIDDEN_HEADER_PATTERNS.some((pattern) => pattern.test(folded));
 }
 
 function courseCodeValue(value: string): { code: string; altCodes: string[] } {
@@ -139,10 +152,28 @@ function findHeader(sheet: OoxmlSheet, issues: ParseIssue[]): { mapping: HeaderM
     return undefined;
   }
   const values = sheet.rows[best.rowIndex] ?? [];
+  const sourceHeaderRow = sheet.rowNumbers[best.rowIndex] ?? best.rowIndex + 1;
   for (let index = 0; index < values.length; index += 1) {
-    const value = values[index];
-    if (value?.trim() && !canonicalColumn(value)) {
-      issues.push(issue("UNKNOWN_COLUMN", "warning", "unmapped source column was retained only as source input", { sourceRow: best.rowIndex + 1, field: `column-${index + 1}` }));
+    const label = normalizeDisplay(values[index]);
+    if (label && !canonicalColumn(label)) {
+      if (isForbiddenHeader(label)) {
+        issues.push(issue(
+          "UNSUPPORTED_INPUT",
+          "error",
+          `source column "${label}" matches the personal-data (PII) header deny-list and cannot be imported into a public timetable`,
+          { sourceRow: sourceHeaderRow, field: `column-${index + 1}`, rawValue: label },
+        ));
+      } else {
+        const isRowNumber = INFO_IGNORED_HEADERS.includes(foldText(label));
+        issues.push(issue(
+          "UNKNOWN_COLUMN",
+          "warning",
+          isRowNumber
+            ? "row-number column was ignored"
+            : "unmapped source column was retained in session.info — review whether it belongs in canonical mapping or KNOWN_FORMATS",
+          { sourceRow: sourceHeaderRow, field: `column-${index + 1}`, rawValue: label },
+        ));
+      }
     }
   }
   return { mapping: best.mapping, headerRow: best.rowIndex + 1 };
@@ -157,15 +188,16 @@ const MAX_INFO_COLUMNS = 30;
 const MAX_INFO_VALUE = 300;
 
 /**
- * ADR-0011 §8 (owner, 2026-10-31): the layout has no fixed column count. Columns the adapter does not use (`SS`,
- * `LT`, `Tự học`, `Đợt thi`…) are kept with their header text so students see them; row numbers are dropped.
+ * ADR-0011 §8 (owner, 2026-10-31) & SEC-M3-102: the layout has no fixed column count. Columns the adapter does not use
+ * (`SS`, `LT`, `Tự học`, `Đợt thi`…) are kept with their header text so students see them; row numbers and forbidden
+ * PII headers are dropped.
  */
 function infoColumns(sheet: OoxmlSheet, headerRow: number): InfoColumn[] {
   const headers = sheet.rows[headerRow - 1] ?? [];
   const columns: InfoColumn[] = [];
   headers.forEach((header, index) => {
     const label = normalizeDisplay(header);
-    if (!label || INFO_IGNORED_HEADERS.includes(foldText(label))) return;
+    if (!label || INFO_IGNORED_HEADERS.includes(foldText(label)) || isForbiddenHeader(label)) return;
     const canonical = canonicalColumn(label);
     if (canonical && CONSUMED_COLUMNS.has(canonical)) return;
     columns.push({ index, label: label.slice(0, 100) });
@@ -224,10 +256,17 @@ function selectSheet(workbook: { sheets: OoxmlSheet[] }, profile: ImportProfile 
   return selectedHeader ? { sheet: selected.sheet, ...selectedHeader, cancelled, infoColumns: infoColumns(selected.sheet, selectedHeader.headerRow) } : undefined;
 }
 
-function formatFingerprint(mapping: HeaderMapping): { columns: string[]; known: boolean } {
+function formatFingerprint(mapping: HeaderMapping, extraColumns: readonly InfoColumn[]): { columns: string[]; infoColumns: string[]; known: boolean } {
   const columns = [...mapping.keys()].sort();
   const key = columns.join(",");
-  return { columns, known: KNOWN_FORMATS.some((format) => [...format.columns].sort().join(",") === key) };
+  const infoLabels = extraColumns.map((col) => col.label);
+  const foldedInfos = infoLabels.map((label) => foldText(label));
+  const known = KNOWN_FORMATS.some((format) => {
+    if ([...format.columns].sort().join(",") !== key) return false;
+    const allowedInfos = new Set((format.infoColumns ?? []).map((item) => foldText(item)));
+    return foldedInfos.every((label) => allowedInfos.has(label));
+  });
+  return { columns, infoColumns: infoLabels, known };
 }
 
 function sectionSource(artifact: ImportArtifact, row: number): SourceRef {
@@ -264,7 +303,7 @@ function buildCourse(record: RowRecord, course: { code: string; altCodes: string
   };
 }
 
-type RowCounts = Omit<ParseCoverage, "sheet" | "headerRow" | "columns" | "knownFormat">;
+type RowCounts = Omit<ParseCoverage, "sheet" | "headerRow" | "columns" | "infoColumns" | "knownFormat">;
 
 function parseRows(input: SourceInput, artifact: ImportArtifact, selected: SelectedSheet, issues: ParseIssue[]): { sections: Section[]; courses: Course[]; counts: RowCounts } {
   const { sheet, mapping, headerRow, cancelled } = selected;
@@ -467,14 +506,27 @@ export const uetXlsxAdapter: ParserAdapter = {
     }
     const selected = selectSheet(workbook, input.profile, issues);
     if (!selected) return finish([], []);
-    const fingerprint = formatFingerprint(selected.mapping);
+    const fingerprint = formatFingerprint(selected.mapping, selected.infoColumns);
     if (!fingerprint.known) {
-      // A column set nobody has reviewed yet is held for review instead of being published as a candidate.
+      // A column set (canonical or extra info columns) nobody has reviewed yet is held for review instead of being published as a candidate.
       artifact.status = "hold";
-      issues.push(issue("FORMAT_UNRECOGNIZED", "warning", `header columns ${fingerprint.columns.join(", ")} do not match a reviewed UET format; import is held for review`, { sourceRow: selected.headerRow }));
+      const extraText = fingerprint.infoColumns.length > 0 ? ` (extra info columns: ${fingerprint.infoColumns.join(", ")})` : "";
+      issues.push(issue(
+        "FORMAT_UNRECOGNIZED",
+        "warning",
+        `header columns ${fingerprint.columns.join(", ")}${extraText} do not match a reviewed UET format; import is held for review`,
+        { sourceRow: selected.headerRow, rawValue: [...fingerprint.columns, ...fingerprint.infoColumns].join(", ") },
+      ));
     }
     const result = parseRows(input, artifact, selected, issues);
     if (result.sections.length === 0) issues.push(issue("NO_VALID_SECTION_ROWS", "error", "workbook contains no valid timetable sections"));
-    return finish(result.courses, result.sections, { sheet: selected.sheet.name, headerRow: selected.headerRow, columns: fingerprint.columns, knownFormat: fingerprint.known, ...result.counts });
+    return finish(result.courses, result.sections, {
+      sheet: selected.sheet.name,
+      headerRow: selected.headerRow,
+      columns: fingerprint.columns,
+      infoColumns: fingerprint.infoColumns,
+      knownFormat: fingerprint.known,
+      ...result.counts,
+    });
   },
 };

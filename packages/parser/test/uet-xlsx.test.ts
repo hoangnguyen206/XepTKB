@@ -48,7 +48,7 @@ test("uet-xlsx handles header row 4, merged values, ten-week class and subtotal"
   assert.equal(result.sections.length, 1);
   assert.deepEqual(result.sections[0]!.sessions[0]!.weeks, [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   assert.equal(result.sections[0]!.homeClasses[0], "K70");
-  assert.ok(result.issues.some((item) => item.code === "UNKNOWN_COLUMN"));
+  assert.ok(result.issues.some((item) => item.code === "UNKNOWN_COLUMN" && item.rawValue === "PCGD"));
   assert.ok(result.issues.some((item) => item.code === "DUPLICATE_SESSION_COLLAPSED"));
 });
 
@@ -151,6 +151,7 @@ test("uet-xlsx reads the HK I 2026–27 layout without a kind column (C-10)", ()
   assert.deepEqual(result.coverage, {
     sheet: "TKB 04.09", headerRow: 6, knownFormat: true,
     columns: ["courseCode", "courseName", "credits", "day", "group", "lecturer", "room", "sectionId", "shift"],
+    infoColumns: [],
     sectionRows: 10, parsedRows: 9, skippedRows: { cancelled: 1 }, errorRows: 0,
   });
 });
@@ -172,6 +173,7 @@ test("an unreviewed column set is held, and repeated Ghi chú columns are joined
     ["K69I-IT1", "SYN2213", "Mạng mẫu", "4", "", "30", "", "60", "SYN2213 1", "CL", "TH", "2", "4", "307-A", "GV Mẫu", "Học tuần 2-15", "thi đợt 2"],
   ] }])));
   assert.deepEqual(known.issues.filter((item) => item.severity === "error" || item.code === "FORMAT_UNRECOGNIZED"), []);
+  assert.deepEqual(known.coverage?.infoColumns, ["LT", "TH", "Tự học", "SS"]);
   const [lt, th] = known.sections[0]!.sessions;
   assert.equal(lt!.rawNote, "Học 1 ca/15 tuần, thi đợt 2");
   assert.equal(lt!.weekOrigin, "parser-default");
@@ -184,6 +186,70 @@ test("an unreviewed column set is held, and repeated Ghi chú columns are joined
   assert.equal(unknown.artifact.status, "hold");
   assert.ok(unknown.issues.some((item) => item.code === "FORMAT_UNRECOGNIZED"));
   assert.deepEqual(unknown.sections[0]!.sessions[0]!.info, [{ label: "Đợt thi", value: "1" }]);
+});
+
+test("REV-M3-102 / QA-M3-105: an unreviewed non-canonical column on a known layout triggers hold and FORMAT_UNRECOGNIZED", () => {
+  for (const extraCol of ["Tuần áp dụng", "Tuần", "Thời gian học", "Tuần bắt đầu"]) {
+    const res = uetXlsxAdapter.parse(input(syntheticXlsx([{
+      name: "TKB",
+      rows: [
+        [...hk1Headers, extraCol],
+        ["1", "SYN3071E", "Môn mẫu", "3", "SYN3071E 1", "TS.Mẫu", "3", "3", "203-B", "CL", "1-8"],
+      ],
+    }])));
+    assert.equal(res.artifact.status, "hold", extraCol);
+    assert.equal(res.coverage?.knownFormat, false, extraCol);
+    assert.deepEqual(res.coverage?.infoColumns, [extraCol], extraCol);
+    assert.ok(res.issues.some((i) => i.code === "FORMAT_UNRECOGNIZED" && i.rawValue?.includes(extraCol)), extraCol);
+    assert.ok(res.issues.some((i) => i.code === "UNKNOWN_COLUMN" && i.rawValue === extraCol), extraCol);
+  }
+});
+
+test("SEC-M3-102: OOXML hidden sheets, hidden columns and hidden rows are never read or published as info", () => {
+  const bytes = syntheticXlsx([
+    {
+      name: "Sheet ẩn nội bộ",
+      state: "hidden",
+      rows: [
+        hk1Headers,
+        ["1", "SYN9999", "Môn ẩn", "3", "SYN9999 1", "TS.Ẩn", "2", "1", "101-A", "CL"],
+      ],
+    },
+    {
+      name: "TKB chính",
+      hiddenCols: [11],
+      hiddenRows: [3],
+      rows: [
+        [...hk1Headers, "SĐT giảng viên (ẩn)"],
+        ["1", "SYN3071E", "Môn mẫu", "3", "SYN3071E 1", "TS.Mẫu", "3", "3", "203-B", "CL", "SYNTHETIC-PHONE-000"],
+        ["2", "SYN8888", "Dòng ẩn", "3", "SYN8888 1", "TS.Ẩn", "4", "2", "102-B", "CL", "SYNTHETIC-PHONE-999"],
+      ],
+    },
+  ]);
+  const res = uetXlsxAdapter.parse(input(bytes));
+  assert.deepEqual(res.issues.filter((i) => i.severity === "error"), []);
+  assert.equal(res.artifact.status, "candidate");
+  assert.equal(res.coverage?.knownFormat, true);
+  assert.deepEqual(res.coverage?.infoColumns, []);
+  assert.deepEqual(res.sections.map((s) => s.id), ["SYN3071E 1"]);
+  assert.equal(res.sections[0]!.sessions[0]!.info, undefined);
+});
+
+test("SEC-M3-102: visible PII column headers are blocked with UNSUPPORTED_INPUT error and omitted from info", () => {
+  for (const piiHeader of ["SĐT giảng viên", "Số điện thoại", "Email GV", "Mã SV", "CCCD"]) {
+    const res = uetXlsxAdapter.parse(input(syntheticXlsx([{
+      name: "TKB",
+      rows: [
+        [...hk1Headers, piiHeader],
+        ["1", "SYN3071E", "Môn mẫu", "3", "SYN3071E 1", "TS.Mẫu", "3", "3", "203-B", "CL", "REDACTED-SYNTHETIC"],
+      ],
+    }])));
+    assert.ok(
+      res.issues.some((i) => i.code === "UNSUPPORTED_INPUT" && i.severity === "error" && i.rawValue === piiHeader),
+      `expected blocking UNSUPPORTED_INPUT for "${piiHeader}"`,
+    );
+    assert.equal(res.sections[0]!.sessions[0]!.info, undefined, piiHeader);
+  }
 });
 
 test("uet-xlsx rejects invalid period ranges and reports ambiguous headers", () => {

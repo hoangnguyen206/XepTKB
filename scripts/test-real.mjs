@@ -50,13 +50,18 @@ console.log(`courses ${result.courses.length} · sections ${result.sections.leng
 console.log("issues", JSON.stringify(byCode));
 // Registration issues may only carry safe row/field data; timetable values are public.
 for (const item of errors.slice(0, 20)) console.log(`  error ${item.code} row ${item.sourceRow ?? "-"} field ${item.field ?? "-"}${adapterId === "uet-xlsx" && item.rawValue ? ` raw ${JSON.stringify(item.rawValue)}` : ""}`);
+if (adapterId === "uet-xlsx") {
+  const unparsedNotes = [...new Set(result.issues.filter((item) => item.code === "UNPARSED_NOTE" && item.rawValue).map((item) => item.rawValue))];
+  if (unparsedNotes.length > 0) console.log(`  unparsed "tuần" notes (${unparsedNotes.length}): ${JSON.stringify(unparsedNotes.slice(0, 10))}`);
+}
 
 let unaccounted = 0;
 if (result.coverage) {
   const c = result.coverage;
   const skipped = Object.values(c.skippedRows).reduce((sum, n) => sum + n, 0);
   unaccounted = c.sectionRows - c.parsedRows - skipped - c.errorRows;
-  console.log(`sheet "${c.sheet}" header row ${c.headerRow} · format ${c.knownFormat ? "reviewed" : "NEW — held for review"}: ${c.columns.join(", ")}`);
+  const infoText = c.infoColumns?.length ? `; extra (info) columns: ${c.infoColumns.join(", ")}` : "";
+  console.log(`sheet "${c.sheet}" header row ${c.headerRow} · format ${c.knownFormat ? "reviewed" : "NEW — held for review"}: ${c.columns.join(", ")}${infoText}`);
   console.log(`rows with a section id ${c.sectionRows}: parsed ${c.parsedRows}, skipped ${JSON.stringify(c.skippedRows)}, errors ${c.errorRows}, unaccounted ${unaccounted}`);
 }
 if (errors.length > 0 || unaccounted !== 0 || result.sections.length === 0) process.exit(1);

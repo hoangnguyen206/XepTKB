@@ -63,3 +63,29 @@ test("a note without a week pattern is information only: default weeks, no warni
     assert.deepEqual(r.issues, [], note);
   }
 });
+
+test("REV-M3-101: partial or unreviewed 'tuần' notes never silently truncate to explicit weeks and emit UNPARSED_NOTE", () => {
+  const fullTerm = Array.from({ length: 15 }, (_, i) => i + 1);
+  for (const note of [
+    "Học tuần 1 đến tuần 8",
+    "Học tuần 1 đến 8",
+    "Học tuần 9 đến hết",
+    "Học từ tuần 3 đến tuần 10",
+    "Học từ tuần 3-10",
+    "Học các tuần 1-8",
+    "Tuần 1-8",
+    "Học tuần 1-5 (trừ tuần 3)",
+  ]) {
+    const r = parseNote(note, 15);
+    assert.deepEqual(r.weeks, fullTerm, note);
+    assert.equal(r.weekOrigin, "parser-default", note);
+    assert.ok(
+      r.issues.some((i) => i.code === "UNPARSED_NOTE" && i.severity === "warning" && i.rawValue === note),
+      `expected UNPARSED_NOTE warning for "${note}", got ${JSON.stringify(r.issues)}`,
+    );
+  }
+  const combined = parseNote("Học tuần 2-15 · Học 1 ca/15 tuần", 15);
+  assert.deepEqual(combined.weeks, fullTerm.slice(1));
+  assert.equal(combined.weekOrigin, "explicit");
+  assert.deepEqual(combined.issues, []);
+});
