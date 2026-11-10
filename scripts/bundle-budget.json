@@ -1,0 +1,10 @@
+{
+  "$comment": "PROVISIONAL (WP2, 2026-11-10): measured on m5-release-hardening before the WP1 lazy split (initial JS 140140 B gzip-9, CSS 3435 B) + 10 %, rounded up to 1 KiB; lazyChunkGzipMax mirrors totalJsGzipMax until a RegistrationImport chunk exists. Re-measure after WP1 merges, set requireLazyChunk to true and get Owner sign-off (OD-M5-4, DESIGN-M5-001 §5 item 5). Limits are gzip bytes; null disables a limit.",
+  "initialJsGzipMax": 154624,
+  "initialCssGzipMax": 4096,
+  "totalJsGzipMax": 154624,
+  "lazyChunkGzipMax": 154624,
+  "requireLazyChunk": false,
+  "requireLazyChunkPrefix": "RegistrationImport-",
+  "initialForbiddenMarkers": []
+}
