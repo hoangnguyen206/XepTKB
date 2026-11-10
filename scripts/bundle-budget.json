@@ -1,10 +1,10 @@
 {
-  "$comment": "PROVISIONAL (WP2, 2026-11-10): measured on m5-release-hardening before the WP1 lazy split (initial JS 140140 B gzip-9, CSS 3435 B) + 10 %, rounded up to 1 KiB; lazyChunkGzipMax mirrors totalJsGzipMax until a RegistrationImport chunk exists. Re-measure after WP1 merges, set requireLazyChunk to true and get Owner sign-off (OD-M5-4, DESIGN-M5-001 §5 item 5). Limits are gzip bytes; null disables a limit.",
-  "initialJsGzipMax": 154624,
-  "initialCssGzipMax": 4096,
-  "totalJsGzipMax": 154624,
-  "lazyChunkGzipMax": 154624,
-  "requireLazyChunk": false,
+  "$comment": "M5 G2 (2026-11-10): measured on m5-release-hardening after the WP1 lazy split (merge 7afd8e0): initial JS 108916 B gzip-9, initial CSS 3754 B, RegistrationImport chunk 38225 B, total JS 147141 B. Limits = measured + 10 %, rounded up to 1 KiB (DESIGN-M5-001 §5 item 5). Pre-M5 baseline at 0e849f1: initial JS 140140 B gzip-9. Pending Owner sign-off (OD-M5-4). Limits are gzip bytes; null disables a limit.",
+  "initialJsGzipMax": 119808,
+  "initialCssGzipMax": 5120,
+  "totalJsGzipMax": 162816,
+  "lazyChunkGzipMax": 43008,
+  "requireLazyChunk": true,
   "requireLazyChunkPrefix": "RegistrationImport-",
-  "initialForbiddenMarkers": []
+  "initialForbiddenMarkers": ["xmldom", "vnu-registration-html"]
 }
