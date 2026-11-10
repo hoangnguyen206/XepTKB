@@ -116,4 +116,8 @@ Mỗi spike trả `decision`, `evidence`, `known limits`, `follow-up ADR`; khôn
 | ADR-0007 | Static artifact + CLI admin (Supabase deferred post-MVP) | accepted per Q-003/Q-004 |
 | ADR-0008 | M1 deterministic parser dependencies + local registration provenance | ready; G1 acknowledgement pending |
 | ADR-0009 | M2 pure domain engine contract and schema migration `0.2.0` | ready; G1 acknowledgement pending |
-| ADR-0010 | M3 web app, artifact loader contract, local storage, service worker and export | ready; G1 acknowledgement pending; G3 open items |
+| ADR-0010 | M3 web app, artifact loader contract, local storage, service worker and export | approved (G1 Owner 2026-11-06T05:50Z) |
+| ADR-0011 | Timetable layouts that change every term: one adapter, import profile, format fingerprint | approved (G1 Owner 2026-11-06T05:50Z) |
+| ADR-0012 | Dataset publish pipeline: CLI, `data/published` in repo, deployed with the site | approved (G1 Owner 2026-11-06T05:50Z) |
+| ADR-0013 | M4 registration merge UI, override resolution, browser privacy boundary | g1-approved (Owner 2026-11-06T07:30Z) |
+| ADR-0014 | M5 release observability without runtime telemetry; report-issue channel without egress | proposed; G1 pending (M5) |
