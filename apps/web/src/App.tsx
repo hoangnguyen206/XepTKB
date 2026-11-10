@@ -1,12 +1,17 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createPlan } from "@ky-nay/domain";
+import { formatDate } from "@ky-nay/export";
+import { readBuildInfo } from "./app/build-info.js";
 import { useAppController, type Ready } from "./app/controller.js";
 import { useOnline, usePendingUpdate } from "./app/sw-client.js";
+import { AboutPanel } from "./components/AboutPanel.js";
 import { Footer, Header, ProvenancePanel } from "./components/Chrome.js";
 import { Notice } from "./components/common.js";
 import { Onboarding, type Week1Choice } from "./components/Onboarding.js";
+import { ReportIssueProvider } from "./components/ReportIssue.js";
 import { Workspace } from "./components/Workspace.js";
 import type { ArtifactError } from "./data/contract.js";
+import { ageText, datasetFreshness } from "./model/freshness.js";
 import { SYNTHETIC_NOTE, formatInstant, isSynthetic, statusLabel } from "./model/labels.js";
 
 const ERROR_TEXT: Record<ArtifactError["code"], string> = {
@@ -21,21 +26,37 @@ const ERROR_TEXT: Record<ArtifactError["code"], string> = {
   INSECURE_CONTEXT: "Trình duyệt không kiểm tra được dữ liệu vì trang không được mở qua HTTPS. Hãy mở bằng địa chỉ https://.",
 };
 
-function DatasetBanners(props: { ready: Ready; online: boolean }) {
-  const { entry } = props.ready.dataset;
+/** `expiresAt` is a UTC instant; the date shown is the Vietnam calendar day. */
+function expiryDate(expiresAt: string): string {
+  const vn = new Date(Date.parse(expiresAt) + 7 * 3_600_000).toISOString().slice(0, 10);
+  return formatDate(vn);
+}
+
+export function DatasetBanners(props: { ready: Ready; online: boolean; now?: Date }) {
+  const { entry, cachedAt } = props.ready.dataset;
   const cached = props.ready.cached;
+  // M5-D: computed from the entry already in memory — no network call.
+  const freshness = datasetFreshness(entry, cachedAt, props.now ?? new Date());
+  const age = `${ageText(freshness)}.`;
   return (
     <>
+      {freshness.expired && freshness.expiresAt ? (
+        <div role="status">
+          <Notice tone="warning" title="Dữ liệu đã hết hiệu lực">
+            Bộ dữ liệu {entry.datasetVersion} đã hết hiệu lực từ {expiryDate(freshness.expiresAt)}. Lịch có thể đã thay đổi — hãy đối chiếu với cổng đăng ký của trường.
+          </Notice>
+        </div>
+      ) : null}
       {isSynthetic(entry) ? <Notice tone="warning" title="Dữ liệu mẫu">{SYNTHETIC_NOTE}</Notice> : null}
       {/* ADR-0010 §2 rule 4: every unpublished dataset says so, synthetic ones included (REV-M3-009d). */}
       {entry.status !== "published" ? (
         <Notice tone="warning" title="Dữ liệu chưa được công bố">Bộ dữ liệu này đang ở trạng thái “{statusLabel(entry.status)}”, chỉ dùng để thử nghiệm.</Notice>
       ) : null}
       {!props.online || cached?.reason === "offline" ? (
-        <Notice tone="info" title="Đang ngoại tuyến">Bạn vẫn xem và xuất được phương án. Dữ liệu đang dùng được lưu lúc {formatInstant(props.ready.dataset.cachedAt)}.</Notice>
+        <Notice tone="info" title="Đang ngoại tuyến">Bạn vẫn xem và xuất được phương án. {age} Bản đang dùng được lưu trên máy lúc {formatInstant(cachedAt)}.</Notice>
       ) : null}
       {cached?.reason === "invalid" ? (
-        <Notice tone="error" title="Không cập nhật được dữ liệu">{ERROR_TEXT[cached.error.code]} Ứng dụng tiếp tục dùng bản đã lưu lúc {formatInstant(props.ready.dataset.cachedAt)}.</Notice>
+        <Notice tone="error" title="Không cập nhật được dữ liệu">{ERROR_TEXT[cached.error.code]} Ứng dụng tiếp tục dùng bản đã lưu lúc {formatInstant(cachedAt)}. {age}</Notice>
       ) : null}
     </>
   );
@@ -44,6 +65,9 @@ function DatasetBanners(props: { ready: Ready; online: boolean }) {
 export function App() {
   const controller = useAppController();
   const [provenanceOpen, setProvenanceOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const aboutButtonRef = useRef<HTMLButtonElement>(null);
+  const build = useMemo(() => readBuildInfo(), []);
   const pendingUpdate = usePendingUpdate();
   const online = useOnline();
   const state = controller.state;
@@ -70,8 +94,13 @@ export function App() {
     }, now));
   };
 
+  const closeAbout = () => {
+    setAboutOpen(false);
+    aboutButtonRef.current?.focus();
+  };
+
   return (
-    <>
+    <ReportIssueProvider build={build} {...(ready ? { dataset: ready.dataset.entry } : {})}>
       <a href="#main" className="skip-link">Bỏ qua tới nội dung chính</a>
       <Header {...(ready ? { entry: ready.dataset.entry } : {})} provenanceOpen={provenanceOpen} onToggleProvenance={() => setProvenanceOpen((open) => !open)} />
       <main id="main" tabIndex={-1}>
@@ -84,6 +113,7 @@ export function App() {
           <Notice key={notice.text} tone={notice.kind} action={<button type="button" className="button secondary small" onClick={() => controller.dismissNotice(index)}>Đóng</button>}>{notice.text}</Notice>
         ))}
         {ready ? <DatasetBanners ready={ready} online={online} /> : null}
+        {aboutOpen ? <AboutPanel build={build} {...(ready ? { entry: ready.dataset.entry } : {})} onClose={closeAbout} /> : null}
         {ready && provenanceOpen ? <ProvenancePanel entry={ready.dataset.entry} cachedAt={ready.dataset.cachedAt} offline={!online || ready.cached?.reason === "offline"} /> : null}
         {state.status === "loading" ? <p className="loading" role="status">Đang tải dữ liệu thời khóa biểu…</p> : null}
         {state.status === "unavailable" ? (
@@ -125,7 +155,15 @@ export function App() {
           </div>
         ) : null}
       </main>
-      <Footer {...(controller.db() ? { db: controller.db()! } : {})} wipeGeneration={controller.wipeGeneration} onWipe={controller.wipe} />
-    </>
+      <Footer
+        ref={aboutButtonRef}
+        {...(controller.db() ? { db: controller.db()! } : {})}
+        wipeGeneration={controller.wipeGeneration}
+        onWipe={controller.wipe}
+        build={build}
+        aboutOpen={aboutOpen}
+        onToggleAbout={() => (aboutOpen ? closeAbout() : setAboutOpen(true))}
+      />
+    </ReportIssueProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import type { Plan } from "@ky-nay/domain";
 import { buildGridLayout, conflictKeys, dayLabel, formatDate, formatPeriods, formatWeeks, kindText, nonFixedSessions, periodTimes } from "@ky-nay/export";
 import type { AppCatalog } from "../model/catalog.js";
@@ -11,7 +11,8 @@ import { Notice, TabPanel, Tabs, useMediaQuery, WeekPicker, type WeekChoice } fr
 import { ExportPanel } from "./ExportPanel.js";
 import type { Week1Choice } from "./Onboarding.js";
 import { PlanSummary, StalePlanNotice } from "./PlanSummary.js";
-import { RegistrationImportPanel } from "./RegistrationImport.js";
+import { LocalErrorBoundary } from "./ErrorBoundary.js";
+import { createLazyRegistrationPanel, prefetchRegistrationImport, resetRegistrationImport } from "./registration-lazy.js";
 import { DayList, NonFixedList, WeekGrid } from "./Schedule.js";
 import { SearchPanel } from "./SearchPanel.js";
 import { creditsLine } from "../export/files.js";
@@ -82,6 +83,12 @@ export function Workspace(props: {
   const [tab, setTab] = useState<string>("search");
   const [pickError, setPickError] = useState<string | undefined>(undefined);
   const [importOpen, setImportOpen] = useState(false);
+  // M5-F: the registration import chunk is loaded lazily; a retry after a failed load needs a fresh lazy component.
+  const [RegistrationImportPanel, setRegistrationImportPanel] = useState(() => createLazyRegistrationPanel());
+  useEffect(() => {
+    // Prefetch right after mount (DESIGN-M5-001 §5): opening the panel must not issue a request (AC-M4-02 / AC-04).
+    prefetchRegistrationImport();
+  }, []);
   const activeTab = desktop && tab === "search" ? "week" : tab;
   const tabs = [
     ...(desktop ? [] : [{ id: "search", label: "Tìm môn" }]),
@@ -169,16 +176,30 @@ export function Workspace(props: {
           </p>
         </div>
         {importOpen ? (
-          <RegistrationImportPanel
-            catalog={catalog}
-            draftPlan={draftPlan}
-            {...(finalPlan ? { existingFinalPlan: finalPlan } : {})}
-            onConfirm={(nextFinalPlan, notes) => {
-              setImportOpen(false);
-              props.onConfirmRegistration(nextFinalPlan, notes);
+          <LocalErrorBoundary
+            onRetry={() => {
+              resetRegistrationImport();
+              setRegistrationImportPanel(() => createLazyRegistrationPanel());
             }}
-            onClose={() => setImportOpen(false)}
-          />
+            fallback={(retry) => (
+              <Notice tone="error" title="Chưa tải được phần nhập ĐKMH" action={<button type="button" className="button secondary small" onClick={retry}>Thử lại</button>}>
+                Hãy kết nối mạng rồi thử lại. Phương án của bạn không bị ảnh hưởng.
+              </Notice>
+            )}
+          >
+            <Suspense fallback={<p className="loading" role="status">Đang mở phần nhập kết quả ĐKMH…</p>}>
+              <RegistrationImportPanel
+                catalog={catalog}
+                draftPlan={draftPlan}
+                {...(finalPlan ? { existingFinalPlan: finalPlan } : {})}
+                onConfirm={(nextFinalPlan, notes) => {
+                  setImportOpen(false);
+                  props.onConfirmRegistration(nextFinalPlan, notes);
+                }}
+                onClose={() => setImportOpen(false)}
+              />
+            </Suspense>
+          </LocalErrorBoundary>
         ) : null}
         {view.stale ? <StalePlanNotice plan={plan} catalog={catalog} onRebase={() => props.onPlanChange(rebasePlan(plan, catalog, now()))} /> : null}
         {view.week1Issue ? <Notice tone="warning">Chưa xác định được tuần 1 cho phương án này. Hãy mở Phương án → Thiết lập tuần 1.</Notice> : null}
