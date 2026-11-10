@@ -82,3 +82,45 @@ test("lintRepo scans .js/.jsx/.cjs files and allows legitimate loader/registrati
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test("build-time constants are confined to app/build-info.ts, build-env.d.ts and tests (M5-A/M5-B, ADR-0014)", () => {
+  const message = /build-time constant outside apps\/web\/src\/app\/build-info\.ts/;
+  const reader =
+    'export const build = typeof __KY_NAY_BUILD__ === "undefined" ? undefined : __KY_NAY_BUILD__;\n' +
+    'export const url = typeof __KY_NAY_REPORT_URL__ === "undefined" ? null : __KY_NAY_REPORT_URL__;\n';
+  const declaration = "declare const __KY_NAY_BUILD__: { version: string };\ndeclare const __KY_NAY_REPORT_URL__: string | null;\n";
+
+  // Allowed: the single reader, the ambient declaration and tests.
+  assert.deepEqual(lintSource(reader, "apps/web/src/app/build-info.ts", "web"), []);
+  assert.deepEqual(lintSource(declaration, "apps/web/src/build-env.d.ts", "web"), []);
+  assert.deepEqual(lintSource(reader, "apps/web/src/app/build-info.test.ts", "web"), []);
+
+  // Rejected anywhere else in apps/web/src, including obfuscated property access.
+  const rejected = [
+    { code: "export const url = __KY_NAY_REPORT_URL__;", file: "apps/web/src/components/ReportIssue.tsx" },
+    { code: "const b = __KY_NAY_BUILD__; export default b;", file: "apps/web/src/App.tsx" },
+    { code: 'export const b = globalThis["__KY_NAY_" + "BUILD__"];', file: "apps/web/src/model/report-issue.ts" },
+    { code: "export const b = window.__KY_NAY_REPORT_URL__;", file: "apps/web/src/main.tsx" },
+    // A look-alike file name outside src/app is not the reader.
+    { code: "export const b = __KY_NAY_BUILD__;", file: "apps/web/src/components/build-info.ts" },
+  ];
+  for (const sample of rejected) {
+    const errors = lintSource(sample.code, sample.file, "web");
+    assert.ok(errors.some((err) => message.test(err)), `Expected ${sample.code} in ${sample.file} to be rejected, got: ${JSON.stringify(errors)}`);
+  }
+
+  // lintRepo applies the same rule with absolute paths.
+  const tmp = mkdtempSync(join(tmpdir(), "ky-nay-lint-build-"));
+  try {
+    mkdirSync(join(tmp, "apps", "web", "src", "app"), { recursive: true });
+    writeFileSync(join(tmp, "apps", "web", "src", "app", "build-info.ts"), reader);
+    writeFileSync(join(tmp, "apps", "web", "src", "build-env.d.ts"), declaration);
+    assert.deepEqual(lintRepo(tmp), []);
+    writeFileSync(join(tmp, "apps", "web", "src", "app", "Footer.tsx"), "export const v = __KY_NAY_BUILD__.version;\n");
+    const errors = lintRepo(tmp);
+    assert.equal(errors.length, 1);
+    assert.match(errors[0], /Footer\.tsx:1: build-time constant outside/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
