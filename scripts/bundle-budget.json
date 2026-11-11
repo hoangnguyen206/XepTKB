@@ -1,5 +1,5 @@
 {
-  "$comment": "M5 G2 (2026-11-10): measured on m5-release-hardening after the WP1 lazy split (merge 7afd8e0): initial JS 108916 B gzip-9, initial CSS 3754 B, RegistrationImport chunk 38225 B, total JS 147141 B. Limits = measured + 10 %, rounded up to 1 KiB (DESIGN-M5-001 §5 item 5). Pre-M5 baseline at 0e849f1: initial JS 140140 B gzip-9. Pending Owner sign-off (OD-M5-4). Limits are gzip bytes; null disables a limit.",
+  "$comment": "M5 G2 (2026-11-10): measured on m5-release-hardening after the WP1 lazy split (merge 7afd8e0): initial JS 108916 B gzip-9, initial CSS 3754 B, RegistrationImport chunk 38225 B, total JS 147141 B. Limits = measured + 10 %, rounded up to 1 KiB (DESIGN-M5-001 §5 item 5). Pre-M5 baseline at 0e849f1: initial JS 140140 B gzip-9. Approved by Owner in chat on 2026-11-11 (OD-M5-4). Limits are gzip bytes; null disables a limit.",
   "initialJsGzipMax": 119808,
   "initialCssGzipMax": 5120,
   "totalJsGzipMax": 162816,
