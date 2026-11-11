@@ -2,7 +2,7 @@
 
 > **Status:** draft / proposed  
 > **Owner:** Product Spec  
-> **Last reviewed:** 2026-10-25  
+> **Last reviewed:** 2026-11-11  
 > **Related docs:** [Implementation plan](IMPLEMENTATION_PLAN.md), [Domain model](DOMAIN_MODEL.md), [Parser spec](PARSER_SPEC.md), [QA plan](QA_TEST_PLAN.md)
 
 ## 1. Tóm tắt
@@ -184,6 +184,8 @@ Chỉ thu event tổng hợp, **không GA/tracker bên thứ ba**: dùng aggrega
 
 Mọi báo sai dữ liệu phải kèm dataset/version/section identifier không PII; admin review trước khi publish bản sửa.
 
+**Bản phát hành đầu (M5, D-M5-2 — Owner chốt trong chat 2026-11-10; [ADR-0014](adr/ADR-0014-m5-release-observability-without-telemetry.md) `proposed`, chờ Owner ký G0/G1 M5):** chưa bật bất kỳ runtime telemetry nào — không counter, không event, không gửi lỗi client lên server, không script bên thứ ba. Danh sách event ở trên giữ làm định hướng **P1**, chỉ bật sau legal review và kèm privacy notice + nút tắt (Q-008 vẫn là ràng buộc khi bật). Báo sai dữ liệu trong M5 là thao tác do người dùng chủ động: app tạo văn bản không PII (phiên bản app, dataset/version, mã lớp, trường bị sai, ghi chú người dùng tự gõ) để **sao chép**, và chỉ hiện link khi build cấu hình `VITE_REPORT_ISSUE_URL` (https, app không gắn thêm dữ liệu vào URL) — không có `report_data_issue` event ([SPEC-M5-001](evidence/M5-SPEC.md) M5-B, AC-M5-02…05). Giám sát vận hành dùng trạng thái build/deploy của Cloudflare Pages, script smoke thủ công và báo lỗi của người dùng ([Operations §5](OPERATIONS.md)).
+
 ## 10. Rủi ro và giả định
 
 | Rủi ro | Tác động | Giảm thiểu |
@@ -197,6 +199,7 @@ Mọi báo sai dữ liệu phải kèm dataset/version/section identifier không
 
 ## 11. Open questions
 
-- Chốt tên/domain và disclaimer wording sau rà soát pháp lý.
-- Xác nhận browser matrix và analytics consent đã được ghi ở §8/§9; mọi runtime analytics vẫn cần privacy notice, opt-out và legal review trước khi bật.
+- Chốt tên/domain và disclaimer wording sau rà soát pháp lý (domain production = OD-M5-2; rà soát câu chữ disclaimer/quyền riêng tư/trang Giới thiệu của M5 = OD-M5-3, [SPEC-M5-001 §4](evidence/M5-SPEC.md)).
+- Đích của link báo lỗi (OD-M5-1): không link (chỉ sao chép, mặc định), GitHub issues, hay form — phải là https và không nhận dữ liệu điền sẵn.
+- Xác nhận browser matrix và analytics consent đã được ghi ở §8/§9; mọi runtime analytics vẫn cần privacy notice, opt-out và legal review trước khi bật. Release đầu không có telemetry (D-M5-2); việc bật counter là quyết định P1 riêng.
 - Không có PDF generator trong P0; browser “In / Lưu PDF” qua print CSS A4 ngang là phần đã chốt ở FR-11.

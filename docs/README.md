@@ -147,7 +147,7 @@ Nhánh `m5-release-hardening` (tách từ `main` @ `0e849f1`, G2/G3 target commi
 - [ADR-0014 — observability không telemetry, kênh báo lỗi không egress](adr/ADR-0014-m5-release-observability-without-telemetry.md) — `proposed`, chờ G1.
 - [M5 evidence envelope](evidence/M5-EVIDENCE-ENVELOPE.md) (`EVID-M5-001`, G2 + G3 tại `5f735fc`) — `needs_review`; ghi nhận G2 (`node:test` `142/142`, `vitest` `105/105`, `fixtures` `6/6`, `e2e` `25/25`, `secret-scan` `0` findings, `npm audit` `0` vulns, initial JS giảm từ `140,140 B` xuống `108,918 B` gzip-9) và kết quả tổng hợp G3a/G3b/G3c.
 - **G3 độc lập trên `5f735fc` (11/11/2026):**
-  - [M5 G3a QA report](evidence/M5-G3a-QA-REPORT.md) (`TEST-M5-001`, G3a) — **`qa-pass`** (`19/19` `AC-M5-01…19` PASS; tái kiểm định `10/10` `AC-M4-01…08`, `AC-04`, `AC-05` trên code thật với `95/95` định danh grep được; `F-M5-001` đã được giải quyết ở G3a).
+  - [M5 G3a QA report](evidence/M5-G3a-QA-REPORT.md) (`TEST-M5-001`, G3a) — **`qa-pass`** (`19/19` `AC-M5-01…19` PASS; tái kiểm định `10/10` `AC-M4-01…08`, `AC-04`, `AC-05` trên code thật; bản R1 tự nhận đủ định danh nhưng còn 6 trích dẫn sai, đã đính chính ở R1.1 theo `F-M5-002`; `F-M5-001` được giải quyết ở G3a từ R1.1).
   - [M5 G3b security review](evidence/M5-G3b-SECURITY-REVIEW.md) (`SEC-REVIEW-M5-001`, G1 + G3b) — **`security-design-pass` / `security-pass-with-exception`** (`0` S0/S1/S2/S3 ở mức code/CI; kèm ngoại lệ vận hành `RA-M5-001` chờ Owner ký và `SEC-M3-007` kiểm tại `G4a`).
   - [M5 G3c independent review](evidence/M5-G3c-INDEPENDENT-REVIEW.md) (`REVIEW-M5-001`, G3c) — **`review-pass-with-follow-up`** (`0` S0/S1/S2, `1` S3 non-blocking `REV-M5-001` đồng bộ tài liệu hậu G0/G1; tái kiểm định toàn bộ M4 với `100%` định danh thật, giải quyết phần G3c của `F-M5-001`).
 - [M5 release checklist](evidence/M5-RELEASE-CHECKLIST.md) (`CHECKLIST-M5-001`) — `draft`; G4b (HK I preview tùy chọn, HK II), G4a, G5, bước chỉ Owner làm.
@@ -155,6 +155,8 @@ Nhánh `m5-release-hardening` (tách từ `main` @ `0e849f1`, G2/G3 target commi
 - [Hướng dẫn Owner kiểm thử HK I](evidence/M5-OWNER-HK1-VALIDATION-GUIDE.md) (`GUIDE-M5-HK1-001`) — `draft`; nhánh `m5-hk1-validation`, dọn dẹp để `main` giữ `datasets: []`.
 - [Operations](OPERATIONS.md) và [CHANGELOG](../CHANGELOG.md) — cập nhật cho M5 (M5-I), chờ G0/G1.
 - **Finding `F-M5-001`** (S2 process/evidence): các định danh không khớp code trong `M4-G3a-QA-REPORT.md` và `M4-G3c-INDEPENDENT-REVIEW.md` đã được tái kiểm định và đính chính hoàn toàn trên code thật tại `5f735fc` trong [TEST-M5-001 §4](evidence/M5-G3a-QA-REPORT.md) và [REVIEW-M5-001 §6](evidence/M5-G3c-INDEPENDENT-REVIEW.md) (`verified-resolved` ở G3a/G3c, chờ Owner xác nhận đóng).
+- **Finding `F-M5-002`** (S2 process/evidence, 2026-11-11): bản R1 của `TEST-M5-001` dẫn một số đường dẫn test/định danh không tồn tại; đã đính chính ở R1.1 ([TEST-M5-001 §10](evidence/M5-G3a-QA-REPORT.md)) và chạy lại đúng các test được dẫn (`verified-fixed`, chờ Owner ký G3).
+- **`REV-M5-001`** (S3 docs sync): đã đồng bộ [PRD §9/§11](PRD.md) và [Implementation plan](IMPLEMENTATION_PLAN.md) (§2 hàng M5 + M5 checkpoint, Q-008/Q-011, thêm Q-014 ghi D-M5-1…3) ngày 2026-11-11; câu chữ trạng thái trước G2 đã sửa trong commit hồ sơ G3.
 
 ## Cách dùng
 
