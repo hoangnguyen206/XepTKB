@@ -156,6 +156,7 @@ Nhánh `m5-release-hardening` (tách từ `main` @ `0e849f1`, G2/G3 target commi
 - [Operations](OPERATIONS.md) và [CHANGELOG](../CHANGELOG.md) — cập nhật cho M5 (M5-I), chờ G0/G1.
 - **Finding `F-M5-001`** (S2 process/evidence): các định danh không khớp code trong `M4-G3a-QA-REPORT.md` và `M4-G3c-INDEPENDENT-REVIEW.md` đã được tái kiểm định và đính chính hoàn toàn trên code thật tại `5f735fc` trong [TEST-M5-001 §4](evidence/M5-G3a-QA-REPORT.md) và [REVIEW-M5-001 §6](evidence/M5-G3c-INDEPENDENT-REVIEW.md) (`verified-resolved` ở G3a/G3c, chờ Owner xác nhận đóng).
 - **Finding `F-M5-002`** (S2 process/evidence, 2026-11-11): bản R1 của `TEST-M5-001` dẫn một số đường dẫn test/định danh không tồn tại; đã đính chính ở R1.1 ([TEST-M5-001 §10](evidence/M5-G3a-QA-REPORT.md)) và chạy lại đúng các test được dẫn (`verified-fixed`, chờ Owner ký G3).
+- **Việc tồn đọng M5 (2026-11-11):** danh sách B-01…B-09 (ký gate, domain, Google Form, CI, thử HK I, HK II, G4a) ở [EVID-M5-001 — Việc tồn đọng](evidence/M5-EVIDENCE-ENVELOPE.md).
 - **`REV-M5-001`** (S3 docs sync): đã đồng bộ [PRD §9/§11](PRD.md) và [Implementation plan](IMPLEMENTATION_PLAN.md) (§2 hàng M5 + M5 checkpoint, Q-008/Q-011, thêm Q-014 ghi D-M5-1…3) ngày 2026-11-11; câu chữ trạng thái trước G2 đã sửa trong commit hồ sơ G3.
 
 ## Cách dùng

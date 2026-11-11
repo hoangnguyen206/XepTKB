@@ -150,3 +150,38 @@
   2. **Follow-up `REV-M5-001` (`S3`, Product + Tech Lead):** Ngay sau khi Owner ký `G0`/`G1`, cập nhật đồng bộ `docs/PRD.md` (§§9, 11) và `docs/IMPLEMENTATION_PLAN.md` (§2 hàng M5, §10 `Q-008`, `Q-011`).
   3. **Kiểm thử thủ công của Owner trước `G4a` (`CHECKLIST-M5-001` P-10..P-13):** Chạy thử bản M5 với file TKB HK I thật trên nhánh preview riêng theo [`GUIDE-M5-HK1-001`](M5-OWNER-HK1-VALIDATION-GUIDE.md) và kiểm trên thiết bị thật Tier 1/Tier 2 + trình đọc màn hình + nhìn trực quan file xuất.
 - **Next owner action:** Owner xem xét kết quả `EVID-M5-001` cùng 3 báo cáo [`M5-G3a-QA-REPORT.md`](M5-G3a-QA-REPORT.md), [`M5-G3b-SECURITY-REVIEW.md`](M5-G3b-SECURITY-REVIEW.md), [`M5-G3c-INDEPENDENT-REVIEW.md`](M5-G3c-INDEPENDENT-REVIEW.md), trả lời 6 quyết định mở (`OD-M5-1..5`, `RA-M5-001`) và ký duyệt `G0`/`G1`/`G3`.
+
+## Việc tồn đọng (cập nhật 2026-11-11, cuối phiên)
+
+Trạng thái: nhánh `m5-release-hardening` @ `45fe0e7` đã push; [PR #3](https://github.com/hoangnguyen206/XepTKB/pull/3) để **draft** tới khi Owner ký; Auto-fix CI đang bật cho PR.
+
+### Owner phải quyết / ký
+
+| # | Việc | Trạng thái | Ghi chú |
+| --- | --- | --- | --- |
+| B-01 | Ký `G0` ([SPEC-M5-001](M5-SPEC.md)), `G1` ([DESIGN-M5-001](M5-DESIGN-HANDOFF.md) + [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md)), `G3` (3 báo cáo G3a/G3b/G3c, đóng `F-M5-001`, `F-M5-002`, `REV-M5-001`) và `RA-M5-001` | **open** | Owner trả lời "duyệt" → ghi actor + UTC timestamp vào từng file, rồi bỏ draft PR #3 |
+| B-02 | `OD-M5-2` — domain production | **open** | Phương án: `*.pages.dev` miễn phí (có thể tạo project Pages mới để có subdomain gọn); `.id.vn` miễn phí cho 18–23 tuổi nhưng đợt mới dự kiến từ 01/01/2027 và đứng tên cá nhân; không dùng chữ VNU/UET. Cần trước `SEC-M3-007` ở G4a |
+| B-03 | Tag đầu tiên (`v0.1.0` đề xuất) và cửa sổ theo dõi sau release (72 h đề xuất) | **open** | [Operations §4.3/§5](../OPERATIONS.md) |
+| B-04 | Người vận hành thứ hai (hết hạn `RA-M5-001`: trước G4a public đầu tiên hoặc 31/01/2027) | **open** | D-M5-3 |
+
+Đã chốt trong chat 2026-11-11: `OD-M5-1` (hướng Google Form), `OD-M5-3` (chấp nhận câu chữ AI soạn), `OD-M5-4` (ngưỡng bundle), `OD-M5-5` (prefetch khi `Workspace` mount) — xem [SPEC-M5-001 §4](M5-SPEC.md).
+
+### Việc kỹ thuật chờ đầu vào
+
+| # | Việc | Phụ thuộc | Cách làm |
+| --- | --- | --- | --- |
+| B-05 | Link báo lỗi tới Google Form | Owner tạo form (tắt thu email, không bắt đăng nhập) | Đặt `VITE_REPORT_ISSUE_URL` (https) cho Preview + Production trên Cloudflare Pages; thêm câu "nội dung gửi qua form do Google lưu" vào `apps/web/src/model/about-content.ts`; chạy lại G3a phần M5-B/M5-C |
+| B-06 | CI GitHub Actions xanh trên PR #3 và ghi run ID vào envelope này | CI đang chạy | Run `43048214214` (`47836a3`): job `check` **pass**, job `e2e` **fail ở bước "Install Playwright Chromium"** do runner không phân giải DNS (`Temporary failure resolving 'azure.archive.ubuntu.com'`) — lỗi hạ tầng, không phải code. Run `43049268789` (`10f9976`) và `43049921103` (`45fe0e7`) đang chạy lúc ghi. Nếu lỗi hạ tầng lặp lại: `gh run rerun <id> --failed` |
+| B-07 | Owner thử TKB HK I trên preview + kiểm thủ công thiết bị/screen reader | Owner | [GUIDE-M5-HK1-001](M5-OWNER-HK1-VALIDATION-GUIDE.md), [CHECKLIST-M5-001](M5-RELEASE-CHECKLIST.md) P-10…P-13 |
+| B-08 | G4b dataset TKB HK II 2026–2027 | Trường công bố file + lịch tuần 1 theo khóa | [Runbook §12](../DATA_INGESTION_RUNBOOK.md), `--accept-single-reviewer` theo `RA-M5-001` |
+| B-09 | G4a deploy production | B-01, B-02, B-06, B-07 | Bật production deploy trên Pages, `smoke-deploy --production`, `curl -I` (`SEC-M3-007`), diễn tập rollback app trên Pages, tag, theo dõi; điền [RELEASE-M5-001](M5-RELEASE-REPORT.md) |
+
+### Bằng chứng ghi thêm trong phiên 2026-11-11
+
+- `node scripts/smoke-deploy.mjs https://m5-release-hardening.xeptkb-63v.pages.dev/ --expect-commit 47836a3` → **PASS 15/15** (header CSP/XFO/nosniff/Referrer-Policy/HSTS/Permissions-Policy, meta `ky-nay-build` = `0.0.0+47836a3`, `sw.js` và `data/manifest.json` no-cache, 4 icon PNG, `datasets=0`). Xác nhận subdomain Pages của project là `xeptkb-63v`.
+
+### Hoãn sang P1 (không chặn M5)
+
+- Counter/telemetry cookieless (Q-008) sau legal review — [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md).
+- Tab quản lý phản hồi trong trang admin — cần backend lưu dữ liệu người dùng, ngoài [ADR-0007](../adr/ADR-0007-static-artifact-cli-admin.md).
+- Dọn các worktree `.claude/worktrees/agent-*` cũ trên máy local; xác nhận nốt G1 của M0–M2 đang ghi "pending" trong [docs/README.md](../README.md).
