@@ -53,7 +53,7 @@ CI target:
 7. build/PWA manifest/service-worker check;
 8. bundle/performance budget report.
 
-Trạng thái (2026-11-10): workflow `.github/workflows/m0-foundation.yml` chạy trên `push` vào `main` và mọi `pull_request` — job `check` (`npm run check` = lint + typecheck + test + fixtures + `dataset check`, kiểm immutability manifest, `npm run verify:bundle`) và job `e2e`. Mục 6 và 8 (secret scan, `npm audit --omit=dev --audit-level=high`, bundle budget) cùng sửa base immutability khi `push` thuộc M5-H, đang triển khai (WP2, [DESIGN-M5-001 §6](evidence/M5-DESIGN-HANDOFF.md)); chưa được coi là có cho tới khi `EVID-M5-001` ghi run CI pass. Push lên một nhánh không có PR **không** chạy CI; Cloudflare vẫn build preview.
+Trạng thái (2026-11-11, tại `5f735fc`): workflow `.github/workflows/m0-foundation.yml` chạy trên `push` vào `main` và mọi `pull_request` — job `check` (`node scripts/secret-scan.mjs`, `npm audit --omit=dev --audit-level=high`, `npm run check` = lint + typecheck + test + fixtures + `dataset check`, kiểm immutability manifest theo `scripts/ci-immutability-base.mjs`, `npm run verify:bundle` = build + `verify-production-bundle.mjs` + `check-bundle-budget.mjs`) và job `e2e`. Đã kiểm chứng local ở G2/G3 trong [EVID-M5-001](evidence/M5-EVIDENCE-ENVELOPE.md); run ID trên GitHub Actions sẽ được ghi khi push/mở PR. Push lên một nhánh không có PR **không** chạy CI; Cloudflare vẫn build preview.
 
 CI không tải file trường/private fixture từ nguồn ngoài trong lúc chạy nếu không có explicit approved store. Failure phải fail closed, không tự bỏ qua test. `scripts/smoke-deploy.mjs` **không bao giờ** chạy trong CI đối với production (ADR-0014 §2).
 
@@ -198,11 +198,11 @@ S0/S1: contain/rollback ngay, gọi Security + Release Manager, không chờ spr
 - kiểm tra quyền truy cập cũ đã revoke;
 - lịch review mỗi học kỳ và người chịu trách nhiệm nạp dữ liệu đã chỉ định.
 
-## 10. Trạng thái hiện tại (2026-11-10)
+## 10. Trạng thái hiện tại (2026-11-11)
 
-- **Code:** M0–M4 đã merge vào `main` (`c2e93b9`, docs sync `0e849f1`); M5 đang triển khai trên nhánh `m5-release-hardening` (spec/design ở `bcce6c6`, G0/G1 chờ Owner).
+- **Code:** M0–M4 đã merge vào `main` (`c2e93b9`, docs sync `0e849f1`); M5 đã hoàn tất G2 và 3 báo cáo G3 độc lập trên nhánh `m5-release-hardening` tại `5f735fc` ([EVID-M5-001](evidence/M5-EVIDENCE-ENVELOPE.md); G0/G1/G3 chờ Owner ký duyệt).
 - **Hosting:** Cloudflare Pages project đã tạo, preview deployments hoạt động cho nhánh khác `main`; **chưa có production deployment công khai**, automatic production deployments đang tắt; chưa có custom domain (D-001/OD-M5-2).
 - **Dữ liệu:** `data/published/manifest.json` trên `main` có `datasets: []`; pipeline đã diễn tập ([DRILL-M3-G4b-001](evidence/M3-G4b-DRILL-REPORT.md)); chưa có TKB HK II 2026–2027 thật.
 - **Release:** chưa có tag, chưa có G4a/G4b/G5 nào được quyết định; [release report M5](evidence/M5-RELEASE-REPORT.md) đang `draft`.
 - **Monitoring:** chỉ theo §5 (không telemetry). Provider/project ID nội bộ và link dashboard không công khai giữ ngoài repo (secret-safe location của Owner), không ghi vào tài liệu này.
-- **Chưa có:** smoke script (WP2, đang triển khai), lần diễn tập rollback app trên Pages (làm ở G4a đầu tiên), người vận hành thứ hai.
+- **Chưa có:** lần diễn tập rollback app trên Pages (làm ở G4a đầu tiên), người vận hành thứ hai (`RA-M5-001`).

@@ -24,11 +24,11 @@
 | --- | --- | --- | --- | --- |
 | P-01 | `SPEC-M5-001` `g0-approved` (gồm OD-M5-1..5 đã quyết hoặc ghi rõ hoãn) | actor + UTC timestamp trong spec | [Owner] | pending |
 | P-02 | `DESIGN-M5-001` + ADR-0014 `g1-approved`, gồm OD-M5-5 (lazy-load vs AC-M4-02) | actor + UTC timestamp | [Owner] | pending |
-| P-03 | G2: `EVID-M5-001` có commit bất biến, `npm run check`, `npm run test:e2e`, `npm run verify:bundle`, secret scan, `npm audit --omit=dev --audit-level=high` exit `0`, CI run ID thật | run ID + exit code | Coder/Platform | pending |
-| P-04 | G3a `qa-pass`: `AC-M5-01..19` có evidence pass | test report M5 | Tester | pending |
-| P-05 | `F-M5-001` (S2, M4 G3a evidence integrity) **đóng**: G3a chạy lại `AC-M4-01..08`, `AC-04`, `AC-05` với định danh grep được trên commit G2 M5; G3c xác nhận phần M4 bị ảnh hưởng | báo cáo G3a/G3c M5 | Tester + Independent Reviewer | open — **chặn G4a** |
-| P-06 | G3b `security-approved` cho M5-B, M5-E, M5-H, AC-M5-18, `RA-M5-001` | security review M5 | Security Reviewer | pending |
-| P-07 | G3c `review-approved` | review report M5 | Independent Reviewer | pending |
+| P-03 | G2: `EVID-M5-001` có commit bất biến, `npm run check`, `npm run test:e2e`, `npm run verify:bundle`, secret scan, `npm audit --omit=dev --audit-level=high` exit `0`, CI run ID thật | [EVID-M5-001](M5-EVIDENCE-ENVELOPE.md) @ `5f735fc` (local PASS; CI run ID bổ sung khi push/PR) | Coder/Platform | local ready (`pending CI run ID`) |
+| P-04 | G3a `qa-pass`: `AC-M5-01..19` có evidence pass | [TEST-M5-001](M5-G3a-QA-REPORT.md) (`19/19` PASS tại `5f735fc`) | Tester | `qa-pass` (`pending Owner sign-off`) |
+| P-05 | `F-M5-001` (S2, M4 G3a evidence integrity) **đóng**: G3a chạy lại `AC-M4-01..08`, `AC-04`, `AC-05` với định danh grep được trên commit G2 M5; G3c xác nhận phần M4 bị ảnh hưởng | [TEST-M5-001 §4](M5-G3a-QA-REPORT.md) + [REVIEW-M5-001 §6](M5-G3c-INDEPENDENT-REVIEW.md) (`10/10` AC M4 PASS, `100%` định danh thật) | Tester + Independent Reviewer | `verified-resolved` (`pending Owner sign-off`) |
+| P-06 | G3b `security-approved` cho M5-B, M5-E, M5-H, AC-M5-18, `RA-M5-001` | [SEC-REVIEW-M5-001](M5-G3b-SECURITY-REVIEW.md) (`0` S0/S1/S2/S3 code/CI tại `5f735fc`) | Security Reviewer | `security-pass-with-exception` (`pending Owner sign-off`) |
+| P-07 | G3c `review-approved` | [REVIEW-M5-001](M5-G3c-INDEPENDENT-REVIEW.md) (`0` S0/S1/S2, `1` S3 `REV-M5-001` tại `5f735fc`) | Independent Reviewer | `review-pass-with-follow-up` (`pending Owner sign-off`) |
 | P-08 | Không S0/S1 mở; mọi S2/S3 còn lại có owner, mitigation, due/expiry và được Release Manager chấp thuận | sổ finding trong `EVID-M5-001` | [RM] | pending |
 | P-09 | `RA-M5-001` (single reviewer) được Owner ký và **chưa hết hạn** (hết hạn trước G4a public đầu tiên hoặc `2027-01-31`, tùy mốc nào đến trước) — xem §6 | chữ ký + ngày trong spec/report | [Owner] | pending |
 | P-10 | Kiểm thủ công Tier 1 trên thiết bị thật: Chrome Android, Safari iOS (2 bản gần nhất), Chrome/Edge desktop — tìm/chọn lớp, conflict, lịch tuần, nhập ĐKMH cục bộ, export PNG/Word/ICS xem bằng mắt, cài PWA (icon), offline | checklist G3a + ảnh không PII | Tester/[Owner] | pending |

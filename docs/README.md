@@ -140,17 +140,21 @@ M3 (web app + parser ADR-0011 + CLI publish pipeline ADR-0012) đã vượt qua 
 
 ## M5 evidence hiện tại
 
-Nhánh `m5-release-hardening` (tách từ `main` @ `0e849f1`). Quyết định Owner trong chat ngày 2026-11-10: D-M5-1 (làm M5 ngay, thử bằng HK I trên preview, không production vòng này), D-M5-2 (không telemetry), D-M5-3 (một maintainer, `--accept-single-reviewer` + `RA-M5-001`). Tất cả artefact dưới đây là bản nháp; **chưa có gate nào của M5 được duyệt**, chưa có deploy/publish/run ID.
+Nhánh `m5-release-hardening` (tách từ `main` @ `0e849f1`, G2/G3 target commit `5f735fc`). Quyết định Owner trong chat ngày 2026-11-10: D-M5-1 (làm M5 ngay, thử bằng HK I trên preview, không production vòng này), D-M5-2 (không telemetry), D-M5-3 (một maintainer, `--accept-single-reviewer` + `RA-M5-001`). Đã hoàn tất G2 và 3 báo cáo G3 độc lập trên `5f735fc`; **chờ Owner ký duyệt G0/G1/G3 + `RA-M5-001`**, chưa có deploy/publish production.
 
 - [M5 spec](evidence/M5-SPEC.md) (`SPEC-M5-001`, G0) — `draft`, **chờ Owner G0**; scope M5-A…M5-L, `AC-M5-01…19`, OD-M5-1…5, `RA-M5-001`.
-- [M5 design handoff](evidence/M5-DESIGN-HANDOFF.md) (`DESIGN-M5-001`, G1) — `draft`, **chờ Owner G1**; module design, work packages WP1–WP3, contract smoke script.
+- [M5 design handoff](evidence/M5-DESIGN-HANDOFF.md) (`DESIGN-M5-001`, G1) — `draft`, **chờ Owner G1** (đã đạt `security-design-pass` bởi G3b); module design, work packages WP1–WP3, contract smoke script.
 - [ADR-0014 — observability không telemetry, kênh báo lỗi không egress](adr/ADR-0014-m5-release-observability-without-telemetry.md) — `proposed`, chờ G1.
+- [M5 evidence envelope](evidence/M5-EVIDENCE-ENVELOPE.md) (`EVID-M5-001`, G2 + G3 tại `5f735fc`) — `needs_review`; ghi nhận G2 (`node:test` `142/142`, `vitest` `105/105`, `fixtures` `6/6`, `e2e` `25/25`, `secret-scan` `0` findings, `npm audit` `0` vulns, initial JS giảm từ `140,140 B` xuống `108,918 B` gzip-9) và kết quả tổng hợp G3a/G3b/G3c.
+- **G3 độc lập trên `5f735fc` (11/11/2026):**
+  - [M5 G3a QA report](evidence/M5-G3a-QA-REPORT.md) (`TEST-M5-001`, G3a) — **`qa-pass`** (`19/19` `AC-M5-01…19` PASS; tái kiểm định `10/10` `AC-M4-01…08`, `AC-04`, `AC-05` trên code thật với `95/95` định danh grep được; `F-M5-001` đã được giải quyết ở G3a).
+  - [M5 G3b security review](evidence/M5-G3b-SECURITY-REVIEW.md) (`SEC-REVIEW-M5-001`, G1 + G3b) — **`security-design-pass` / `security-pass-with-exception`** (`0` S0/S1/S2/S3 ở mức code/CI; kèm ngoại lệ vận hành `RA-M5-001` chờ Owner ký và `SEC-M3-007` kiểm tại `G4a`).
+  - [M5 G3c independent review](evidence/M5-G3c-INDEPENDENT-REVIEW.md) (`REVIEW-M5-001`, G3c) — **`review-pass-with-follow-up`** (`0` S0/S1/S2, `1` S3 non-blocking `REV-M5-001` đồng bộ tài liệu hậu G0/G1; tái kiểm định toàn bộ M4 với `100%` định danh thật, giải quyết phần G3c của `F-M5-001`).
 - [M5 release checklist](evidence/M5-RELEASE-CHECKLIST.md) (`CHECKLIST-M5-001`) — `draft`; G4b (HK I preview tùy chọn, HK II), G4a, G5, bước chỉ Owner làm.
 - [M5 release report](evidence/M5-RELEASE-REPORT.md) (`RELEASE-M5-001`) — `draft`; mọi trường thực thi `pending — not executed`.
 - [Hướng dẫn Owner kiểm thử HK I](evidence/M5-OWNER-HK1-VALIDATION-GUIDE.md) (`GUIDE-M5-HK1-001`) — `draft`; nhánh `m5-hk1-validation`, dọn dẹp để `main` giữ `datasets: []`.
 - [Operations](OPERATIONS.md) và [CHANGELOG](../CHANGELOG.md) — cập nhật cho M5 (M5-I), chờ G0/G1.
-- `EVID-M5-001` (`M5-EVIDENCE-ENVELOPE.md`) — **chưa tạo**, tạo ở G2.
-- **Finding `F-M5-001`** (S2 process/evidence): một số định danh mà [M4 G3a](evidence/M4-G3a-QA-REPORT.md) (và một dòng của [M4 G3c](evidence/M4-G3c-INDEPENDENT-REVIEW.md)) trích dẫn không tồn tại trong code tại `0e849f1`; không reopen merge M4, nhưng **chặn G4a** cho tới khi G3a/G3c M5 kiểm chứng lại `AC-M4-01…08`, `AC-04`, `AC-05` (M5-L). Chi tiết ở [SPEC-M5-001 §4](evidence/M5-SPEC.md).
+- **Finding `F-M5-001`** (S2 process/evidence): các định danh không khớp code trong `M4-G3a-QA-REPORT.md` và `M4-G3c-INDEPENDENT-REVIEW.md` đã được tái kiểm định và đính chính hoàn toàn trên code thật tại `5f735fc` trong [TEST-M5-001 §4](evidence/M5-G3a-QA-REPORT.md) và [REVIEW-M5-001 §6](evidence/M5-G3c-INDEPENDENT-REVIEW.md) (`verified-resolved` ở G3a/G3c, chờ Owner xác nhận đóng).
 
 ## Cách dùng
 
