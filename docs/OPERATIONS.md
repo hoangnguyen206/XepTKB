@@ -200,7 +200,7 @@ S0/S1: contain/rollback ngay, gọi Security + Release Manager, không chờ spr
 
 ## 10. Trạng thái hiện tại (2026-11-11)
 
-- **Code:** M0–M4 đã merge vào `main` (`c2e93b9`, docs sync `0e849f1`); M5 đã hoàn tất G2 và 3 báo cáo G3 độc lập trên nhánh `m5-release-hardening` tại `5f735fc` ([EVID-M5-001](evidence/M5-EVIDENCE-ENVELOPE.md); G0/G1/G3 chờ Owner ký duyệt).
+- **Code:** M0–M5 đã merge vào `main` (M4 `c2e93b9`, M5 `ba43867` qua PR #3); M5 qua G2 và G3a/G3b/G3c trên `5f735fc`, Owner ký G0/G1/G3 ngày 2026-11-12 ([EVID-M5-001](evidence/M5-EVIDENCE-ENVELOPE.md)). Production deploy vẫn tắt cho tới G4a.
 - **Hosting:** Cloudflare Pages project đã tạo, preview deployments hoạt động cho nhánh khác `main`; **chưa có production deployment công khai**, automatic production deployments đang tắt; chưa có custom domain (D-001/OD-M5-2).
 - **Dữ liệu:** `data/published/manifest.json` trên `main` có `datasets: []`; pipeline đã diễn tập ([DRILL-M3-G4b-001](evidence/M3-G4b-DRILL-REPORT.md)); chưa có TKB HK II 2026–2027 thật.
 - **Release:** chưa có tag, chưa có G4a/G4b/G5 nào được quyết định; [release report M5](evidence/M5-RELEASE-REPORT.md) đang `draft`.

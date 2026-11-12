@@ -153,7 +153,7 @@
 
 ## Việc tồn đọng (cập nhật 2026-11-11, cuối phiên)
 
-Trạng thái: nhánh `m5-release-hardening` @ `45fe0e7` đã push; [PR #3](https://github.com/hoangnguyen206/XepTKB/pull/3) để **draft** tới khi Owner ký; Auto-fix CI đang bật cho PR.
+Trạng thái: [PR #3](https://github.com/hoangnguyen206/XepTKB/pull/3) đã merge vào `main` (`ba43867`, 2026-11-12; CI trên `main` run `43155073708` xanh). Production deploy vẫn tắt cho tới G4a.
 
 ### Owner phải quyết / ký
 
