@@ -5,7 +5,7 @@
 > **Canonical gate:** `G1` (design boundary review cho `ADR-0014` / `DESIGN-M5-001`) + `G3b` (implementation verification trên `5f735fc`)  
 > **Owner:** Security Reviewer (agent role)  
 > **Last reviewed:** 2026-11-11  
-> **Related docs:** [Security & privacy](../SECURITY_PRIVACY.md), [Architecture](../ARCHITECTURE.md), [Operations](../OPERATIONS.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md), [M5 spec](M5-SPEC.md), [M5 design handoff](M5-DESIGN-HANDOFF.md), [M5 release checklist](M5-RELEASE-CHECKLIST.md), [M5 release report (draft)](M5-RELEASE-REPORT.md), [HK I validation guide](M5-OWNER-HK1-VALIDATION-GUIDE.md), [M4 security review](M4-G3b-SECURITY-REVIEW.md)  
+> **Related docs:** [Security & privacy](../SECURITY_PRIVACY.md), [Architecture](../ARCHITECTURE.md), [Operations](../OPERATIONS.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md), [M5 spec](M5-SPEC.md), [M5 design handoff](M5-DESIGN-HANDOFF.md), [M5 release checklist](M5-RELEASE-CHECKLIST.md), [M5 release report (draft)](M5-RELEASE-REPORT.md), [HK I validation guide](M5-OWNER-HK1-VALIDATION-GUIDE.md), [M4 security review](HISTORY.md)  
 > **Evidence envelope:** [`EVID-M5-001`](M5-EVIDENCE-ENVELOPE.md)
 
 ## Scope and identity

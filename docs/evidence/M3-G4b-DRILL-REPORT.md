@@ -5,8 +5,8 @@
 > **Canonical gate:** `G4b` (dataset publish & rollback drill per [ADR-0012 §Verification](../adr/ADR-0012-dataset-publish-pipeline.md) and [Data ingestion runbook §12](../DATA_INGESTION_RUNBOOK.md))  
 > **Owner:** Release Manager + Data Parser + Data Reviewer  
 > **Last reviewed:** 2026-11-06  
-> **Related docs:** [ADR-0011](../adr/ADR-0011-timetable-format-variability.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [Data ingestion runbook](../DATA_INGESTION_RUNBOOK.md), [M3 evidence envelope](M3-EVIDENCE-ENVELOPE.md), [Implementation plan §2](../IMPLEMENTATION_PLAN.md)  
-> **Evidence envelope:** [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md) (and the [Evidence Envelope](#evidence-envelope) section below)  
+> **Related docs:** [ADR-0011](../adr/ADR-0011-timetable-format-variability.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [Data ingestion runbook](../DATA_INGESTION_RUNBOOK.md), [M3 evidence envelope](HISTORY.md), [Implementation plan §2](../IMPLEMENTATION_PLAN.md)  
+> **Evidence envelope:** [EVID-M3-001](HISTORY.md) (and the [Evidence Envelope](#evidence-envelope) section below)  
 > **Decision actor / UTC timestamp:** executed and verified on `main` @ `4915a86` at `2026-11-06T06:13:34Z–06:13:51Z` (requested by Owner)
 
 ## 1. Purpose and scope

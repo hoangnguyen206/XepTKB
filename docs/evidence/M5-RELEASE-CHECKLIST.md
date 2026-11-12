@@ -5,7 +5,7 @@
 > **Canonical gate:** `G4b` / `G4a` / `G5` (phối hợp, quyết định riêng)  
 > **Owner:** Release Manager (Owner đóng vai Product / Tech Lead / Security / Release Manager / Data Reviewer — D-M5-3)  
 > **Last reviewed:** 2026-11-10  
-> **Related docs:** [Operations](../OPERATIONS.md), [Data ingestion runbook §12](../DATA_INGESTION_RUNBOOK.md), [Agent workflow](../../.claude/AGENT_WORKFLOW.md), [M5 spec](M5-SPEC.md), [M5 design handoff](M5-DESIGN-HANDOFF.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md), [M5 release report (draft)](M5-RELEASE-REPORT.md), [HK I validation guide](M5-OWNER-HK1-VALIDATION-GUIDE.md), [DRILL-M3-G4b-001](M3-G4b-DRILL-REPORT.md), [EVID-M4-001](M4-EVIDENCE-ENVELOPE.md), [CHANGELOG](../../CHANGELOG.md)  
+> **Related docs:** [Operations](../OPERATIONS.md), [Data ingestion runbook §12](../DATA_INGESTION_RUNBOOK.md), [Agent workflow](../../.claude/AGENT_WORKFLOW.md), [M5 spec](M5-SPEC.md), [M5 design handoff](M5-DESIGN-HANDOFF.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md), [M5 release report (draft)](M5-RELEASE-REPORT.md), [HK I validation guide](M5-OWNER-HK1-VALIDATION-GUIDE.md), [DRILL-M3-G4b-001](M3-G4b-DRILL-REPORT.md), [EVID-M4-001](HISTORY.md), [CHANGELOG](../../CHANGELOG.md)  
 > **Evidence envelope:** `EVID-M5-001` (tạo ở G2; checklist này `N/A — docs-only` cho tới khi Owner chạy từng bước)  
 > **Decision actor / UTC timestamp:** pending — Owner  
 > **Receiving owner / acknowledgement:** Owner — chưa acknowledge

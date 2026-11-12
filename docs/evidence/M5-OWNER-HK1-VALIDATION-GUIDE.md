@@ -5,7 +5,7 @@
 > **Canonical gate:** bước Owner thuộc `SPEC-M5-001` flow 5 (M5-K, AC-M5-16); đầu vào cho P-13 của [release checklist](M5-RELEASE-CHECKLIST.md); **không** phải G4a/G4b production  
 > **Owner:** Release Manager (người thực hiện: Owner)  
 > **Last reviewed:** 2026-11-10  
-> **Related docs:** [M5 spec §4–§5](M5-SPEC.md), [M5 design handoff §10](M5-DESIGN-HANDOFF.md), [Data ingestion runbook §12](../DATA_INGESTION_RUNBOOK.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [Operations](../OPERATIONS.md), [DRILL-M3-G4b-001](M3-G4b-DRILL-REPORT.md), [M5 release report (draft)](M5-RELEASE-REPORT.md), [M0 fixture policy](M0-FIXTURE-POLICY.md)  
+> **Related docs:** [M5 spec §4–§5](M5-SPEC.md), [M5 design handoff §10](M5-DESIGN-HANDOFF.md), [Data ingestion runbook §12](../DATA_INGESTION_RUNBOOK.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [Operations](../OPERATIONS.md), [DRILL-M3-G4b-001](M3-G4b-DRILL-REPORT.md), [M5 release report (draft)](M5-RELEASE-REPORT.md), [M0 fixture policy](HISTORY.md)  
 > **Evidence envelope:** `EVID-M5-001` (kết quả ghi vào [release report](M5-RELEASE-REPORT.md) mục Post-release; tài liệu này `N/A — docs-only`)
 
 ## 0. Mục đích và giới hạn

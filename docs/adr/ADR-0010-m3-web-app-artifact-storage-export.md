@@ -7,8 +7,8 @@
 > **Owner:** Tech Lead + Frontend  
 > **Decision owner:** Tech Lead (Security consulted for CSP/storage boundary)  
 > **Last reviewed:** 2026-11-06  
-> **Related docs:** [M3 spec](../evidence/M3-SPEC.md), [M3 design handoff](../evidence/M3-DESIGN-HANDOFF.md), [ADR-0001](ADR-0001-react-vite-monorepo.md), [Tech stack](../TECH_STACK.md), [API and data contracts §3](../API_AND_DATA_CONTRACTS.md), [Domain model §9](../DOMAIN_MODEL.md), [Security & privacy §5](../SECURITY_PRIVACY.md)  
-> **Evidence envelope:** [EVID-M3-001](../evidence/M3-EVIDENCE-ENVELOPE.md)
+> **Related docs:** [M3 spec](../evidence/HISTORY.md), [M3 design handoff](../evidence/HISTORY.md), [ADR-0001](ADR-0001-react-vite-monorepo.md), [Tech stack](../TECH_STACK.md), [API and data contracts §3](../API_AND_DATA_CONTRACTS.md), [Domain model §9](../DOMAIN_MODEL.md), [Security & privacy §5](../SECURITY_PRIVACY.md)  
+> **Evidence envelope:** [EVID-M3-001](../evidence/HISTORY.md)
 
 ## Source and context
 
@@ -152,7 +152,7 @@ Loader rules (fail closed):
 
 ## Status after G3 (2026-10-25)
 
-G3a `qa-no-go`, G3b `security-pass-with-exception`, G3c `review-no-go`; consolidated register in [EVID-M3-001](../evidence/M3-EVIDENCE-ENVELOPE.md). Contract-relevant open items:
+G3a `qa-no-go`, G3b `security-pass-with-exception`, G3c `review-no-go`; consolidated register in [EVID-M3-001](../evidence/HISTORY.md). Contract-relevant open items:
 
 | Item | Code today | Decision needed |
 | --- | --- | --- |

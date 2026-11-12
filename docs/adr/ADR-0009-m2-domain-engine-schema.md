@@ -46,7 +46,7 @@ This ADR records the implementation contract. It does not approve a release gate
 
 ## Amendment 2026-10-25 — registration merge semantics (AUD-001, AUD-008, AUD-016)
 
-Source: [audit M0–M2](../evidence/M0-M2-AUDIT-2026-10-25.md). Decision 8 is refined as follows; schema stays `0.2.0` (no type change).
+Source: [audit M0–M2](../evidence/HISTORY.md). Decision 8 is refined as follows; schema stays `0.2.0` (no type change).
 
 1. The final Plan's `picks` are the timetable sections matched by the registration input, not the draft's picks. A draft pick that was not registered is not carried over; a registered section missing from the draft is added. The draft Plan is still never mutated. This follows PRD §4 #7 / Q-005 ("Plan chính thức tạo từ file đăng ký").
 2. A pick's `group` comes only from the registration rows (exactly one non-`CL` group); otherwise it is left empty and `resolvePlanPicks` reports `GROUP_REQUIRED` when the section needs one. The draft's group is not used as a guess.
@@ -73,7 +73,7 @@ Re-entry: G1 acknowledgement and G3a/G3c for the merge, together with the M4 reg
 
 ## Amendment 2026-10-29 — unresolved picks (REV-M3-001, REV-M3-003)
 
-Source: [EVID-M3-001](../evidence/M3-EVIDENCE-ENVELOPE.md) findings 1–2. Schema stays `0.2.0`.
+Source: [EVID-M3-001](../evidence/HISTORY.md) findings 1–2. Schema stays `0.2.0`.
 
 - **(13)** `sessionsForPick` returns the common sessions (no group or `CL`) together with the `GROUP_REQUIRED`/`GROUP_NOT_FOUND` error, instead of no sessions. Every group attends them, so conflicts, grid and exports keep them; only the group-specific sessions stay unknown. Callers must treat the error as "partially resolved".
 - **(14)** `addPlanPick` rejects a pick only when an error concerns the new pick's section (or has no section). Errors of earlier picks are returned but no longer block an unrelated pick.

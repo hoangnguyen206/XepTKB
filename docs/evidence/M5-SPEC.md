@@ -5,7 +5,7 @@
 > **Canonical gate:** `G0`  
 > **Owner:** Product Spec  
 > **Last reviewed:** 2026-11-10  
-> **Related docs:** [Implementation plan §2/§7/§10](../IMPLEMENTATION_PLAN.md), [PRD](../PRD.md), [Operations](../OPERATIONS.md), [Security & privacy](../SECURITY_PRIVACY.md), [QA plan](../QA_TEST_PLAN.md), [ADR-0007](../adr/ADR-0007-static-artifact-cli-admin.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [M5 design handoff](M5-DESIGN-HANDOFF.md), [M4 spec](M4-SPEC.md), [EVID-M4-001](M4-EVIDENCE-ENVELOPE.md), [DRILL-M3-G4b-001](M3-G4b-DRILL-REPORT.md)  
+> **Related docs:** [Implementation plan §2/§7/§10](../IMPLEMENTATION_PLAN.md), [PRD](../PRD.md), [Operations](../OPERATIONS.md), [Security & privacy](../SECURITY_PRIVACY.md), [QA plan](../QA_TEST_PLAN.md), [ADR-0007](../adr/ADR-0007-static-artifact-cli-admin.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [M5 design handoff](M5-DESIGN-HANDOFF.md), [M4 spec](HISTORY.md), [EVID-M4-001](HISTORY.md), [DRILL-M3-G4b-001](M3-G4b-DRILL-REPORT.md)  
 > **Evidence envelope:** `EVID-M5-001` ([M5-EVIDENCE-ENVELOPE.md](M5-EVIDENCE-ENVELOPE.md) — chưa tạo; `N/A — docs-only` cho tới G2)  
 > **Decision actor / UTC timestamp:** Approved by Owner (Product / Tech Lead / Security / Release Manager) at `2026-11-12T04:19Z` (chat)  
 > **Receiving owner / acknowledgement:** Tech Lead (G1, `DESIGN-M5-001`), Frontend/Coder, Tester, Security Reviewer, Independent Reviewer, Release Manager — chưa acknowledge

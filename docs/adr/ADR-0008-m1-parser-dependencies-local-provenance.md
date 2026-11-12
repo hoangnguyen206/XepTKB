@@ -3,7 +3,7 @@
 > **Status:** ready; G1 acknowledgement pending  
 > **Owner:** Tech Lead + Data Parser  
 > **Last reviewed:** 2026-10-25  
-> **Related docs:** [Parser spec](../PARSER_SPEC.md), [Domain model](../DOMAIN_MODEL.md), [Security & privacy](../SECURITY_PRIVACY.md), [M1 design handoff](../evidence/M1-DESIGN-HANDOFF.md)
+> **Related docs:** [Parser spec](../PARSER_SPEC.md), [Domain model](../DOMAIN_MODEL.md), [Security & privacy](../SECURITY_PRIVACY.md), [M1 design handoff](../evidence/HISTORY.md)
 
 ## Context
 
@@ -50,7 +50,7 @@ The change is additive to the M0 adapter contract and preserves canonical JSONL 
 
 ## Amendment 2026-10-25 — browser entry point (AUD-009)
 
-Source: [audit M0–M2](../evidence/M0-M2-AUDIT-2026-10-25.md). The package root `@ky-nay/parser` re-exports the adapter registry, which imports the `uet-xlsx` and `canonical-jsonl` adapters; both use `node:crypto` and are intended for the local admin pipeline (ADR-0007). Browser code (M4 registration import) must import `@ky-nay/parser/registration`, which exposes only `vnu-registration-html`. A test walks that entry's module graph, including `@ky-nay/domain`, and fails on any Node built-in import. Moving `uet-xlsx` into the browser would need a separate decision on synchronous hashing.
+Source: [audit M0–M2](../evidence/HISTORY.md). The package root `@ky-nay/parser` re-exports the adapter registry, which imports the `uet-xlsx` and `canonical-jsonl` adapters; both use `node:crypto` and are intended for the local admin pipeline (ADR-0007). Browser code (M4 registration import) must import `@ky-nay/parser/registration`, which exposes only `vnu-registration-html`. A test walks that entry's module graph, including `@ky-nay/domain`, and fails on any Node built-in import. Moving `uet-xlsx` into the browser would need a separate decision on synchronous hashing.
 
 ## Amendment 2026-10-29 — registration adapter 0.2.0 from the C-09 sample (AUD-002)
 

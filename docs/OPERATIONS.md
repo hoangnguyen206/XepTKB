@@ -198,11 +198,6 @@ S0/S1: contain/rollback ngay, gọi Security + Release Manager, không chờ spr
 - kiểm tra quyền truy cập cũ đã revoke;
 - lịch review mỗi học kỳ và người chịu trách nhiệm nạp dữ liệu đã chỉ định.
 
-## 10. Trạng thái hiện tại (2026-11-11)
+## 10. Trạng thái vận hành
 
-- **Code:** M0–M5 đã merge vào `main` (M4 `c2e93b9`, M5 `ba43867` qua PR #3); M5 qua G2 và G3a/G3b/G3c trên `5f735fc`, Owner ký G0/G1/G3 ngày 2026-11-12 ([EVID-M5-001](evidence/M5-EVIDENCE-ENVELOPE.md)). Production deploy vẫn tắt cho tới G4a.
-- **Hosting:** Cloudflare Pages project đã tạo, preview deployments hoạt động cho nhánh khác `main`; **chưa có production deployment công khai**, automatic production deployments đang tắt; chưa có custom domain (D-001/OD-M5-2).
-- **Dữ liệu:** `data/published/manifest.json` trên `main` có `datasets: []`; pipeline đã diễn tập ([DRILL-M3-G4b-001](evidence/M3-G4b-DRILL-REPORT.md)); chưa có TKB HK II 2026–2027 thật.
-- **Release:** chưa có tag, chưa có G4a/G4b/G5 nào được quyết định; [release report M5](evidence/M5-RELEASE-REPORT.md) đang `draft`.
-- **Monitoring:** chỉ theo §5 (không telemetry). Provider/project ID nội bộ và link dashboard không công khai giữ ngoài repo (secret-safe location của Owner), không ghi vào tài liệu này.
-- **Chưa có:** lần diễn tập rollback app trên Pages (làm ở G4a đầu tiên), người vận hành thứ hai (`RA-M5-001`).
+Trạng thái hiện tại (deploy, dữ liệu, gate, việc tồn đọng) chỉ ghi ở [docs/README.md › Trạng thái hiện tại](README.md#trạng-thái-hiện-tại). Provider/project ID nội bộ và link dashboard không công khai giữ ngoài repo. Còn thiếu trước G4a: diễn tập rollback app trên Pages và quyết định giữ hay gia hạn `RA-M5-001`.
