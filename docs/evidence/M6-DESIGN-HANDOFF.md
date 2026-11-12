@@ -1,13 +1,13 @@
 # M6 design handoff — "Lịch có màu": design system, khung app và luồng mới
 
 > **Artifact ID:** `DESIGN-M6-001`  
-> **Artifact status:** `draft` — G1 chờ Owner ký  
+> **Artifact status:** `g1-approved`  
 > **Canonical gate:** `G1`  
 > **Owner:** Tech Lead (+ Frontend, Platform theo work package §13)  
 > **Last reviewed:** 2026-11-12  
 > **Related docs:** [SPEC-M6-001](M6-SPEC.md), [PLAN-M6-001](M6-FRONTEND-REFRESH-PLAN.md), [ADR-0015](../adr/ADR-0015-m6-design-system-and-local-ui-settings.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md), [DESIGN-M5-001](M5-DESIGN-HANDOFF.md), [Architecture](../ARCHITECTURE.md), [Security & privacy](../SECURITY_PRIVACY.md), [QA plan](../QA_TEST_PLAN.md)  
 > **Evidence envelope:** `EVID-M6-001` — `N/A — docs-only` (tạo ở G2). Số đo ở §1 là lệnh đọc để lấy baseline, không phải bằng chứng G2.  
-> **Decision actor / UTC timestamp:** chưa có — chờ Owner (Tech Lead + Security consulted)
+> **Decision actor / UTC timestamp:** Approved by Owner (Tech Lead; Security consulted) at `2026-11-12T15:28Z` (chat: "Ký G1")
 
 ## 1. Nguồn, ràng buộc và baseline
 
@@ -221,9 +221,11 @@
 - **Q-2 (D-M6-8/AC-M6-20):** đề xuất các PR phase merge vào nhánh tích hợp **new** `m6-frontend` (có preview Pages riêng), rồi merge một lần vào `main` sau G3 của M6. Như vậy `main` giữ nguyên trạng thái M5 đã qua G3 cho G4a. Cách khác: PR thẳng vào `main`, và G4a deploy từ tag trước M6 (phải đổi production branch trên Pages).
 - **Q-3 (C-3/C-4):** chấp nhận chuyển phiên bản vào sheet (i) và đổi banner thành chip, tức sửa văn bản ADR-0014 điểm 3, AC-M5-01 và ADR-0010 quy tắc 4?
 
+**Owner trả lời (`2026-11-12T15:28Z`, chat):** Q-1 — không tính câu độc lập bắt buộc vào giới hạn 25 chữ; kiểm riêng câu đó có mặt đúng 1 lần, nguyên văn `INDEPENDENCE_NOTE`. Q-2 — các PR phase merge vào nhánh tích hợp `m6-frontend`; `main` giữ bản M5 cho G4a và nhận M6 một lần sau G3 của M6. Q-3 — chấp nhận sửa ADR-0014 điểm 3, AC-M5-01 và ADR-0010 §2 quy tắc 4 (đã ghi amendment trong từng tài liệu). C-2: 4 ô xuất, ô Ảnh gồm lịch PNG và poster (đã sửa SPEC §5). C-5: bỏ đếm ngược theo SPEC.
+
 ## 16. Approval
 
 - Product scope (`SPEC-M6-001`, G0): `g0-approved`, Owner, `2026-11-12T14:53Z`.
-- Tech Lead design (G1): chờ Owner. Security: tham vấn (không mở boundary PII/vendor/auth/external mới); G3b bắt buộc ở cuối M6 (C-6).
-- **Decision:** chưa có (`g1-approved | g1-blocked`). Điều kiện: Owner trả lời Q-1…Q-3; ADR-0015 được chấp nhận.
+- Tech Lead design (G1): `g1-approved`, Owner, `2026-11-12T15:28Z`. Security: tham vấn (không mở boundary PII/vendor/auth/external mới); G3b bắt buộc ở cuối M6 (C-6).
+- **Decision:** `g1-approved` — Owner, `2026-11-12T15:28Z`, kèm câu trả lời Q-1…Q-3 ở §15 và ADR-0015 `accepted`.
 - **Follow-up docs ở G2:** `docs/README.md` (bảng ADR), `docs/TECH_STACK.md`, `docs/SECURITY_PRIVACY.md` §2 (dòng settings UI), `docs/QA_TEST_PLAN.md` (ảnh so sánh, axe tối), `docs/OPERATIONS.md` (cách cập nhật mốc ảnh).

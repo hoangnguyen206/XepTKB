@@ -1,7 +1,7 @@
 # ADR-0015 — Design system M6 (token CSS tĩnh, bảng màu TS, font tự host, icon SVG nhúng) và settings giao diện trên máy
 
 > **Artifact ID:** `ADR-0015`  
-> **Artifact status:** `proposed` — G1 chờ Owner ký  
+> **Artifact status:** `accepted` — G1 approved by Owner at `2026-11-12T15:28Z`  
 > **Canonical gate:** `G1`  
 > **Date:** 2026-11-12  
 > **Owner:** Tech Lead + Frontend  
@@ -143,8 +143,8 @@
 
 ## Approval and risk acceptance
 
-- **Decision:** chưa có (`g1-approved | g1-blocked`), chờ Owner cùng với DESIGN-M6-001.
-- **Accepted by / actor / UTC date:** —
+- **Decision:** `g1-approved` cùng DESIGN-M6-001.
+- **Accepted by / actor / UTC date:** Owner (Product + Tech Lead; Security consulted), `2026-11-12T15:28Z` (chat). Sửa đổi ADR-0014 điểm 3 và ADR-0010 §2 quy tắc 4 được chấp nhận cùng lúc.
 - **Risk exception:** none.
 
 ## Follow-up and history

@@ -25,7 +25,7 @@ Sinh viên mở app là thấy ngay lịch tuần nhiều màu, thêm lớp tron
 
 | Chỉ số | Hiện tại | Mục tiêu |
 | --- | --- | --- |
-| Số chữ hiển thị ở màn Bắt đầu | ~70 | ≤ 25 |
+| Số chữ hiển thị ở màn Bắt đầu (không tính câu độc lập bắt buộc) | ~70 | ≤ 25 |
 | Vị trí bắt đầu của lưới lịch ở 360×780 | ~380 px | ≤ 200 px |
 | Số ngày thấy được trong lưới tuần ở 360 px | 3 (phải cuộn ngang) | 6 (T2–T7), không cuộn ngang |
 | Số chạm từ màn Bắt đầu tới khi thêm xong lớp đầu tiên | ~7 (đếm tay trên bản hiện tại) | ≤ 5 |
@@ -67,6 +67,9 @@ Sinh viên mở app là thấy ngay lịch tuần nhiều màu, thêm lớp tron
 | D-M6-6 | Ngân sách: CSS gzip ≤ 12 KiB (từ 5 KiB), font ≤ 90 KB, JS ban đầu giữ ≤ 117 KiB | Owner, chat 2026-11-12 |
 | D-M6-7 | Ảnh poster làm trong M6 (bước F7) | Owner, chat 2026-11-12 |
 | D-M6-8 | G4a không phụ thuộc M6: có TKB HK II đã duyệt thì lên production bằng giao diện hiện tại | Owner, chat 2026-11-12 |
+| D-M6-9 | Giới hạn 25 chữ ở màn Bắt đầu không tính câu độc lập bắt buộc; câu này kiểm riêng | Owner, chat 2026-11-12T15:28Z |
+| D-M6-10 | PR phase merge vào nhánh tích hợp `m6-frontend`; merge vào `main` một lần sau G3 của M6 | Owner, chat 2026-11-12T15:28Z |
+| D-M6-11 | Phiên bản chuyển từ footer vào sheet (i), màn lỗi và thẻ meta; banner dữ liệu chưa công bố thành chip luôn hiện (sửa ADR-0014 điểm 3, AC-M5-01, ADR-0010 §2 quy tắc 4) | Owner, chat 2026-11-12T15:28Z |
 
 **Giả định đã được Owner xác nhận cùng G0 (`2026-11-12T14:53Z`):**
 
@@ -79,7 +82,7 @@ Sinh viên mở app là thấy ngay lịch tuần nhiều màu, thêm lớp tron
 1. **Lần đầu:** màn Bắt đầu → chọn chip khóa (hoặc "Tự chọn ngày") → "Bắt đầu" → màn Lịch tuần hiện tại (rỗng) với trạng thái rỗng có một nút "Thêm lớp".
 2. **Thêm lớp:** "Thêm lớp" → gõ mã/tên (không dấu) → chạm một môn → sheet lớp: buổi học, mini-lịch xem trước, chip nhóm → "Thêm vào lịch". Nếu trùng: phần trùng tô đỏ, nút đổi thành "Vẫn thêm lớp này".
 3. **Xem lịch:** vuốt hoặc bấm mũi tên để đổi tuần, "Tuần này" để quay lại; chạm ô → sheet chi tiết (tên đầy đủ, tiết + giờ, tuần, phòng, giảng viên, nhóm, nhãn đổi từ ĐKMH, đổi màu, bỏ lớp).
-4. **Phương án:** xem tín chỉ, chạm chip trùng để tới đúng ô; chọn nhóm; xuất lịch (Điện thoại `.ics`, Ảnh lịch, Poster, Word, In).
+4. **Phương án:** xem tín chỉ, chạm chip trùng để tới đúng ô; chọn nhóm; xuất lịch bằng 4 ô: Điện thoại `.ics`, Ảnh (lịch PNG hoặc poster), Word, In.
 5. **Nhập ĐKMH:** từ Phương án → sheet các bước (chọn file → xem trước → xác nhận), hành vi y như M4.
 6. **Trạng thái dữ liệu:** bản thử, ngoại tuyến, dữ liệu cũ, hết hiệu lực đều hiện thành chip trên AppBar; chạm chip để xem chi tiết.
 
@@ -103,7 +106,7 @@ Sinh viên mở app là thấy ngay lịch tuần nhiều màu, thêm lớp tron
 | AC-M6-08 | Lịch ngày dùng cùng màu; lớp không giờ cố định (ONL) vẫn có mục riêng, không lên lưới, vẫn cộng tín chỉ | M6-E | e2e |
 | AC-M6-09 | Tìm không dấu như cũ; bộ lọc "Không trùng lịch" ẩn đúng các lớp trùng; sheet lớp có mini-lịch đánh dấu chỗ trùng; thêm lớp trùng bắt buộc bấm "Vẫn thêm lớp này" | M6-F | Vitest + e2e |
 | AC-M6-10 | Desktop ≥ 1200 px: 2 cột; `Ctrl/⌘ K` đưa con trỏ vào ô tìm; rê chuột hoặc focus một lớp thì lưới hiện ô xem trước | M6-F | e2e |
-| AC-M6-11 | Màn Bắt đầu là một màn, chip khóa lấy từ `Term.starts`, có link tự chọn ngày, ≤ 25 chữ hiển thị, 2 chạm để vào lịch | M6-G | script đếm chữ + e2e |
+| AC-M6-11 | Màn Bắt đầu là một màn, chip khóa lấy từ `Term.starts`, có link tự chọn ngày, ≤ 25 chữ hiển thị không tính câu độc lập bắt buộc (câu này kiểm riêng: có đúng 1 lần, nguyên văn `INDEPENDENCE_NOTE`), 2 chạm để vào lịch | M6-G | script đếm chữ + e2e |
 | AC-M6-12 | Câu "công cụ độc lập" có ở màn Bắt đầu, sheet Giới thiệu và file xuất; không lặp trên màn Lịch; gợi ý chỉ hiện một lần và tắt được; mỗi trạng thái rỗng có đúng một nút hành động | M6-G | Vitest + e2e |
 | AC-M6-13 | Phương án: khối tín chỉ + thanh màu đúng tổng; chip trùng dẫn tới đúng ô; chọn nhóm; 4 ô xuất cho ra đúng file như trước | M6-H | e2e (so nội dung file) |
 | AC-M6-14 | Nhập ĐKMH: mọi assertion của `e2e/m4.spec.ts` về 0 request, PII và override vẫn qua, không nới lỏng | M6-H | e2e M4 |
@@ -112,7 +115,7 @@ Sinh viên mở app là thấy ngay lịch tuần nhiều màu, thêm lớp tron
 | AC-M6-17 | JS ban đầu ≤ 117 KiB gzip; CSS ≤ 12 KiB gzip; font ≤ 90 KB; chunk ĐKMH vẫn lazy | M6-J | `check-bundle-budget` |
 | AC-M6-18 | 0 request bên thứ ba; CSP không đổi; không dùng `localStorage`; offline tải lại vẫn giữ phương án, theme và màu | M6-J | `verify:bundle` + e2e |
 | AC-M6-19 | Ảnh chụp so sánh của 5 màn × 3 khổ × 2 theme được commit làm mốc; CI so khác biệt | M6-J | Playwright `toHaveScreenshot` |
-| AC-M6-20 | Mỗi PR của M6 giữ `main` luôn release được: `npm run check`, `verify:bundle`, `test:e2e` đều qua (D-M6-8) | M6-J | CI |
+| AC-M6-20 | Mỗi PR phase của M6 merge vào nhánh tích hợp `m6-frontend` và qua đủ `npm run check`, `verify:bundle`, `test:e2e`; `main` giữ bản M5 cho G4a và chỉ nhận M6 một lần sau G3 của M6 (D-M6-8, D-M6-10) | M6-J | CI |
 
 ## 8. Kế hoạch kiểm thử
 

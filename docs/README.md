@@ -16,7 +16,7 @@ _Cập nhật mục này (và chỉ mục này) khi trạng thái dự án đổ
 - **Hosting:** Cloudflare Pages, domain production đã chốt `xeptkb-63v.pages.dev`; deploy production đang tắt tới G4a. Preview theo nhánh `<nhánh>.xeptkb-63v.pages.dev`.
 - **Dữ liệu:** `main` chưa có dataset (`data/published/manifest.json` → `datasets: []`). TKB HK I 2026–2027 đã thử trên preview và được Owner duyệt; Owner đã kiểm trên thiết bị thật (P-10…P-12, 2026-11-12). TKB HK II chờ trường công bố.
 - **Việc tồn đọng:** danh sách B-01…B-09 ở cuối [EVID-M5-001](evidence/M5-EVIDENCE-ENVELOPE.md) — còn mở: dataset HK II (B-08), G4a production (B-09).
-- **M6 (làm mới frontend "Lịch có màu"):** Owner duyệt hướng và 8 quyết định ngày 2026-11-12; [SPEC-M6-001](evidence/M6-SPEC.md) **G0 Owner ký `2026-11-12T14:53Z`**; G1: [DESIGN-M6-001](evidence/M6-DESIGN-HANDOFF.md) + [ADR-0015](adr/ADR-0015-m6-design-system-and-local-ui-settings.md) đang `draft`, chờ Owner ký. Kế hoạch: [PLAN-M6-001](evidence/M6-FRONTEND-REFRESH-PLAN.md). M6 không chặn G4a (D-M6-8).
+- **M6 (làm mới frontend "Lịch có màu"):** Owner duyệt hướng và 8 quyết định ngày 2026-11-12; [SPEC-M6-001](evidence/M6-SPEC.md) **G0 Owner ký `2026-11-12T14:53Z`**; **G1 Owner ký `2026-11-12T15:28Z`** ([DESIGN-M6-001](evidence/M6-DESIGN-HANDOFF.md), [ADR-0015](adr/ADR-0015-m6-design-system-and-local-ui-settings.md)). Code M6 làm trên nhánh tích hợp `m6-frontend` theo §13 của design (F1 → F7), mỗi bước một PR vào nhánh đó; `main` giữ bản M5 cho G4a. Kế hoạch: [PLAN-M6-001](evidence/M6-FRONTEND-REFRESH-PLAN.md). M6 không chặn G4a (D-M6-8).
 - **Vận hành:** một người vận hành theo ngoại lệ `RA-M5-001` (hết hạn trước G4a public đầu tiên hoặc 31/01/2027).
 
 ## Cây tài liệu
@@ -51,6 +51,7 @@ _Cập nhật mục này (và chỉ mục này) khi trạng thái dự án đổ
 | [ADR-0012](adr/ADR-0012-dataset-publish-pipeline.md) | Pipeline nạp/publish dữ liệu | `g1-approved` |
 | [ADR-0013](adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md) | UI nhập ĐKMH, 2 slot Plan, ranh giới privacy | `g1-approved` |
 | [ADR-0014](adr/ADR-0014-m5-release-observability-without-telemetry.md) | Không telemetry, kênh báo lỗi không egress | accepted |
+| [ADR-0015](adr/ADR-0015-m6-design-system-and-local-ui-settings.md) | Design system M6 (token CSS, bảng màu TS, font tự host, icon SVG) và settings giao diện trên máy | accepted |
 
 ## Bằng chứng còn dùng
 
@@ -58,7 +59,7 @@ _Cập nhật mục này (và chỉ mục này) khi trạng thái dự án đổ
 - [Release checklist](evidence/M5-RELEASE-CHECKLIST.md), [release report nháp](evidence/M5-RELEASE-REPORT.md), [hướng dẫn thử HK I](evidence/M5-OWNER-HK1-VALIDATION-GUIDE.md) — dùng cho G4a/G4b/G5.
 - [DRILL-M3-G4b-001](evidence/M3-G4b-DRILL-REPORT.md) — diễn tập publish/rollback dataset.
 - [REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md) — nguồn của fixture đăng ký đã xóa PII.
-- [SPEC-M6-001](evidence/M6-SPEC.md) (G0 đã ký) và [PLAN-M6-001](evidence/M6-FRONTEND-REFRESH-PLAN.md) — làm mới frontend.
+- [SPEC-M6-001](evidence/M6-SPEC.md) (G0 đã ký), [DESIGN-M6-001](evidence/M6-DESIGN-HANDOFF.md) (G1 đã ký) và [PLAN-M6-001](evidence/M6-FRONTEND-REFRESH-PLAN.md) — làm mới frontend.
 - [HISTORY](evidence/HISTORY.md) — tóm tắt M0–M4; bản đầy đủ trong tag `docs-archive-2026-11-12`.
 
 ## Đội Agent và template

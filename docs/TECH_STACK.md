@@ -120,4 +120,5 @@ Mỗi spike trả `decision`, `evidence`, `known limits`, `follow-up ADR`; khôn
 | ADR-0011 | Timetable layouts that change every term: one adapter, import profile, format fingerprint | approved (G1 Owner 2026-11-06T05:50Z) |
 | ADR-0012 | Dataset publish pipeline: CLI, `data/published` in repo, deployed with the site | approved (G1 Owner 2026-11-06T05:50Z) |
 | ADR-0013 | M4 registration merge UI, override resolution, browser privacy boundary | g1-approved (Owner 2026-11-06T07:30Z) |
-| ADR-0014 | M5 release observability without runtime telemetry; report-issue channel without egress | proposed; G1 pending (M5) |
+| ADR-0014 | M5 release observability without runtime telemetry; report-issue channel without egress | accepted (G1 2026-11-12); amendment a1 (M6) |
+| ADR-0015 | M6 design system: static CSS tokens, TS course palette via CSS custom properties, self-hosted Be Vietnam Pro, inline SVG icons; local UI settings `theme`/`courseColors`/`seenHints` | accepted (G1 2026-11-12) |
