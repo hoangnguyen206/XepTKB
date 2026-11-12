@@ -2,8 +2,15 @@ name: CI checks
 
 on:
   push:
-    branches: [main]
+    # m6-frontend: M6 integration branch (D-M6-10); phase PRs target it and main only receives M6 after G3.
+    branches: [main, m6-frontend]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      update-snapshots:
+        description: "visual job: rewrite the screenshot baselines and upload them as an artifact (review, then commit)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -71,6 +78,56 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-test-results
+          path: apps/web/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  visual:
+    # DESIGN-M6-001 §12 / AC-M6-19: screenshot baselines are created and compared only on this pinned Linux image, so
+    # font rendering matches. apps/web/playwright.config.ts refuses the visual project on any other platform.
+    runs-on: ubuntu-24.04
+    needs: check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: |
+          for attempt in 1 2 3; do
+            npx -w @ky-nay/web playwright install --with-deps chromium && exit 0
+            echo "::warning::Playwright install attempt $attempt failed; retrying in 30 s"
+            sleep 30
+          done
+          exit 1
+      - name: Visual comparison (baselines in apps/web/e2e/__screenshots__; no visual spec yet passes)
+        env:
+          KY_NAY_VISUAL: "1"
+          UPDATE_SNAPSHOTS: ${{ github.event_name == 'workflow_dispatch' && inputs.update-snapshots && 'true' || 'false' }}
+        run: |
+          if [ "$UPDATE_SNAPSHOTS" = "true" ]; then
+            npm run test:visual -- --pass-with-no-tests --update-snapshots
+          else
+            npm run test:visual -- --pass-with-no-tests
+          fi
+      - name: Upload rewritten baselines (workflow_dispatch with update-snapshots; review before committing)
+        if: github.event_name == 'workflow_dispatch' && inputs.update-snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: apps/web/e2e/__screenshots__/
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Upload screenshot diffs on failure (synthetic data only)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-test-results
           path: apps/web/test-results/
           retention-days: 7
           if-no-files-found: ignore

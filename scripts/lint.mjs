@@ -29,6 +29,9 @@ const BUILD_CONSTANT_FILES = [
 ];
 const BUILD_CONSTANTS = new Set(["__KY_NAY_BUILD__", "__KY_NAY_REPORT_URL__"]);
 const BUILD_CONSTANT_MESSAGE = "build-time constant outside apps/web/src/app/build-info.ts";
+const STYLE_SINK_MESSAGE = "runtime stylesheet (style element / constructable stylesheet); use the static CSS in apps/web/src/styles";
+const FONT_SINK_MESSAGE = "FontFace constructor; fonts are declared with @font-face in apps/web/src/styles";
+const CSS_URL_MESSAGE = "url()/@import with a scheme or another host in CSS; only relative same-origin files are allowed";
 const isBuildConstantFile = (file) => {
   const normalized = file.split(/[/\\]/).join(sep);
   return BUILD_CONSTANT_FILES.some((allowed) => normalized === allowed || normalized.endsWith(`${sep}${allowed}`));
@@ -43,6 +46,10 @@ const webRules = [
   { pattern: /["']@ky-nay\/parser(?!\/registration["'])(?:\/[^"']*)?["']/, message: "parser import outside @ky-nay/parser/registration" },
   { pattern: /["']node:[^"']+["']/, message: "Node built-in import in browser source", allow: (file) => isTestFile(file) },
   { pattern: /\b__KY_NAY_(?:BUILD|REPORT_URL)__\b/, message: BUILD_CONSTANT_MESSAGE, allow: (file) => isBuildConstantFile(file) || isTestFile(file) },
+  // M6 (DESIGN-M6-001 §12, ADR-0015): styles and fonts come only from the static CSS entry and self-hosted woff2 files.
+  { pattern: /\bcreateElement(?:NS)?\s*\(\s*(?:[^,()]*,\s*)?["'`]style["'`]/i, message: STYLE_SINK_MESSAGE, allow: (file) => isTestFile(file) },
+  { pattern: /\b(?:CSSStyleSheet|adoptedStyleSheets)\b/, message: STYLE_SINK_MESSAGE, allow: (file) => isTestFile(file) },
+  { pattern: /\bnew\s+FontFace\b/, message: FONT_SINK_MESSAGE, allow: (file) => isTestFile(file) },
 ];
 // The service worker source is generated from vite.config.ts: it may only pass same-origin requests through
 // (`fetch(request)`), never open another channel.
@@ -66,6 +73,7 @@ const STORAGE_NAMES = new Set(["localStorage", "sessionStorage"]);
 const GLOBAL_OBJECTS = new Set(["window", "globalThis", "self", "document", "navigator", "location"]);
 const LOCATION_SINKS = new Set(["href", "assign", "replace"]);
 const PII_FIELD_RE = /^(?:studentId|birthDate|fullName)$/i;
+const STYLE_SINK_NAMES = new Set(["CSSStyleSheet", "adoptedStyleSheets"]);
 
 /** Blanks comments (ignoring `//` or `/*` inside string literals) while keeping line breaks (SEC-M3-005). */
 export function stripComments(source) {
@@ -226,6 +234,9 @@ function checkAst(rawSource, file, scopeName, addError) {
       if (scopeName === "web" && STORAGE_NAMES.has(node.text)) {
         addError(line, "storage outside IndexedDB");
       }
+      if (scopeName === "web" && !isTest && STYLE_SINK_NAMES.has(node.text) && !(node.parent && ts.isTypeNode(node.parent))) {
+        addError(line, STYLE_SINK_MESSAGE);
+      }
     }
 
     // Check computed property access (`obj[expr]`) and static string property names.
@@ -254,6 +265,8 @@ function checkAst(rawSource, file, scopeName, addError) {
           if (STORAGE_NAMES.has(prop) || (prop === "cookie" && isGlobalObject(node.expression, constStrings))) {
             addError(line, "storage outside IndexedDB");
           }
+          if (!isTest && STYLE_SINK_NAMES.has(prop)) addError(line, STYLE_SINK_MESSAGE);
+          if (!isTest && prop === "FontFace" && isGlobalObject(node.expression, constStrings)) addError(line, FONT_SINK_MESSAGE);
         }
         if ((scopeName === "packages" || scopeName === "web") && !isTest) {
           if (prop === "open" && isGlobalObject(node.expression, constStrings)) {
@@ -297,6 +310,20 @@ function checkAst(rawSource, file, scopeName, addError) {
           addError(line, "network/worker constructor sink (Image/Audio/Worker/SharedWorker)");
         }
       }
+    }
+
+    // M6: `new FontFace(…)` (also via a global object) and `createElement("style")` with a computed tag name.
+    if (ts.isNewExpression(node) && scopeName === "web" && !isTest) {
+      const target = unwrapExpression(node.expression);
+      const name = ts.isIdentifier(target) ? target.text : ts.isPropertyAccessExpression(target) || ts.isElementAccessExpression(target) ? memberName(target, constStrings) : undefined;
+      if (name === "FontFace") addError(line, FONT_SINK_MESSAGE);
+    }
+    if (ts.isCallExpression(node) && scopeName === "web" && !isTest) {
+      const callee = unwrapExpression(node.expression);
+      const name = ts.isPropertyAccessExpression(callee) || ts.isElementAccessExpression(callee) ? memberName(callee, constStrings) : undefined;
+      const tagArg = node.arguments.at(-1);
+      const tag = tagArg ? evalStaticString(tagArg, constStrings) : undefined;
+      if ((name === "createElement" || name === "createElementNS") && tag?.trim().toLowerCase() === "style") addError(line, STYLE_SINK_MESSAGE);
     }
 
     // Check bare `open(...)` call or dynamic `import(...)` call.
@@ -361,6 +388,25 @@ export function lintSource(rawSource, filePath, scopeName, rootDir = process.cwd
   return [...found];
 }
 
+/**
+ * M6 (DESIGN-M6-001 §12): CSS under apps/web/src may only reference relative same-origin files. `url()` or `@import`
+ * with a scheme (`data:`, `https:`, …) or a protocol-relative `//host` is rejected: fonts must stay self-hosted woff2
+ * files (a `data:` font is also blocked by `font-src 'self'`) and no stylesheet may reach another origin.
+ */
+export function lintCss(rawSource, filePath, rootDir = process.cwd()) {
+  const relPath = relative(rootDir, resolve(rootDir, filePath));
+  const found = new Set();
+  const stripped = rawSource.replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, " "));
+  const patterns = [
+    /\burl\(\s*(?:["']\s*)?(?:[a-z][a-z0-9+.-]*:|\/\/)/gi,
+    /@import\s+(?:url\(\s*)?["']?\s*(?:[a-z][a-z0-9+.-]*:|\/\/)/gi,
+  ];
+  for (const pattern of patterns) {
+    for (const match of stripped.matchAll(pattern)) found.add(`${relPath}:${stripped.slice(0, match.index).split("\n").length}: ${CSS_URL_MESSAGE}`);
+  }
+  return [...found];
+}
+
 export function lintRepo(rootDir = process.cwd()) {
   const scopes = [
     { path: "packages", scopeName: "packages" },
@@ -381,6 +427,8 @@ export function lintRepo(rootDir = process.cwd()) {
         if (!ignoredDirectories.has(entry.name)) walk(full, scopeName);
       } else if (allowedExtensions.has(full.slice(full.lastIndexOf(".")))) {
         checkFile(full, scopeName);
+      } else if (scopeName === "web" && full.endsWith(".css")) {
+        errors.push(...lintCss(readFileSync(full, "utf8"), full, rootDir));
       }
     }
   };

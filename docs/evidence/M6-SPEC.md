@@ -38,7 +38,7 @@ Sinh viên mở app là thấy ngay lịch tuần nhiều màu, thêm lớp tron
 | ID | Hạng mục | Ưu tiên |
 | --- | --- | --- |
 | M6-A | Design token (màu, chữ, khoảng cách, bo góc, bóng, chuyển động); theme sáng/tối theo hệ điều hành + nút chuyển; bảng màu môn 8–10 cặp | P0 |
-| M6-B | Font Be Vietnam Pro tự host (400/600/800, subset vietnamese + latin, woff2); bộ icon SVG nhúng (Lucide, ISC) | P0 |
+| M6-B | Font Be Vietnam Pro tự host (400/800 — 600 bỏ theo D-M6-12; subset vietnamese + latin, woff2); bộ icon SVG nhúng (Lucide, ISC) | P0 |
 | M6-C | Thành phần dùng chung: AppBar, BottomNav, SegmentedControl, Chip, Button, Sheet (`<dialog>`), CourseBlock, DayStrip, WeekGrid, SearchField, ListRow, StatCard, Toast, EmptyState | P0 |
 | M6-D | Khung app: mobile thanh dưới cùng 3 mục (Lịch · Thêm lớp · Phương án); AppBar có chip học kỳ + nút (i); chip trạng thái thay banner; desktop 2 cột; bỏ footer luôn hiện | P0 |
 | M6-E | Lịch tuần/ngày: đủ T2–T7 ở 360 px, màu theo môn, dải ngày, "hôm nay", vạch giờ hiện tại, vuốt đổi tuần, chạm ô mở sheet chi tiết, đổi màu môn | P0 |
@@ -70,6 +70,7 @@ Sinh viên mở app là thấy ngay lịch tuần nhiều màu, thêm lớp tron
 | D-M6-9 | Giới hạn 25 chữ ở màn Bắt đầu không tính câu độc lập bắt buộc; câu này kiểm riêng | Owner, chat 2026-11-12T15:28Z |
 | D-M6-10 | PR phase merge vào nhánh tích hợp `m6-frontend`; merge vào `main` một lần sau G3 của M6 | Owner, chat 2026-11-12T15:28Z |
 | D-M6-11 | Phiên bản chuyển từ footer vào sheet (i), màn lỗi và thẻ meta; banner dữ liệu chưa công bố thành chip luôn hiện (sửa ADR-0014 điểm 3, AC-M5-01, ADR-0010 §2 quy tắc 4) | Owner, chat 2026-11-12T15:28Z |
+| D-M6-12 | Bỏ độ đậm 600 (sửa D-M6-4): đo ở F1a, 6 file woff2 400/600/800 của `@fontsource/be-vietnam-pro@5.3.0` = 101 632 B > 90 000 B; giữ 400 + 800 (4 file = 67 424 B), ngân sách font giữ nguyên. Chỗ thiết kế ghi độ đậm 600 dùng 800 | Owner, chat 2026-11-12T15:35Z (theo DESIGN-M6-001 §14) |
 
 **Giả định đã được Owner xác nhận cùng G0 (`2026-11-12T14:53Z`):**
 

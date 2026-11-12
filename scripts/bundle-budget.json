@@ -1,10 +1,15 @@
 {
-  "$comment": "M5 G2 (2026-11-10): measured on m5-release-hardening after the WP1 lazy split (merge 7afd8e0): initial JS 108916 B gzip-9, initial CSS 3754 B, RegistrationImport chunk 38225 B, total JS 147141 B. Limits = measured + 10 %, rounded up to 1 KiB (DESIGN-M5-001 §5 item 5). Pre-M5 baseline at 0e849f1: initial JS 140140 B gzip-9. Approved by Owner in chat on 2026-11-11 (OD-M5-4). Limits are gzip bytes; null disables a limit.",
+  "$comment": "M5 G2 (2026-11-10): measured on m5-release-hardening after the WP1 lazy split (merge 7afd8e0): initial JS 108916 B gzip-9, initial CSS 3754 B, RegistrationImport chunk 38225 B, total JS 147141 B. Limits = measured + 10 %, rounded up to 1 KiB (DESIGN-M5-001 §5 item 5). Pre-M5 baseline at 0e849f1: initial JS 140140 B gzip-9. Approved by Owner in chat on 2026-11-11 (OD-M5-4). Limits are gzip bytes; null disables a limit. M6 (D-M6-6, DESIGN-M6-001 §1/§5, Owner 2026-11-12): initialCssGzipMax 5120 → 12288; initial JS limit kept (≤ 117 KiB); fontsMaxBytes = raw woff2 bytes (90 000, '90 KB' read strictly; 4 files 400/800 = 67 424 B after D-M6-12 dropped weight 600); requireSingleCss = exactly one CSS file, loaded up front.",
   "initialJsGzipMax": 119808,
-  "initialCssGzipMax": 5120,
+  "initialCssGzipMax": 12288,
   "totalJsGzipMax": 162816,
   "lazyChunkGzipMax": 43008,
+  "fontsMaxBytes": 90000,
   "requireLazyChunk": true,
   "requireLazyChunkPrefix": "RegistrationImport-",
-  "initialForbiddenMarkers": ["xmldom", "vnu-registration-html"]
+  "requireSingleCss": true,
+  "initialForbiddenMarkers": [
+    "xmldom",
+    "vnu-registration-html"
+  ]
 }

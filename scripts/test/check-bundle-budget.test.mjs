@@ -157,3 +157,98 @@ test("CLI prints the table and JSON line and exits 1 over budget", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("M6: woff2 bytes count against fontsMaxBytes; other font formats and data: fonts in CSS fail (D-M6-6, D-M6-12)", () => {
+  const woff2 = (bytes) => Buffer.concat([Buffer.from("wOF2"), Buffer.alloc(bytes - 4, 7)]);
+  const assets = {
+    "index-abc.js": "export{}",
+    "index-ghi.css": "@font-face{font-family:x;src:url(./be-a.woff2)format(\"woff2\")}",
+    "be-a.woff2": woff2(40_000),
+    "be-b.woff2": woff2(30_000),
+  };
+  const html = HTML_LAZY.replace(/<link rel="modulepreload"[^>]*>/, "");
+  const dir = makeDist({ html, assets });
+  try {
+    const ok = checkBundleBudget(dir, budget({ requireLazyChunk: false, fontsMaxBytes: 70_000 }));
+    assert.equal(ok.ok, true, JSON.stringify(ok.failures));
+    assert.deepEqual(ok.totals.fonts, { raw: 70_000, count: 2 });
+    assert.deepEqual(ok.fonts.map((font) => font.file), ["assets/be-a.woff2", "assets/be-b.woff2"]);
+    const over = checkBundleBudget(dir, budget({ requireLazyChunk: false, fontsMaxBytes: 69_999 }));
+    assert.equal(over.ok, false);
+    assert.match(over.failures.join("\n"), /^fonts 70000 B raw woff2 > budget 69999 B$/m);
+    // Absent fontsMaxBytes → not enforced.
+    assert.equal(checkBundleBudget(dir, budget({ requireLazyChunk: false })).ok, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  const legacy = makeDist({ html, assets: { ...assets, "be-a.woff": "x", "be-c.ttf": "x" } });
+  try {
+    const report = checkBundleBudget(legacy, budget({ requireLazyChunk: false }));
+    assert.equal(report.ok, false);
+    assert.match(report.failures.join("\n"), /assets\/be-a\.woff: only woff2 fonts are allowed/);
+    assert.match(report.failures.join("\n"), /assets\/be-c\.ttf: only woff2 fonts are allowed/);
+  } finally {
+    rmSync(legacy, { recursive: true, force: true });
+  }
+
+  for (const css of [
+    '@font-face{src:url(data:font/woff2;base64,d09GMg==)format("woff2")}',
+    "@font-face{src:url( 'data:application/font-woff2;base64,AA==')}",
+    '@font-face{src:url("data:application/x-font-ttf;base64,AA==")}',
+  ]) {
+    const inline = makeDist({ html, assets: { "index-abc.js": "export{}", "index-ghi.css": css } });
+    try {
+      const report = checkBundleBudget(inline, budget({ requireLazyChunk: false }));
+      assert.equal(report.ok, false, css);
+      assert.match(report.failures.join("\n"), /inlines a font as url\(data:/);
+    } finally {
+      rmSync(inline, { recursive: true, force: true });
+    }
+  }
+  // An SVG data: image is not a font.
+  const svg = makeDist({ html, assets: { "index-abc.js": "export{}", "index-ghi.css": "a{background:url(data:image/svg+xml,%3Csvg%3E)}" } });
+  try {
+    assert.equal(checkBundleBudget(svg, budget({ requireLazyChunk: false })).ok, true);
+  } finally {
+    rmSync(svg, { recursive: true, force: true });
+  }
+});
+
+test("M6: requireSingleCss demands exactly one CSS file in dist/assets and that index.html loads it", () => {
+  const html = HTML_LAZY.replace(/<link rel="modulepreload"[^>]*>/, "");
+  const two = makeDist({ html, assets: { "index-abc.js": "export{}", "index-ghi.css": "a{}", "RegistrationImport-x.css": "b{}" } });
+  try {
+    const report = checkBundleBudget(two, budget({ requireLazyChunk: false, requireSingleCss: true }));
+    assert.equal(report.ok, false);
+    assert.match(report.failures.join("\n"), /expected exactly one CSS file in dist\/assets, found 2/);
+    assert.match(report.failures.join("\n"), /assets\/RegistrationImport-x\.css is not loaded by index\.html/);
+    assert.equal(checkBundleBudget(two, budget({ requireLazyChunk: false })).ok, true, "not enforced unless requireSingleCss");
+  } finally {
+    rmSync(two, { recursive: true, force: true });
+  }
+  const none = makeDist({ html: html.replace(/<link rel="stylesheet"[^>]*>/, ""), assets: { "index-abc.js": "export{}" } });
+  try {
+    const report = checkBundleBudget(none, budget({ requireLazyChunk: false, requireSingleCss: true }));
+    assert.match(report.failures.join("\n"), /found 0/);
+  } finally {
+    rmSync(none, { recursive: true, force: true });
+  }
+  const one = makeDist({ html, assets: { "index-abc.js": "export{}", "index-ghi.css": "a{}" } });
+  try {
+    assert.equal(checkBundleBudget(one, budget({ requireLazyChunk: false, requireSingleCss: true })).ok, true);
+  } finally {
+    rmSync(one, { recursive: true, force: true });
+  }
+});
+
+test("M6: the committed budget enforces CSS ≤ 12 KiB, fonts ≤ 90 000 B, a single CSS file and keeps JS ≤ 117 KiB (D-M6-6)", () => {
+  const committed = parseBudget(JSON.parse(readFileSync(DEFAULT_BUDGET_FILE, "utf8")));
+  assert.equal(committed.initialCssGzipMax, 12 * 1024);
+  assert.equal(committed.initialJsGzipMax, 117 * 1024);
+  assert.equal(committed.fontsMaxBytes, 90_000);
+  assert.equal(committed.requireSingleCss, true);
+  assert.equal(committed.requireLazyChunk, true);
+  assert.throws(() => parseBudget({ ...committed, fontsMaxBytes: 0 }), /fontsMaxBytes/);
+  assert.throws(() => parseBudget({ ...committed, requireSingleCss: "yes" }), /requireSingleCss/);
+});
