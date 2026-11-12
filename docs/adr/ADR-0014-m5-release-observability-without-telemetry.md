@@ -117,3 +117,7 @@
 | Change ID | Date/actor | Reason | Supersedes |
 | --- | --- | --- | --- |
 | ADR-0014-r0 | 2026-11-10 / Tech Lead (agent) | Initial proposal from `D-M5-2` and DESIGN-M5-001 | none (narrows ARCHITECTURE §9 / OPERATIONS §5 for the first release) |
+
+## Amendment ADR-0014-a1 (M6, 2026-11-12T15:28Z)
+
+Điểm 3 (build identity trong UI): từ M6, phiên bản/commit/thời điểm build hiện ở sheet Giới thiệu (nút (i) trên mọi màn), ở màn lỗi và trong thẻ meta `ky-nay-build`, không còn ở footer luôn hiện. Owner chấp nhận cùng G1 của [DESIGN-M6-001](../evidence/M6-DESIGN-HANDOFF.md) (D-M6-11). Các điểm khác giữ nguyên.

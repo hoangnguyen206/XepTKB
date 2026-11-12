@@ -30,6 +30,7 @@
 | Derived personal Plan | môn/giờ/phòng user chọn | Personal | local; server chỉ khi share consent | user-controlled/expiry |
 | Admin identity/audit | user id, action, timestamp | Restricted | control plane | policy/legal review |
 | Analytics | aggregate event, app/dataset version (cookieless, no user ID, no IP) | Low sensitivity | local counter aggregate hoặc self-hosted Umami tương đương | shortest useful period |
+| UI settings (M6, [ADR-0015](adr/ADR-0015-m6-design-system-and-local-ui-settings.md)) | theme, màu môn tự chọn, gợi ý đã xem | Low sensitivity, không PII | IndexedDB `settings` trên máy, không gửi đi | xóa cùng "Xóa dữ liệu trên máy" |
 | Secrets | API keys, signing keys | Secret | secret manager only | rotation schedule |
 
 - Registration artifact metadata is local-only: no content hash, user-selected filename, raw HTML or identity field may enter telemetry, logs, network DTOs or shared evidence. Approved non-PII timetable inputs retain a provenance hash.

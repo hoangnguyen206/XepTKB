@@ -85,7 +85,7 @@ Bản build M5 sẵn sàng cho Owner thử bằng dữ liệu thật HK I và ch
 
 | ID | Given / When / Then (rút gọn) | Scope | Test |
 | --- | --- | --- | --- |
-| AC-M5-01 | Bản build từ commit `X` → footer và trang giới thiệu hiện `version`, 7 ký tự đầu của `X`, build time UTC; `CHANGELOG.md` tồn tại có mục cho version đó | M5-A | Vitest + e2e |
+| AC-M5-01 | Bản build từ commit `X` → footer và trang giới thiệu hiện `version`, 7 ký tự đầu của `X`, build time UTC; `CHANGELOG.md` tồn tại có mục cho version đó | M5-A | Vitest + e2e _(Sửa đổi M6, 2026-11-12T15:28Z: footer → sheet Giới thiệu (i), màn lỗi và thẻ meta — D-M6-11)_ |
 | AC-M5-02 | Mở báo lỗi từ thẻ lớp → văn bản chỉ gồm trường đã liệt kê ở flow 1; với Plan chứa override ĐKMH và fixture PII `fixtures/redacted-registration/portal-format.doc`, văn bản không chứa chuỗi PII, tên file, giá trị override, danh sách lớp; ô ghi chú trống trừ khi người dùng gõ | M5-B | Vitest |
 | AC-M5-03 | Trong e2e ghi request từ lúc mở báo lỗi tới sau “Sao chép” và bấm link → `0` request do app khởi tạo (`fetch`/XHR/`sendBeacon`/SW); chỉ có điều hướng do người dùng tới đúng URL cấu hình, URL không chứa nội dung báo cáo | M5-B | e2e (Playwright) |
 | AC-M5-04 | `VITE_REPORT_ISSUE_URL` không đặt / không phải `http(s)` tuyệt đối (ví dụ `javascript:`, `data:`, tương đối) → không render link, chỉ sao chép + hướng dẫn; hợp lệ → link có `rel="noopener noreferrer"` | M5-B | Vitest |
