@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { formatDate } from "@ky-nay/export";
 import type { DatasetEntry } from "../data/contract.js";
 import { listBackups, deleteBackup, type BackupRecord } from "../storage/plan-store.js";
 import { downloadBlob } from "../export/files.js";
+import { buildLabel, type BuildInfo } from "../app/build-info.js";
+import { ABOUT_TITLE } from "../model/about-content.js";
+import { ABOUT_PANEL_ID, LOCAL_DATA_ID } from "./AboutPanel.js";
 import { APP_NAME, INDEPENDENCE_NOTE, PRIVACY_NOTE, VERIFY_NOTE, formatInstant, sourceLabel, statusLabel } from "../model/labels.js";
 
 export function Header(props: { entry?: DatasetEntry; provenanceOpen: boolean; onToggleProvenance: () => void }) {
@@ -70,7 +73,16 @@ function BackupList(props: { db: IDBDatabase }) {
   );
 }
 
-export function Footer(props: { db?: IDBDatabase; wipeGeneration?: number; onWipe: () => Promise<void> }) {
+type FooterProps = {
+  db?: IDBDatabase;
+  wipeGeneration?: number;
+  onWipe: () => Promise<void>;
+  build: BuildInfo;
+  aboutOpen: boolean;
+  onToggleAbout: () => void;
+};
+
+export const Footer = forwardRef<HTMLButtonElement, FooterProps>(function Footer(props, aboutButtonRef) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   // Remounting the list after a wipe (same-tab or BroadcastChannel cross-tab) reloads it, so deleted backups are no longer offered (SEC-M3-006a).
@@ -79,7 +91,19 @@ export function Footer(props: { db?: IDBDatabase; wipeGeneration?: number; onWip
     <footer className="app-footer">
       <p><strong>{INDEPENDENCE_NOTE}</strong> {VERIFY_NOTE}</p>
       <p>{PRIVACY_NOTE}</p>
-      <details className="local-data">
+      <div className="footer-links">
+        <button
+          ref={aboutButtonRef}
+          type="button"
+          className="button secondary"
+          aria-expanded={props.aboutOpen}
+          aria-controls={props.aboutOpen ? ABOUT_PANEL_ID : undefined}
+          onClick={props.onToggleAbout}
+        >
+          {ABOUT_TITLE}
+        </button>
+      </div>
+      <details className="local-data" id={LOCAL_DATA_ID}>
         <summary>Dữ liệu trên máy</summary>
         {props.db ? <BackupList key={`${generation}-${props.wipeGeneration ?? 0}`} db={props.db} /> : null}
         {confirming ? (
@@ -92,6 +116,8 @@ export function Footer(props: { db?: IDBDatabase; wipeGeneration?: number; onWip
           <button type="button" className="button secondary" onClick={() => setConfirming(true)}>Xóa dữ liệu trên máy</button>
         )}
       </details>
+      {/* M5-A: build identity (version · commit · build time UTC). */}
+      <p className="build-line muted">{buildLabel(props.build)}</p>
     </footer>
   );
-}
+});

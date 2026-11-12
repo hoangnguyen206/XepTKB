@@ -134,15 +134,19 @@ Mọi crossing boundary phải có data contract và security review. Nếu cros
 
 ## 9. Observability
 
-- Client errors: error code, app version, dataset version, browser family; scrub URL/query/file content.
-- Parser metrics: candidate count, valid/rejected count, unknown headers/notes, warning histogram, parse duration.
-- Product metrics: aggregate event không có PII; consent/opt-out.
-- Alerts: artifact publish fail, schema fail, parser valid-rate drop, API spend/rate threshold, error spike trong mùa đăng ký.
+**Release đầu (M5): không có runtime telemetry** — [ADR-0014](adr/ADR-0014-m5-release-observability-without-telemetry.md) (`proposed`, D-M5-2, chờ G1 M5). Không analytics, counter, gửi lỗi client, beacon hay script bên thứ ba; `apps/web/src/data/loader.ts` vẫn là module mạng duy nhất (same-origin `GET`), CSP `connect-src 'self'` không đổi.
+
+- **Tín hiệu vận hành (ngoài trình duyệt người dùng):** trạng thái build/deploy Cloudflare Pages; `scripts/smoke-deploy.mjs` chạy tay sau mỗi deploy (header, `meta ky-nay-build`, manifest, hash artifact; contract ở [DESIGN-M5-001 §7](evidence/M5-DESIGN-HANDOFF.md)); checklist thủ công; báo lỗi người dùng tự gửi. Monitoring window và owner: [OPERATIONS §5](OPERATIONS.md).
+- **Build identity:** version/commit/build time/channel nhúng lúc build, hiện ở footer, màn hình lỗi, văn bản báo lỗi và `<meta name="ky-nay-build">`.
+- **Báo sai dữ liệu:** văn bản không PII dựng trong trình duyệt → clipboard, hoặc link do người dùng bấm tới `VITE_REPORT_ISSUE_URL` (validate lúc build và runtime, không nối nội dung vào URL).
+- **Lỗi giao diện:** error boundary cục bộ (tải lại / xóa dữ liệu trên máy), không log, không gửi.
+- **Parser/ingest:** đo ở phía admin CLI (báo cáo import, `data/audit.jsonl`, `dataset check`), không phải telemetry người dùng.
+- **Mục tiêu P1 (chỉ mở lại bằng ADR mới sau legal review, Q-008):** client error theo app/dataset version (đã scrub), aggregate counter cookieless có opt-out, alert error spike mùa đăng ký, API spend/rate.
 
 ## 10. Architecture decisions cần review
 
-- **M1/M2 status:** M1 provides the offline parser package and M2 provides the pure domain engine plus synthetic fixture evidence.
-- **M3 status (2026-10-25):** the browser container now exists in code (uncommitted, not through G3): React/Vite shell, artifact loader + validator (only network module, same-origin `data/*`), search/engine through `@ky-nay/domain`, IndexedDB store (native wrapper, not Dexie — ADR-0010), export via `@ky-nay/export`, hand-written service worker for the app shell. Local parser for registration (M4) and the control plane are still target architecture. Open G3 findings that touch this design (unresolvable picks, retracted-then-offline cache, wipe/service-worker interaction, cross-tab writes, deploy headers) are tracked in [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md).
-- Runtime/browser controls are evidenced only by local automated tests and agent-role G3 reports; no deploy exists yet.
+- **Trạng thái (2026-11-10):** M0–M4 đã merge vào `main` (`c2e93b9`). Browser container gồm React/Vite shell, artifact loader + validator (module mạng duy nhất, same-origin `data/*`), engine qua `@ky-nay/domain`, IndexedDB (native wrapper, ADR-0010), export qua `@ky-nay/export`, service worker viết tay, và luồng nhập kết quả ĐKMH cục bộ qua `@ky-nay/parser/registration` (ADR-0013). Control plane = CLI admin + `data/published` deploy cùng site ([ADR-0012](adr/ADR-0012-dataset-publish-pipeline.md)). Evidence: [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md), [EVID-M4-001](evidence/M4-EVIDENCE-ENVELOPE.md).
+- **M5 (đang làm, nhánh `m5-release-hardening`):** [DESIGN-M5-001](evidence/M5-DESIGN-HANDOFF.md) + [ADR-0014](adr/ADR-0014-m5-release-observability-without-telemetry.md) chờ G1: build identity, báo lỗi không egress, error boundary, lazy-load chunk nhập ĐKMH (prefetch khi rảnh, có trong precache — OD-M5-5), PWA icons, CI hardening. Không đổi schema manifest/domain/IndexedDB.
+- Chưa có production deployment công khai; mới có preview Cloudflare Pages. Header thật trên domain production (`SEC-M3-007`) kiểm ở G4a.
 - Supabase chỉ được bật sau `SECURITY_PRIVACY.md` và data-region review.
 - PDF/LLM/third-party review không được trở thành dependency để xem lịch core.

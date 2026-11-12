@@ -1,8 +1,9 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { isFixedSession, normalizeGroup, sessionsForPick, type Plan, type Section, type Session } from "@ky-nay/domain";
 import { dayLabel, formatPeriods, formatSessionExtras, formatWeeks, kindText, periodTimes } from "@ky-nay/export";
 import type { AppCatalog } from "../model/catalog.js";
 import { groupOptions, isPicked, pickForCourse, previewPick } from "../model/picker.js";
+import { ReportIssueForm, useReportIssue } from "./ReportIssue.js";
 
 function sessionText(session: Session, catalog: AppCatalog): string {
   const group = normalizeGroup(session.group);
@@ -29,6 +30,9 @@ export function SectionCard(props: { section: Section; plan: Plan; catalog: AppC
   const sameCourse = pickForCourse(plan, catalog, section);
   const pickedGroup = normalizeGroup(picked?.group);
   const [group, setGroup] = useState<string | undefined>(() => pickedGroup);
+  const reportContext = useReportIssue();
+  const [reportOpen, setReportOpen] = useState(false);
+  const reportToggleRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     setGroup(pickedGroup);
   }, [pickedGroup, section.id]);
@@ -92,6 +96,27 @@ export function SectionCard(props: { section: Section; plan: Plan; catalog: AppC
           <button type="button" className="button secondary" onClick={() => props.onUnpick(section.id)}>Bỏ chọn lớp này</button>
         ) : null}
       </div>
+      {reportContext ? (
+        <div className="section-report">
+          {/* M5-B: per-section report; the form only sees the public section id and course code. */}
+          <button
+            ref={reportToggleRef}
+            type="button"
+            className="button link small"
+            aria-expanded={reportOpen}
+            aria-controls={reportOpen ? `${id}-report` : undefined}
+            aria-describedby={`${id}-title`}
+            onClick={() => setReportOpen((open) => !open)}
+          >
+            Báo sai dữ liệu
+          </button>
+          {reportOpen ? (
+            <div id={`${id}-report`}>
+              <ReportIssueForm section={{ sectionId: section.id, courseCode: section.courseCode }} idPrefix={`${id}-r`} onClose={() => { setReportOpen(false); reportToggleRef.current?.focus(); }} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </article>
   );
 }

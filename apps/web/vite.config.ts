@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
-import type { Plugin } from "vite";
+import { loadEnv, type Plugin } from "vite";
 import { defineConfig } from "vitest/config";
+import { buildMetaContent, resolveBuildIdentity, validateReportUrl, type BuildIdentity } from "../../scripts/lib/build-identity.mjs";
+
+const WEB_ROOT = dirname(fileURLToPath(import.meta.url));
 
 /**
  * ADR-0010 §2 rule 4 / SEC-M3-003: determines whether a production bundle (`vite build`) may load unpublished
@@ -78,8 +83,80 @@ function hostHeaders(): Plugin {
   };
 }
 
+/** Parses the `_headers` text above into path rules (`/*` matches every path, any other entry one exact path). */
+export function parseHeaderRules(text: string): { path: string; headers: [string, string][] }[] {
+  const rules: { path: string; headers: [string, string][] }[] = [];
+  for (const line of text.split("\n")) {
+    if (line.trim() === "" || line.startsWith("#")) continue;
+    if (!line.startsWith(" ")) {
+      rules.push({ path: line.trim(), headers: [] });
+      continue;
+    }
+    const rule = rules.at(-1);
+    const colon = line.indexOf(":");
+    if (!rule || colon < 0) throw new Error(`malformed _headers line: ${line}`);
+    rule.headers.push([line.slice(0, colon).trim(), line.slice(colon + 1).trim()]);
+  }
+  return rules;
+}
+
+/**
+ * M5-I: `vite preview` answers with the same headers as the static host, so scripts/smoke-deploy.mjs and the e2e
+ * suite exercise the production header set locally (DESIGN-M5-001 §7). Preview only; the dev server is untouched.
+ */
+function previewHostHeaders(): Plugin {
+  const rules = parseHeaderRules(deployHeaders());
+  return {
+    name: "ky-nay-preview-host-headers",
+    configurePreviewServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const path = new URL(req.url ?? "/", "http://preview.invalid").pathname;
+        for (const rule of rules) {
+          if (rule.path === "/*" || rule.path === path) for (const [name, value] of rule.headers) res.setHeader(name, value);
+        }
+        next();
+      });
+    },
+  };
+}
+
+const escapeAttribute = (value: string): string => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** M5-A: `<meta name="ky-nay-build" content="<version>+<commit>">` lets the smoke script tell which build is served. */
+function buildMeta(identity: BuildIdentity): Plugin {
+  return {
+    name: "ky-nay-build-meta",
+    apply: "build",
+    transformIndexHtml(html) {
+      const tag = `<meta name="ky-nay-build" content="${escapeAttribute(buildMetaContent(identity))}" />`;
+      if (!html.includes('<meta charset="UTF-8" />')) throw new Error("index.html lost its charset meta; cannot place ky-nay-build");
+      return html.replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n    ${tag}`);
+    },
+  };
+}
+
+/**
+ * M5-B / ADR-0014 point 4: `VITE_REPORT_ISSUE_URL` (process env or apps/web/.env*) is validated when the config loads;
+ * an invalid value stops dev, test and build (fail closed). Unset → `null` (copy-only report UI).
+ */
+export function resolveReportUrl(env: Record<string, string | undefined>): string | null {
+  try {
+    return validateReportUrl(env.VITE_REPORT_ISSUE_URL);
+  } catch (error) {
+    throw new Error(`ky-nay: invalid VITE_REPORT_ISSUE_URL: ${(error as Error).message}`);
+  }
+}
+
 /** Files copied from `public/` that belong to the app shell (datasets live in IndexedDB instead). */
-const PUBLIC_SHELL = ["icon.svg", "manifest.webmanifest"];
+const PUBLIC_SHELL = [
+  "icon.svg",
+  "manifest.webmanifest",
+  // M5-G: PNG icons (scripts/generate-icons.mjs) are precached so an installed PWA keeps them offline.
+  "icons/icon-192.png",
+  "icons/icon-512.png",
+  "icons/icon-maskable-512.png",
+  "icons/apple-touch-icon.png",
+];
 /**
  * Build outputs never precached: host configuration, the worker itself, and `index.html`, which is cached as `./`.
  * Cloudflare Pages answers `/index.html` with a redirect to `/`, and a redirected response cannot serve a navigation.
@@ -143,25 +220,30 @@ self.addEventListener("fetch", (event) => {
 `;
 }
 
-export default defineConfig(({ command }) => {
+export default defineConfig(({ command, mode }) => {
   const isBuild = command === "build";
   const allowUnpublished = isBuild ? resolveBuildAllowUnpublished(process.env) : undefined;
   if (isBuild) {
     process.env.VITE_ALLOW_UNPUBLISHED = allowUnpublished ? "true" : "false";
     process.env.NODE_ENV = "production";
   }
+  // M5-A/M5-B: defined in every mode (dev, build, vitest); apps/web/src/app/build-info.ts is the only reader.
+  const identity = resolveBuildIdentity(process.env);
+  const reportUrl = resolveReportUrl(loadEnv(mode, WEB_ROOT, "VITE_"));
   return {
     base: "./",
-    ...(isBuild
-      ? {
-          define: {
+    define: {
+      __KY_NAY_BUILD__: JSON.stringify(identity),
+      __KY_NAY_REPORT_URL__: JSON.stringify(reportUrl),
+      ...(isBuild
+        ? {
             "import.meta.env.VITE_ALLOW_UNPUBLISHED": JSON.stringify(allowUnpublished ? "true" : "false"),
             "import.meta.env.DEV": "false",
             "import.meta.env.PROD": "true",
-          },
-        }
-      : {}),
-    plugins: [react(), contentSecurityPolicy(), hostHeaders(), serviceWorker()],
+          }
+        : {}),
+    },
+    plugins: [react(), contentSecurityPolicy(), buildMeta(identity), hostHeaders(), previewHostHeaders(), serviceWorker()],
     build: {
       sourcemap: false,
       target: "es2022",

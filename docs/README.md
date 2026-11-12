@@ -2,12 +2,12 @@
 
 > **Status:** draft / docs-first  
 > **Owner:** Product + Tech Lead  
-> **Last reviewed:** 2026-11-06
+> **Last reviewed:** 2026-11-10
 > **Related docs:** [root CLAUDE.md](../CLAUDE.md)
 
 ## Mục đích
 
-Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ ở cấp toàn sản phẩm (M5 còn lại). M1 parser và M2 domain engine đã được commit và push lên `main` với local evidence, nhưng chưa phải bằng chứng publish/release; xem [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md) cho các finding còn mở. M3 (web app + CLI publish pipeline ADR-0012) đã merge vào `main` (`3c34c89`) và hoàn tất **G4b drill (`DRILL-M3-G4b-001`)** ngày 06/11/2026; xem [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md). M4 (registration merge UI + 2-slot Plans + override badges, [ADR-0013](adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md)) đã hoàn tất G0/G1/G2, kiểm định độc lập **G3a/G3b/G3c (`R1` `12abdbd` + `R1.1` `6fd1506`)**, được **Owner (Product / Tech Lead / Security / Release Manager) phê duyệt G0, G1 và G3 lúc `2026-11-06T07:30Z`** với G3a **`qa-pass`**, G3b **`security-approved`** (`0` finding code/CI mở cho cả M3 và M4), G3c **`review-approved`**, và đã merge vào `main` (`bac83bf` → `c2e93b9`); xem [EVID-M4-001](evidence/M4-EVIDENCE-ENVELOPE.md). Không được coi bộ docs này là bằng chứng deploy production/release công khai hoàn chỉnh.
+Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 chưa được phê duyệt đầy đủ ở cấp toàn sản phẩm (M5 còn lại). M1 parser và M2 domain engine đã được commit và push lên `main` với local evidence, nhưng chưa phải bằng chứng publish/release; xem [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md) cho các finding còn mở. M3 (web app + CLI publish pipeline ADR-0012) đã merge vào `main` (`3c34c89`) và hoàn tất **G4b drill (`DRILL-M3-G4b-001`)** ngày 06/11/2026; xem [EVID-M3-001](evidence/M3-EVIDENCE-ENVELOPE.md). M4 (registration merge UI + 2-slot Plans + override badges, [ADR-0013](adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md)) đã hoàn tất G0/G1/G2, kiểm định độc lập **G3a/G3b/G3c (`R1` `12abdbd` + `R1.1` `6fd1506`)**, được **Owner (Product / Tech Lead / Security / Release Manager) phê duyệt G0, G1 và G3 lúc `2026-11-06T07:30Z`** với G3a **`qa-pass`**, G3b **`security-approved`** (`0` finding code/CI mở cho cả M3 và M4), G3c **`review-approved`**, và đã merge vào `main` (`bac83bf` → `c2e93b9`); xem [EVID-M4-001](evidence/M4-EVIDENCE-ENVELOPE.md). M5 (release hardening) đang ở nhánh `m5-release-hardening`: spec/design/ADR-0014 và tài liệu vận hành là `draft`/`proposed`, **G0/G1 chờ Owner duyệt**, chưa có G2/G3/G4/G5; xem [M5 evidence hiện tại](#m5-evidence-hiện-tại). Không được coi bộ docs này là bằng chứng deploy production/release công khai hoàn chỉnh.
 
 Đây là bản đồ tài liệu source of truth cho Kỳ Này. Bản brief `Kế hoạch sản phẩm – Tool xếp TKB cho sinh viên VNU.md` là nguồn nghiên cứu ban đầu; khi brief và tài liệu dự án khác nhau, phải mở decision/ADR hoặc hỏi Product/Tech Lead, không tự chọn theo trí nhớ.
 
@@ -26,7 +26,8 @@ Mọi tài liệu sản phẩm hiện là `draft`/`proposed`; các gate G0–G5 
 | [Security & privacy](SECURITY_PRIVACY.md) | data inventory, threat model, security gate | Security Reviewer | Draft |
 | [QA test plan](QA_TEST_PLAN.md) | test matrix, release gate, evidence | Tester | Draft |
 | [Data ingestion runbook](DATA_INGESTION_RUNBOOK.md) | nạp, duyệt, publish, rollback | Release/Data Ops | Draft |
-| [Operations](OPERATIONS.md) | môi trường, deploy, monitoring, incident | Release Manager | Proposed |
+| [Operations](OPERATIONS.md) | môi trường, deploy, rollback, tag/changelog, monitoring không telemetry, incident | Release Manager | Proposed (cập nhật M5 2026-11-10, chờ G0/G1 M5) |
+| [CHANGELOG](../CHANGELOG.md) | thay đổi theo version (Keep a Changelog), lịch sử milestone M0–M4 | Release Manager | Draft — chưa có release/tag |
 
 ## Đội Agent
 
@@ -63,14 +64,14 @@ Các giá trị sau phải nhất quán ở mọi tài liệu:
 
 | ID | Quyết định | Trạng thái | Người chốt / điều kiện |
 | --- | --- | --- | --- |
-| D-001 | Tên thương hiệu cuối cùng và domain | Open | Product, kiểm tra tên miền/nhãn hiệu |
+| D-001 | Tên thương hiệu cuối cùng và domain | **Một phần**: domain production = `xeptkb-63v.pages.dev` (Owner 2026-11-12, OD-M5-2); tên thương hiệu cuối cùng vẫn mở | Product, kiểm tra tên miền/nhãn hiệu |
 | D-002 | Chốt React+Vite hay framework khác | Proposed | Tech Lead sau spike PWA/SSR |
 | D-003 | Backend: **static artifact + CLI admin**; Supabase deferred | **Closed** (Q-003) | Tech Lead + Security 20/10/2026 |
 | D-004 | Hosting/data region và vendor/legal review | **Một phần** (31/10/2026): hosting = **Cloudflare Pages** (owner), cấu hình ở [OPERATIONS §1](OPERATIONS.md); data region/legal review còn mở | Owner + tư vấn pháp lý |
-| D-005 | Browser matrix Tier 1/2 + analytics cookieless aggregate | **Closed** (Q-007/Q-008) | Product + Security 20/10/2026 |
+| D-005 | Browser matrix Tier 1/2 + analytics cookieless aggregate | **Closed** (Q-007/Q-008); **đề xuất thu hẹp** bởi D-M5-2 / [ADR-0014](adr/ADR-0014-m5-release-observability-without-telemetry.md) (`proposed`): release đầu không có runtime telemetry, counter → P1 sau legal review — chờ G0/G1 M5 | Product + Security 20/10/2026 |
 | D-006 | Có tài khoản/sync trong release đầu không | **Closed**: không | Product 20/10/2026 |
 | D-007 | Fixture policy: synthetic + `test:real` ngoài repo; registration file xóa PII trước khi lưu | **Closed** (Q-006) | Data Ops + Security 20/10/2026 |
-| D-008 | Lịch phát hành cụ thể ngoài cửa sổ 09–15/11/2026 | **Một phần** (Q-011, 29/10/2026): tháng 11/2026 là beta nội bộ chỉ M3, không public; ngày public còn mở | Product theo thông báo trường |
+| D-008 | Lịch phát hành cụ thể ngoài cửa sổ 09–15/11/2026 | **Một phần** (Q-011, 29/10/2026): tháng 11/2026 là beta nội bộ chỉ M3, không public; ngày public còn mở. D-M5-1 (chat 2026-11-10, chờ G0 M5) đề xuất thay câu "chỉ M3": beta có thể gồm M4, Owner thử bằng HK I trên preview, không production trong vòng M5; public launch do Owner quyết sau M5 G3 | Product theo thông báo trường |
 | D-009 | Plan slots P0: 1 draft + 1 final (từ file đăng ký); nhiều nháp P1 | **Closed** (Q-005) | Product 20/10/2026 |
 | D-010 | Export: `.doc` HTML + PNG + ICS + print CSS; không PDF generator | **Closed** (Q-002) | Product 20/10/2026 |
 | D-011 | Week 1 fixture HK II = 15/02/2027 (HK I giữ fixture riêng) | **Closed** (Q-001) | Product 20/10/2026 |
@@ -136,6 +137,27 @@ M3 (web app + parser ADR-0011 + CLI publish pipeline ADR-0012) đã vượt qua 
   - [M4 G3b security review](evidence/M4-G3b-SECURITY-REVIEW.md) (`SEC-REVIEW-M4-001`, G3b) — **`security-approved`** (`0` S0/S1/S2/S3 còn mở ở mức code/CI cho cả M3 và M4 sau khi đóng `SEC-M4-001`, `EXC-SEC-M3-R2-B` / `SEC-M3-101(e)`, `EXC-SEC-M3-R2-D` / `SEC-M3-005`, và `SEC-M3-003(b/d)` trước hạn `2026-11-08`; chỉ còn bước vận hành `SEC-M3-007` kiểm `curl -I` khi gắn domain production thật ở `G4a`).
   - [M4 G3c independent review](evidence/M4-G3c-INDEPENDENT-REVIEW.md) (`REVIEW-M4-001`, G3c) — **`review-approved`** tại `6fd1506` (đã tổng hợp G3a + G3b và xác nhận cả `5/5` phát hiện `REV-M4-001..004` + `SEC-M4-001` đều `verified-fixed`).
 - [M4 evidence envelope](evidence/M4-EVIDENCE-ENVELOPE.md) (`EVID-M4-001`) — **`approved`** (`2026-11-06T07:30Z`), tổng hợp trọn bộ bằng chứng `G0 → G1 → G2 → G3a/G3b/G3c` của M4.
+
+## M5 evidence hiện tại
+
+Nhánh `m5-release-hardening` (tách từ `main` @ `0e849f1`, G2/G3 target commit `5f735fc`). Quyết định Owner trong chat ngày 2026-11-10: D-M5-1 (làm M5 ngay, thử bằng HK I trên preview, không production vòng này), D-M5-2 (không telemetry), D-M5-3 (một maintainer, `--accept-single-reviewer` + `RA-M5-001`). Đã hoàn tất G2 và 3 báo cáo G3 độc lập trên `5f735fc`; **chờ Owner ký duyệt G0/G1/G3 + `RA-M5-001`**, chưa có deploy/publish production.
+
+- [M5 spec](evidence/M5-SPEC.md) (`SPEC-M5-001`, G0) — **`g0-approved`** (Owner `2026-11-12T04:19Z`); scope M5-A…M5-L, `AC-M5-01…19`, OD-M5-1…5, `RA-M5-001`.
+- [M5 design handoff](evidence/M5-DESIGN-HANDOFF.md) (`DESIGN-M5-001`, G1) — **`g1-approved`** (Owner `2026-11-12T04:19Z`; `security-design-pass` bởi G3b); module design, work packages WP1–WP3, contract smoke script.
+- [ADR-0014 — observability không telemetry, kênh báo lỗi không egress](adr/ADR-0014-m5-release-observability-without-telemetry.md) — **accepted** (G1, Owner `2026-11-12T04:19Z`).
+- [M5 evidence envelope](evidence/M5-EVIDENCE-ENVELOPE.md) (`EVID-M5-001`, G2 + G3 tại `5f735fc`) — `needs_review`; ghi nhận G2 (`node:test` `142/142`, `vitest` `105/105`, `fixtures` `6/6`, `e2e` `25/25`, `secret-scan` `0` findings, `npm audit` `0` vulns, initial JS giảm từ `140,140 B` xuống `108,918 B` gzip-9) và kết quả tổng hợp G3a/G3b/G3c.
+- **G3 độc lập trên `5f735fc` (11/11/2026):**
+  - [M5 G3a QA report](evidence/M5-G3a-QA-REPORT.md) (`TEST-M5-001`, G3a) — **`qa-pass`** (`19/19` `AC-M5-01…19` PASS; tái kiểm định `10/10` `AC-M4-01…08`, `AC-04`, `AC-05` trên code thật; bản R1 tự nhận đủ định danh nhưng còn 6 trích dẫn sai, đã đính chính ở R1.1 theo `F-M5-002`; `F-M5-001` được giải quyết ở G3a từ R1.1). Owner ký `2026-11-12T04:19Z`.
+  - [M5 G3b security review](evidence/M5-G3b-SECURITY-REVIEW.md) (`SEC-REVIEW-M5-001`, G1 + G3b) — **`security-design-pass` / `security-pass-with-exception`** (`0` S0/S1/S2/S3 ở mức code/CI; kèm ngoại lệ vận hành `RA-M5-001` chờ Owner ký và `SEC-M3-007` kiểm tại `G4a`). Owner ký `2026-11-12T04:19Z`.
+  - [M5 G3c independent review](evidence/M5-G3c-INDEPENDENT-REVIEW.md) (`REVIEW-M5-001`, G3c) — **`review-pass-with-follow-up`** (`0` S0/S1/S2, `1` S3 non-blocking `REV-M5-001` đồng bộ tài liệu hậu G0/G1; tái kiểm định toàn bộ M4 với `100%` định danh thật, giải quyết phần G3c của `F-M5-001`). Owner ký `2026-11-12T04:19Z`.
+- [M5 release checklist](evidence/M5-RELEASE-CHECKLIST.md) (`CHECKLIST-M5-001`) — `draft`; G4b (HK I preview tùy chọn, HK II), G4a, G5, bước chỉ Owner làm.
+- [M5 release report](evidence/M5-RELEASE-REPORT.md) (`RELEASE-M5-001`) — `draft`; mọi trường thực thi `pending — not executed`.
+- [Hướng dẫn Owner kiểm thử HK I](evidence/M5-OWNER-HK1-VALIDATION-GUIDE.md) (`GUIDE-M5-HK1-001`) — `draft`; nhánh `m5-hk1-validation`, dọn dẹp để `main` giữ `datasets: []`.
+- [Operations](OPERATIONS.md) và [CHANGELOG](../CHANGELOG.md) — cập nhật cho M5 (M5-I), chờ G0/G1.
+- **Finding `F-M5-001`** (S2 process/evidence): các định danh không khớp code trong `M4-G3a-QA-REPORT.md` và `M4-G3c-INDEPENDENT-REVIEW.md` đã được tái kiểm định và đính chính hoàn toàn trên code thật tại `5f735fc` trong [TEST-M5-001 §4](evidence/M5-G3a-QA-REPORT.md) và [REVIEW-M5-001 §6](evidence/M5-G3c-INDEPENDENT-REVIEW.md) (**closed** — Owner ký G3 `2026-11-12T04:19Z`).
+- **Finding `F-M5-002`** (S2 process/evidence, 2026-11-11): bản R1 của `TEST-M5-001` dẫn một số đường dẫn test/định danh không tồn tại; đã đính chính ở R1.1 ([TEST-M5-001 §10](evidence/M5-G3a-QA-REPORT.md)) và chạy lại đúng các test được dẫn (**closed** — Owner ký G3 `2026-11-12T04:19Z`).
+- **Việc tồn đọng M5 (2026-11-11):** danh sách B-01…B-09 (ký gate, domain, Google Form, CI, thử HK I, HK II, G4a) ở [EVID-M5-001 — Việc tồn đọng](evidence/M5-EVIDENCE-ENVELOPE.md).
+- **`REV-M5-001`** (S3 docs sync): đã đồng bộ [PRD §9/§11](PRD.md) và [Implementation plan](IMPLEMENTATION_PLAN.md) (§2 hàng M5 + M5 checkpoint, Q-008/Q-011, thêm Q-014 ghi D-M5-1…3) ngày 2026-11-11; câu chữ trạng thái trước G2 đã sửa trong commit hồ sơ G3.
 
 ## Cách dùng
 

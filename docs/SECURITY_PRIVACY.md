@@ -96,8 +96,9 @@ Raw registration bytes không có mũi tên đến API/DB/log/analytics. Browser
 
 ## 7. Privacy UX and retention
 
-- Privacy notice explains local processing, optional share/sync, analytics and deletion.
+- Privacy notice explains local processing, optional share/sync, analytics and deletion. M5 đưa privacy notice đầy đủ vào trang "Giới thiệu, quyền riêng tư & báo lỗi" (M5-C, [SPEC-M5-001](evidence/M5-SPEC.md)); wording cần rà soát pháp lý trước G4a (OD-M5-3).
 - **Analytics (Q-008):** không GA/tracker bên thứ ba; chỉ aggregate counter cookieless (không user ID, không lưu IP), có privacy notice + nút tắt; đo theo từng người chỉ khi opt-in; kiểm tra lại với người hiểu luật trước khi bật.
+- **Release đầu không có runtime telemetry** ([ADR-0014](adr/ADR-0014-m5-release-observability-without-telemetry.md), D-M5-2, `proposed` — chờ G1 M5): không analytics, counter, gửi lỗi client hay script bên thứ ba; counter Q-008 là P1, chỉ mở lại bằng ADR mới sau legal review. Báo sai dữ liệu chỉ qua clipboard hoặc link người dùng tự bấm, app không nối nội dung báo cáo vào URL.
 - User sees exactly what a share link reveals; default hides course names if feature design chooses busy/free.
 - Share links created as client-side URL fragments in the MVP do not have server-side expiry or revocation; the UI must warn “ai có link sẽ xem được”. Expiry/revoke is required only when server-backed share is introduced post-MVP.
 - “Delete local data” clears Plan/import-derived data/cache according to app capability; provide export first if useful.

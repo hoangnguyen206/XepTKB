@@ -15,25 +15,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
+          # Full history: the immutability check compares against github.event.before / the PR base (M5-H).
           fetch-depth: 0
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - name: Secret scan of tracked files (M5-H, no dependencies, runs before npm ci)
+        run: node scripts/secret-scan.mjs
       - name: Install locked dependencies
         run: npm ci
+      - name: Audit production dependencies (M5-H)
+        run: npm audit --omit=dev --audit-level=high
       - name: Lint, typecheck, unit/component tests, parser fixtures
         run: npm run check
-      - name: Verify published dataset immutability against base git ref (SEC-M3-101e)
+      - name: Verify published dataset immutability against base git ref (SEC-M3-101e, M5-H)
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_REF: ${{ github.base_ref }}
+          PUSH_BEFORE: ${{ github.event.before }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_REF="origin/${{ github.base_ref }}"
-          else
-            BASE_REF="HEAD~1"
-          fi
+          BASE_REF="$(node scripts/ci-immutability-base.mjs)"
+          echo "Immutability base: $BASE_REF"
           node scripts/dataset.mjs check --base "$BASE_REF"
-      - name: Verify production bundle disables allowUnpublished and emits headers/SW (SEC-M3-003b/d, SEC-M3-007)
+      - name: Verify production bundle (allowUnpublished off, headers/SW, build meta, icons, no telemetry) and bundle budget (SEC-M3-003b/d, SEC-M3-007, M5-A/F/G)
         run: npm run verify:bundle
 
   e2e:
@@ -50,6 +56,21 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Install Playwright Chromium
-        run: npx -w @ky-nay/web playwright install --with-deps chromium
+        # --with-deps runs apt-get; retry because a runner DNS outage failed every run on 2026-11-11.
+        run: |
+          for attempt in 1 2 3; do
+            npx -w @ky-nay/web playwright install --with-deps chromium && exit 0
+            echo "::warning::Playwright install attempt $attempt failed; retrying in 30 s"
+            sleep 30
+          done
+          exit 1
       - name: End-to-end tests (production build, synthetic dataset)
         run: npm run test:e2e
+      - name: Upload Playwright traces on failure (synthetic data only)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: apps/web/test-results/
+          retention-days: 7
+          if-no-files-found: ignore

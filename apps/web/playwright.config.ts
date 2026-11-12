@@ -23,7 +23,9 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
     timeout: 240_000,
-    env: { VITE_ALLOW_UNPUBLISHED: "true" },
+    // DESIGN-M5-001 §9: a report URL on a reserved TLD; it reaches the bundle once vite.config.ts defines
+    // `__KY_NAY_REPORT_URL__` from it (WP2). e2e/m5.spec.ts checks the link through the rendered DOM either way.
+    env: { VITE_ALLOW_UNPUBLISHED: "true", VITE_REPORT_ISSUE_URL: process.env.VITE_REPORT_ISSUE_URL ?? "https://example.invalid/report" },
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },

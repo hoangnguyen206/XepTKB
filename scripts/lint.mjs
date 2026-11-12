@@ -22,6 +22,17 @@ const NETWORK_MODULE = ["apps", "web", "src", "data", "loader.ts"].join(sep);
 // Tests stub `fetch`; they are never part of a build.
 const isTestFile = (file) => /\.test\.[cm]?[jt]sx?$/.test(file) || file.split(/[/\\]/).includes("test");
 const isLoaderFile = (file) => file.split(/[/\\]/).join(sep).endsWith(NETWORK_MODULE);
+// M5-A/M5-B (ADR-0014): the build-time constants are read in one module and declared in one ambient file.
+const BUILD_CONSTANT_FILES = [
+  ["apps", "web", "src", "app", "build-info.ts"].join(sep),
+  ["apps", "web", "src", "build-env.d.ts"].join(sep),
+];
+const BUILD_CONSTANTS = new Set(["__KY_NAY_BUILD__", "__KY_NAY_REPORT_URL__"]);
+const BUILD_CONSTANT_MESSAGE = "build-time constant outside apps/web/src/app/build-info.ts";
+const isBuildConstantFile = (file) => {
+  const normalized = file.split(/[/\\]/).join(sep);
+  return BUILD_CONSTANT_FILES.some((allowed) => normalized === allowed || normalized.endsWith(`${sep}${allowed}`));
+};
 
 const webRules = [
   ...common,
@@ -31,6 +42,7 @@ const webRules = [
   // ADR-0008 / ADR-0013: apps/web may only import the browser-safe registration subpath of @ky-nay/parser.
   { pattern: /["']@ky-nay\/parser(?!\/registration["'])(?:\/[^"']*)?["']/, message: "parser import outside @ky-nay/parser/registration" },
   { pattern: /["']node:[^"']+["']/, message: "Node built-in import in browser source", allow: (file) => isTestFile(file) },
+  { pattern: /\b__KY_NAY_(?:BUILD|REPORT_URL)__\b/, message: BUILD_CONSTANT_MESSAGE, allow: (file) => isBuildConstantFile(file) || isTestFile(file) },
 ];
 // The service worker source is generated from vite.config.ts: it may only pass same-origin requests through
 // (`fetch(request)`), never open another channel.
@@ -230,6 +242,9 @@ function checkAst(rawSource, file, scopeName, addError) {
         }
         if ((scopeName === "packages" || scopeName === "web") && !isTest && CONSTRUCTOR_SINKS.has(prop) && isGlobalObject(node.expression, constStrings)) {
           addError(line, "network/worker constructor sink (Image/Audio/Worker/SharedWorker)");
+        }
+        if (scopeName === "web" && BUILD_CONSTANTS.has(prop) && !isTest && !isBuildConstantFile(file)) {
+          addError(line, BUILD_CONSTANT_MESSAGE);
         }
         if (scopeName === "web") {
           if (HTML_SINKS.has(prop)) addError(line, "HTML injection sink");

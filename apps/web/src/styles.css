@@ -515,6 +515,57 @@ input[type="file"] { width: 100%; }
 .export-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .provenance code { font-size: 0.9rem; }
 
+/* M5: report issue, About panel, footer build line, error screen */
+.button.link {
+  background: transparent;
+  color: var(--primary-dark);
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+.button.link.small { min-height: 44px; }
+a.button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.section-report { margin-top: 4px; }
+.report-form {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  min-width: 0;
+}
+.report-form .report-title { margin-bottom: 4px; }
+.report-form select,
+.report-form textarea { width: 100%; }
+textarea {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #7a8391;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  max-width: 100%;
+  resize: vertical;
+}
+.report-output { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.85rem; white-space: pre-wrap; }
+.report-status p { margin: 8px 0 0; font-weight: 600; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; margin-bottom: 8px; }
+.build-line { margin-top: 8px; font-size: 0.85rem; }
+.about-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.about-head h2 { margin-bottom: 0; }
+.about h2:focus,
+.error-screen h1:focus { outline: var(--focus); outline-offset: 2px; }
+.about-section { padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--border); }
+.about-list { padding-left: 1.25rem; margin: 0 0 8px; }
+.about-list li { margin-bottom: 4px; }
+.error-screen { max-width: 720px; }
+.error-screen h1 { font-size: 1.4rem; }
+.error-screen code { overflow-wrap: anywhere; }
+.confirm-box { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border); }
+
 .print-only { display: none; }
 
 @media (min-width: 768px) {
