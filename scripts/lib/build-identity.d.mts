@@ -31,3 +31,5 @@ export function resolveCommit(env: BuildEnv, options?: Pick<BuildIdentityOptions
 export function resolveBuildIdentity(env?: BuildEnv, options?: BuildIdentityOptions): BuildIdentity;
 export function buildMetaContent(identity: BuildIdentity): string;
 export function validateReportUrl(value: string | null | undefined): string | null;
+export function readDefaultReportUrl(root?: string): string | null;
+export function resolveReportUrlSetting(envValue: string | null | undefined, defaultValue: string | null | undefined): string | null;

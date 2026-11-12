@@ -111,6 +111,29 @@ export function buildMetaContent(identity) {
  * control characters, at most 2048 characters. Anything else throws, so the build fails closed.
  * Returns the URL exactly as configured (trimmed): the app never adds a query or fragment.
  */
+/** Committed default report link (B-05): apps/web/report-issue.config.json `url`, or null when absent. */
+export function readDefaultReportUrl(root = repoRoot) {
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(join(root, "apps", "web", "report-issue.config.json"), "utf8"));
+  } catch (error) {
+    if (error && error.code === "ENOENT") return null;
+    throw new Error(`report-issue.config.json is not valid JSON: ${error.message}`);
+  }
+  if (parsed === null || typeof parsed !== "object") throw new Error("report-issue.config.json must be an object");
+  return parsed.url === undefined || parsed.url === null ? null : String(parsed.url);
+}
+
+/**
+ * Report link for a build: a non-empty `VITE_REPORT_ISSUE_URL` wins, "off" disables the link, otherwise the
+ * committed default is used. Both are validated by validateReportUrl (fail closed).
+ */
+export function resolveReportUrlSetting(envValue, defaultValue) {
+  const fromEnv = typeof envValue === "string" ? envValue.trim() : "";
+  if (fromEnv.toLowerCase() === "off") return null;
+  return validateReportUrl(fromEnv !== "" ? fromEnv : defaultValue);
+}
+
 export function validateReportUrl(value) {
   if (value === undefined || value === null) return null;
   if (typeof value !== "string") throw new Error("VITE_REPORT_ISSUE_URL must be a string");

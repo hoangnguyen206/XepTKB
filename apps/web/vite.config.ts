@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { loadEnv, type Plugin } from "vite";
 import { defineConfig } from "vitest/config";
-import { buildMetaContent, resolveBuildIdentity, validateReportUrl, type BuildIdentity } from "../../scripts/lib/build-identity.mjs";
+import { buildMetaContent, readDefaultReportUrl, resolveBuildIdentity, resolveReportUrlSetting, type BuildIdentity } from "../../scripts/lib/build-identity.mjs";
 
 const WEB_ROOT = dirname(fileURLToPath(import.meta.url));
 
@@ -137,11 +137,12 @@ function buildMeta(identity: BuildIdentity): Plugin {
 
 /**
  * M5-B / ADR-0014 point 4: `VITE_REPORT_ISSUE_URL` (process env or apps/web/.env*) is validated when the config loads;
- * an invalid value stops dev, test and build (fail closed). Unset → `null` (copy-only report UI).
+ * an invalid value stops dev, test and build (fail closed). Unset → the committed default in
+ * `report-issue.config.json` (B-05); `off` → `null` (copy-only report UI).
  */
-export function resolveReportUrl(env: Record<string, string | undefined>): string | null {
+export function resolveReportUrl(env: Record<string, string | undefined>, useCommittedDefault = true): string | null {
   try {
-    return validateReportUrl(env.VITE_REPORT_ISSUE_URL);
+    return resolveReportUrlSetting(env.VITE_REPORT_ISSUE_URL, useCommittedDefault ? readDefaultReportUrl() : null);
   } catch (error) {
     throw new Error(`ky-nay: invalid VITE_REPORT_ISSUE_URL: ${(error as Error).message}`);
   }
@@ -229,7 +230,8 @@ export default defineConfig(({ command, mode }) => {
   }
   // M5-A/M5-B: defined in every mode (dev, build, vitest); apps/web/src/app/build-info.ts is the only reader.
   const identity = resolveBuildIdentity(process.env);
-  const reportUrl = resolveReportUrl(loadEnv(mode, WEB_ROOT, "VITE_"));
+  // Vitest stays hermetic: only an explicit VITE_REPORT_ISSUE_URL applies there, never the committed default.
+  const reportUrl = resolveReportUrl(loadEnv(mode, WEB_ROOT, "VITE_"), mode !== "test");
   return {
     base: "./",
     define: {
