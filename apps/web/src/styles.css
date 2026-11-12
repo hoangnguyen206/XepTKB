@@ -552,6 +552,7 @@ textarea {
 }
 .report-output { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.85rem; white-space: pre-wrap; }
 .report-status p { margin: 8px 0 0; font-weight: 600; }
+.report-link-notice { margin: 8px 0 0; font-size: 0.85rem; color: var(--muted); }
 .footer-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; margin-bottom: 8px; }
 .build-line { margin-top: 8px; font-size: 0.85rem; }
 .about-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-bottom: 8px; }

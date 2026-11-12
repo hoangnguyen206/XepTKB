@@ -83,6 +83,22 @@ const PERSONAL_INFO_PATTERNS: readonly RegExp[] = [
 ];
 
 /** Warning heuristic for the free-text note; it never blocks copying. */
+/**
+ * B-05 (OD-M5-1): a short notice shown next to the external report link, naming who stores what the user
+ * submits there. Only the hostname is used; the app never adds report text or ids to the URL (ADR-0014).
+ */
+export function reportLinkNotice(reportUrl: string): string {
+  let host = "";
+  try {
+    host = new URL(reportUrl).hostname.toLowerCase();
+  } catch {
+    host = "";
+  }
+  const google = host === "forms.gle" || host === "docs.google.com" || host.endsWith(".google.com");
+  const provider = google ? "Google Forms" : host || "trang bên ngoài";
+  return `Trang báo lỗi là biểu mẫu ${provider} bên ngoài ứng dụng: chỉ nội dung bạn tự dán và bấm gửi ở đó mới rời thiết bị, và được ${google ? "Google" : "nhà cung cấp biểu mẫu"} lưu. Đừng ghi họ tên, mã sinh viên hay số điện thoại.`;
+}
+
 export function looksLikePersonalInfo(text: string): boolean {
   return PERSONAL_INFO_PATTERNS.some((pattern) => pattern.test(text));
 }

@@ -6,7 +6,7 @@ import type { BuildInfo } from "../app/build-info.js";
 import { serveDataset, testMetadata, testTimetable, VERSION } from "../test/fixture.js";
 import { buildAppCatalog } from "./catalog.js";
 import { buildRegistrationPreview } from "./registration.js";
-import { REPORT_FIELDS, REPORT_NOTE_MAX, buildIssueReport, clampReportNote, looksLikePersonalInfo } from "./report-issue.js";
+import { reportLinkNotice, REPORT_FIELDS, REPORT_NOTE_MAX, buildIssueReport, clampReportNote, looksLikePersonalInfo } from "./report-issue.js";
 
 const BUILD: BuildInfo = { version: "0.1.0", commit: "1a2b3c4", builtAt: "2026-11-10T08:30Z", channel: "production" };
 
@@ -135,5 +135,28 @@ describe("looksLikePersonalInfo (warning only)", () => {
     expect(looksLikePersonalInfo("Phòng 305-G2 sai, đúng là 307-G2; tiết 4-6 tuần 1–15")).toBe(false);
     expect(looksLikePersonalInfo("Lớp SYN1001 1 nhóm 2, thứ 5")).toBe(false);
     expect(looksLikePersonalInfo("123456789")).toBe(false);
+  });
+});
+
+describe("reportLinkNotice (B-05, OD-M5-1)", () => {
+  it("names Google Forms for forms.gle and docs.google.com links", () => {
+    for (const url of ["https://forms.gle/gk5TfaczQwg7kvXaA", "https://docs.google.com/forms/d/e/abc/viewform"]) {
+      const notice = reportLinkNotice(url);
+      expect(notice).toContain("Google Forms");
+      expect(notice).toContain("được Google lưu");
+      expect(notice).not.toContain(url);
+    }
+  });
+
+  it("falls back to the hostname for other providers and never echoes the path or query", () => {
+    const notice = reportLinkNotice("https://example.invalid/report?x=1");
+    expect(notice).toContain("example.invalid");
+    expect(notice).toContain("nhà cung cấp biểu mẫu");
+    expect(notice).not.toContain("x=1");
+    expect(notice).not.toContain("/report");
+  });
+
+  it("does not throw on an unparsable value", () => {
+    expect(reportLinkNotice("not a url")).toContain("trang bên ngoài");
   });
 });
