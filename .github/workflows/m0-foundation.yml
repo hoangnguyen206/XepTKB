@@ -56,6 +56,21 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Install Playwright Chromium
-        run: npx -w @ky-nay/web playwright install --with-deps chromium
+        # --with-deps runs apt-get; retry because a runner DNS outage failed every run on 2026-11-11.
+        run: |
+          for attempt in 1 2 3; do
+            npx -w @ky-nay/web playwright install --with-deps chromium && exit 0
+            echo "::warning::Playwright install attempt $attempt failed; retrying in 30 s"
+            sleep 30
+          done
+          exit 1
       - name: End-to-end tests (production build, synthetic dataset)
         run: npm run test:e2e
+      - name: Upload Playwright traces on failure (synthetic data only)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: apps/web/test-results/
+          retention-days: 7
+          if-no-files-found: ignore

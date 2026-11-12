@@ -234,9 +234,12 @@ test("AC-M4-01..07 (AC-04, AC-05) — local-only registration merge, zero networ
   await page.getByRole("button", { name: "Phương án nháp (1)" }).click();
   await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
   await expect(page.getByText(/SYN2004 1/).first()).toBeVisible();
+  await expectActiveSlotPersisted(page, "draft");
 
   // Switch to Phương án chính thức and reload -> active slot and overrides persist
   await page.getByRole("button", { name: "Phương án chính thức (2)" }).click();
+  await expect(page.getByRole("heading", { name: "Phương án chính thức" })).toBeVisible();
+  await expectActiveSlotPersisted(page, "final");
   await page.reload();
   await expect(page.getByRole("heading", { name: "Phương án chính thức" })).toBeVisible();
   await expect(page.getByText(/★ 3 thay đổi từ ĐKMH/)).toBeVisible();
@@ -272,3 +275,33 @@ test("AC-M4-08 — no horizontal overflow and zero serious/critical axe violatio
     }
   }
 });
+
+/**
+ * selectSlot updates the UI first and persists `activeSlots` to IndexedDB asynchronously. Wait for the write
+ * before the next slot switch or reload, so a slow runner cannot reload mid-write (CI run 43050357462, attempt 2).
+ */
+async function expectActiveSlotPersisted(page: Page, slot: "draft" | "final"): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const db = await new Promise<IDBDatabase>((resolve, reject) => {
+            const req = indexedDB.open("ky-nay");
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          });
+          const rows = await new Promise<unknown[]>((resolve, reject) => {
+            const req = db.transaction("settings", "readonly").objectStore("settings").getAll();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          });
+          db.close();
+          const slots = rows.flatMap((row) =>
+            row && typeof row === "object" && "activeSlots" in row ? Object.values((row as { activeSlots: Record<string, string> }).activeSlots ?? {}) : [],
+          );
+          return slots;
+        }),
+      { timeout: 10_000 },
+    )
+    .toContain(slot);
+}
