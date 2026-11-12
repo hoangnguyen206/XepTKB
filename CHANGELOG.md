@@ -40,6 +40,10 @@ Thay đổi M5 (release hardening) đã merge vào `main` qua PR #3 (`ba43867`, 
 
 - Xác nhận không có runtime telemetry trong release đầu: không analytics, counter, gửi lỗi client hay script bên thứ ba; CSP `connect-src 'self'` giữ nguyên (ADR-0014, D-M5-2).
 
+### M6 "Lịch có màu" (chỉ trên nhánh tích hợp `m6-frontend`; `main` nhận một lần sau G3 của M6, D-M6-10)
+
+- F1a (nền tảng): font Be Vietnam Pro 400/800 tự host, subset latin + vietnamese, 67 424 B; bỏ độ đậm 600 (D-M6-12). Thêm `licenses.txt` (OFL, ISC, MIT) được precache. Ngân sách: CSS ban đầu ≤ 12 KiB gzip, font ≤ 90 000 B, đúng một file CSS. Lint cấm tạo stylesheet/FontFace lúc chạy và `url()` có scheme trong CSS. `verify:bundle` kiểm CSP khớp từng ký tự và production không có trang mẫu thành phần. CI có job `visual` cho ảnh so sánh (DESIGN-M6-001 §13).
+
 ## Lịch sử milestone trước khi có version
 
 Các milestone dưới đây đã merge vào `main` nhưng **không phải release**: không có tag, không có production deploy, không có dataset publish thật. Chỉ ghi để tra cứu; số version đầu tiên sẽ được gán ở G4a.

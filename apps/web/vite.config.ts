@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { loadEnv, type Plugin } from "vite";
@@ -157,12 +157,32 @@ const PUBLIC_SHELL = [
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",
   "icons/apple-touch-icon.png",
+  // M6-B (ADR-0015 point 5): OFL / ISC / MIT notices for the self-hosted font and the copied icon paths.
+  "licenses.txt",
 ];
 /**
  * Build outputs never precached: host configuration, the worker itself, and `index.html`, which is cached as `./`.
  * Cloudflare Pages answers `/index.html` with a redirect to `/`, and a redirected response cannot serve a navigation.
  */
-const NOT_PRECACHED = new Set(["sw.js", "_headers", "index.html"]);
+const NOT_PRECACHED = new Set(["sw.js", "_headers", "index.html", "gallery.html"]);
+
+/**
+ * DESIGN-M6-001 §12: the component gallery page is a build input only when `KY_NAY_GALLERY=1` (set by the Playwright
+ * web server for the e2e build). A production build never contains it; scripts/verify-production-bundle.mjs checks.
+ */
+export function buildInputs(env: Record<string, string | undefined> = process.env): Record<string, string> {
+  const inputs: Record<string, string> = { index: resolve(WEB_ROOT, "index.html") };
+  if (env.KY_NAY_GALLERY === "1") inputs.gallery = resolve(WEB_ROOT, "gallery.html");
+  return inputs;
+}
+
+/**
+ * DESIGN-M6-001 §5: fonts are never inlined as `data:` URLs (`font-src 'self'` would block them and they would escape
+ * the font budget); `undefined` keeps Vite's default for every other asset.
+ */
+export function assetsInlineLimit(filePath: string): boolean | undefined {
+  return /\.woff2?$/i.test(filePath) ? false : undefined;
+}
 
 /** Emits `sw.js` with this build's precache list; the cache name is a hash of the list (ADR-0010 §4). */
 function serviceWorker(): Plugin {
@@ -249,6 +269,8 @@ export default defineConfig(({ command, mode }) => {
     build: {
       sourcemap: false,
       target: "es2022",
+      assetsInlineLimit,
+      rolldownOptions: { input: buildInputs(process.env) },
     },
     test: {
       environment: "jsdom",

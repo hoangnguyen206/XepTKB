@@ -40,10 +40,10 @@
    - Canvas export và test tương phản import thẳng module.
    - **new** `assignCourseColors` gán màu tất định: hash mã môn + dò theo thứ tự pick, màu người dùng chọn đè lên.
 4. **Font tự host.**
-   - Nguồn: Be Vietnam Pro 400/600/800, subset vietnamese + latin, chỉ woff2, lấy từ devDependency pin version **new** `@fontsource/be-vietnam-pro`.
+   - Nguồn: Be Vietnam Pro 400/800 (600 bỏ theo D-M6-12), subset vietnamese + latin, chỉ woff2, lấy từ devDependency pin version **new** `@fontsource/be-vietnam-pro`.
    - Lưu trữ: **new** `scripts/sync-fonts.mjs` chép vào **new** `apps/web/src/assets/fonts/`, file được commit kèm giấy phép OFL.
    - Phục vụ: Vite băm tên file và đưa vào bundle, nên `serviceWorker()` precache mà không phải sửa `PUBLIC_SHELL`. Cấm inline dạng data: vì `font-src 'self'` sẽ chặn.
-   - Nạp sẵn: **new** `warmFonts` nạp đủ 3 độ đậm lúc khởi động, để luồng nhập ĐKMH (cửa sổ 0 request trong `apps/web/e2e/m4.spec.ts`) không phát sinh request font.
+   - Nạp sẵn: **new** `warmFonts` nạp đủ 2 độ đậm lúc khởi động, để luồng nhập ĐKMH (cửa sổ 0 request trong `apps/web/e2e/m4.spec.ts`) không phát sinh request font.
    - Ngân sách: **new** `fontsMaxBytes` (90 000 B).
 5. **Icon là component SVG nhúng** (**new** `components/icons.tsx`), path chép từ một release Lucide pin version (ISC, phần gốc Feather theo MIT). Không có icon font, không có file sprite, không có package icon. Giấy phép OFL/ISC/MIT nằm trong **new** `apps/web/public/licenses.txt` (precache).
 6. **Settings giao diện trên máy** (trong `Settings`, không tăng version DB):
@@ -106,7 +106,7 @@
 
 - Người chọn theme ngược với hệ điều hành có thể thấy nháy theme trong lúc tải.
 - Bảng token tối được viết hai lần; test kiểm hai bản giống nhau.
-- Kích thước 6 file font chưa đo; nếu vượt 90 KB thì Owner phải quyết (bỏ một độ đậm hoặc nới ngân sách).
+- Font đã đo ở F1a: 6 file = 101 632 B vượt 90 KB; Owner bỏ độ đậm 600 (D-M6-12), còn 4 file = 67 424 B.
 - JS ban đầu chỉ còn trống khoảng 10.3 KiB (đo ở `5fdce55`). DESIGN-M6-001 §14 có ngưỡng kích hoạt để dời phần export sang chunk lazy.
 
 ### Privacy/security
@@ -151,7 +151,7 @@
 
 | Action | Owner | Due/trigger | Status |
 | --- | --- | --- | --- |
-| Pin version `@fontsource/be-vietnam-pro`, đo 6 file woff2 so với 90 KB | Platform | F1a | open |
+| Pin version `@fontsource/be-vietnam-pro`, đo 6 file woff2 so với 90 KB | Platform | F1a | done — pin `5.3.0`; 6 file = 101 632 B > 90 000 B; Owner chọn bỏ 600 (D-M6-12), 4 file = 67 424 B |
 | Thêm 3 trường settings vào kho dữ liệu cá nhân trong `docs/SECURITY_PRIVACY.md` §2 | Security Reviewer | G2 của F1b | open |
 | Sửa câu chữ ADR-0014 điểm 3 và ADR-0010 quy tắc 4 nếu Owner đồng ý (Q-3) | Tech Lead | khi ký G1 | open |
 | Thêm ADR-0015 vào bảng ADR của `docs/README.md` và `docs/TECH_STACK.md` | Tech Lead | khi ký G1 | open |
@@ -159,3 +159,4 @@
 | Change ID | Date/actor | Reason | Supersedes |
 | --- | --- | --- | --- |
 | ADR-0015-r0 | 2026-11-12, Tech Lead (agent) | Đề xuất ban đầu cho G1 của M6 | — |
+| ADR-0015-r1 | 2026-11-12, Platform (agent), quyết định của Owner `2026-11-12T15:35Z` | Font đo vượt ngân sách ở F1a; bỏ độ đậm 600 (D-M6-12) | điểm 4 (độ đậm) |

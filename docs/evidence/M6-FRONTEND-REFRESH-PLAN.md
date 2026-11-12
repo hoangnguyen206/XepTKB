@@ -37,7 +37,7 @@
 ## 4. Hệ thiết kế
 
 - **Màu:** nền `#F5F6FA`, chữ `#15172A`, màu nhấn chàm `#4F46E5` (chữ trắng trên nền này ≥ 4.5:1), đỏ cho trùng lịch `#B91C1C`/`#DC2626`. **Bảng màu môn:** 8–10 cặp nền nhạt + viền đậm + chữ đậm, mỗi cặp chữ/nền ≥ 4.5:1, kèm phiên bản dark mode. Trùng lịch không chỉ báo bằng màu: luôn có viền đỏ, sọc chéo, biểu tượng và chữ "Trùng".
-- **Chữ:** Be Vietnam Pro tự host (400/600/800, subset vietnamese + latin, woff2), số lớn đậm cho điểm nhấn (tuần, tín chỉ).
+- **Chữ:** Be Vietnam Pro tự host (400/800 sau D-M6-12, subset vietnamese + latin, woff2), số lớn đậm cho điểm nhấn (tuần, tín chỉ).
 - **Hình khối:** bo góc 10/16/24 px, 2 mức bóng đổ, vùng chạm ≥ 44 px.
 - **Chuyển động:** 150–250 ms; ô lớp "rơi" vào lịch khi thêm (View Transitions, có fallback); tắt khi `prefers-reduced-motion`.
 - **Biểu tượng:** khoảng 15 SVG nét mảnh, nhúng trong code (bộ Lucide, giấy phép ISC), không tải icon font.
