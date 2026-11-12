@@ -1,13 +1,13 @@
 # M6 spec — Làm mới frontend "Lịch có màu"
 
 > **Artifact ID:** `SPEC-M6-001`  
-> **Artifact status:** `draft`  
+> **Artifact status:** `g0-approved`  
 > **Canonical gate:** `G0`  
 > **Owner:** Product Spec  
 > **Last reviewed:** 2026-11-12  
 > **Related docs:** [PLAN-M6-001](M6-FRONTEND-REFRESH-PLAN.md), [PRD §4/§6/§8](../PRD.md), [Security & privacy](../SECURITY_PRIVACY.md), [QA plan](../QA_TEST_PLAN.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md)  
 > **Evidence envelope:** `EVID-M6-001` (tạo ở G2; hiện `N/A — docs-only`)  
-> **Decision actor / UTC timestamp:** `pending Owner sign-off` — chưa có actor/timestamp  
+> **Decision actor / UTC timestamp:** Approved by Owner (Product / Tech Lead) at `2026-11-12T14:53Z` (chat: "Ký G0")  
 > **Receiving owner / acknowledgement:** Tech Lead (G1 `DESIGN-M6-001`), Frontend, Tester, Security Reviewer, Independent Reviewer
 
 ## 1. Nguồn và traceability
@@ -68,7 +68,7 @@ Sinh viên mở app là thấy ngay lịch tuần nhiều màu, thêm lớp tron
 | D-M6-7 | Ảnh poster làm trong M6 (bước F7) | Owner, chat 2026-11-12 |
 | D-M6-8 | G4a không phụ thuộc M6: có TKB HK II đã duyệt thì lên production bằng giao diện hiện tại | Owner, chat 2026-11-12 |
 
-**Giả định cần Owner xác nhận khi ký G0:**
+**Giả định đã được Owner xác nhận cùng G0 (`2026-11-12T14:53Z`):**
 
 - **A-M6-1:** câu "công cụ độc lập của sinh viên, không phải sản phẩm của nhà trường" hiện ở màn Bắt đầu, trong sheet Giới thiệu (mở từ nút (i) trên mọi màn) và trong mọi file xuất. Như vậy vẫn đáp ứng CLAUDE.md §3, dù không lặp lại trên màn Lịch.
 - **A-M6-2:** thông tin nguồn dữ liệu (PRD P0 #12, Integrity) xem được trong ≤ 2 chạm: chip học kỳ → sheet nguồn dữ liệu.
@@ -126,11 +126,11 @@ Sinh viên mở app là thấy ngay lịch tuần nhiều màu, thêm lớp tron
 - **Implementer:** Frontend (M6-A…I), Coder/Platform (font precache, ngân sách, script), theo bước F1–F7 của PLAN-M6-001.
 - **G1 kế tiếp:** `DESIGN-M6-001` (module, token, settings mới, lazy, test) + ADR nếu settings mới cần ghi quyết định.
 - **Tác động release:** không đổi luồng G4a/G4b (D-M6-8).
-- **Definition of Ready:** `blocked` cho implementation tới khi có G0 (spec này) và G1.
-- **G0 decision:** `pending Owner sign-off`.
-- **Approver actor/date/evidence:** chưa có.
+- **Definition of Ready:** G0 đạt; implementation vẫn `blocked` tới khi G1 (`DESIGN-M6-001`) được ký.
+- **G0 decision:** `g0-approved` — Owner, `2026-11-12T14:53Z`.
+- **Approver actor/date/evidence:** Owner (Product / Tech Lead), `2026-11-12T14:53Z`, câu trả lời "Ký G0" trong chat; A-M6-1…3 được xác nhận cùng lúc.
 
-## 10. Cập nhật tài liệu khi G0 được ký
+## 10. Cập nhật tài liệu khi G0 được ký (đã làm `2026-11-12T14:53Z`)
 
 - PRD §8: thêm NFR "Theme: sáng/tối theo hệ điều hành" và nguyên tắc "giao diện ít chữ, thông tin phụ sau một chạm"; FR-11: thêm poster PNG.
 - IMPLEMENTATION_PLAN §2: thêm dòng M6; §7: thêm D-M6-1…8.

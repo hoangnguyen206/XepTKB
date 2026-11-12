@@ -2,7 +2,7 @@
 
 > **Status:** draft / proposed  
 > **Owner:** Product Spec  
-> **Last reviewed:** 2026-11-11  
+> **Last reviewed:** 2026-11-12  
 > **Related docs:** [Implementation plan](IMPLEMENTATION_PLAN.md), [Domain model](DOMAIN_MODEL.md), [Parser spec](PARSER_SPEC.md), [QA plan](QA_TEST_PLAN.md)
 
 ## 1. Tóm tắt
@@ -117,7 +117,7 @@ Thiết bị thường là điện thoại, có thể có file/ảnh từ group 
 | FR-08 | Tính tổng tín chỉ và cảnh báo thiếu/vượt nếu cấu hình; môn `ONL` vẫn được cộng (Q-009) | P0 | unit/UI test |
 | FR-09 | Parse registration result trên browser, loại PII | P0 | security test + manual evidence |
 | FR-10 | Registration room/time override TKB, mark changed | P0 | merge fixture |
-| FR-11 | Export PNG, Word (.doc HTML), ICS với timezone đúng; print CSS A4 ngang cho “In / Lưu PDF” | P0 | artifact snapshots + calendar import + print preview check |
+| FR-11 | Export PNG, Word (.doc HTML), ICS với timezone đúng; print CSS A4 ngang cho “In / Lưu PDF”; ảnh poster PNG 1080×1350 theo màu môn (M6, D-M6-7) | P0 | artifact snapshots + calendar import + print preview check |
 | FR-12 | Admin ingest versioned, validate, review, publish/rollback | P0 | runbook drill |
 | FR-13 | Study-plan PDF → week 1 | P1 | parser fixture |
 | FR-14 | Read-only share link (URL-encoded section IDs, không backend) | P1 | unit/UI test URL codec |
@@ -175,6 +175,7 @@ Nếu tuần không giao nhau thì không báo time conflict dù cùng thứ/ti�
 - **Privacy:** local file parse; server không nhận raw registration file; logs không có PII.
 - **Accessibility:** keyboard usable trên desktop, focus visible, target touch đủ lớn, color không phải tín hiệu duy nhất, reduced motion.
 - **Responsive:** 360px không horizontal page scroll; grid có vùng scroll được chủ ý.
+- **Theme & mật độ chữ (M6, [SPEC-M6-001](evidence/M6-SPEC.md)):** giao diện sáng/tối theo hệ điều hành, có nút chuyển; thông tin phụ nằm sau một chạm (sheet/chip), không lặp chữ hướng dẫn; mọi cặp màu chữ/nền và màu môn ≥ 4.5:1 ở cả hai theme.
 - **Compatibility:** Tier 1 (full): Chrome Android, Safari iOS 2 phiên bản gần nhất, Chrome/Edge desktop. Tier 2 (smoke): Firefox desktop, Samsung Internet, in-app browser Facebook/Messenger/Zalo — khi detect in-app browser, hiện nudge “Mở bằng trình duyệt” cho upload/download. Không tuyên bố hỗ trợ ngoài matrix này khi chưa test.
 - **Integrity:** dataset version/hash/provenance hiển thị cho admin và user.
 
