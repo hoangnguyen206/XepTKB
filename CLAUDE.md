@@ -1,14 +1,14 @@
 # Kỳ Này — Hướng dẫn làm việc cho Claude Code và Agent
 
-> **Status:** draft / M0–M4 merged on `main` (`c2e93b9`); M3 (`EVID-M3-001`, G4b drill `DRILL-M3-G4b-001`) and M4 (`EVID-M4-001`, registration merge UI) have passed G0 + G1 + G2 + G3a/G3b/G3c with Owner sign-off (`qa-pass`, `security-approved`, `review-approved`; `0` open code/CI findings); M5 release gates (`G4a/G4b/G5`) remain
+> **Status:** draft / M0–M5 merged on `main` (`ba43867`); M3 (`EVID-M3-001`, G4b drill `DRILL-M3-G4b-001`) and M4 (`EVID-M4-001`, registration merge UI) have passed G0 + G1 + G2 + G3a/G3b/G3c with Owner sign-off (`qa-pass`, `security-approved`, `review-approved`; `0` open code/CI findings); M5 (release hardening, `EVID-M5-001`) passed G0 + G1 + G2 + G3a/G3b/G3c with Owner sign-off on `2026-11-12T04:19Z` and merged via PR #3 (`ba43867`, CI run `43155073708` green); release gates `G4a/G4b/G5` (production deploy, HK II dataset publish, post-release) remain
 > **Owner:** Tech Lead  
-> **Last reviewed:** 2026-11-06
+> **Last reviewed:** 2026-11-12
 > **Source of truth:** các tài liệu trong `docs/`; bản brief chỉ là nguồn đầu vào ban đầu.
 > **Related docs:** [docs index](docs/README.md), [Agent workflow](.claude/AGENT_WORKFLOW.md)
 
 ## 1. Bối cảnh
 
-Kỳ Này (tên làm việc, chưa chốt thương hiệu) là web app/PWA giúp sinh viên UET xếp thời khóa biểu từ dữ liệu trường phát hành. MVP tập trung UET, chạy tốt trên điện thoại nhưng không bỏ qua desktop. Repository hiện có foundation (M0), parser (M1), domain engine (M2), package export + CLI publish dữ liệu + web app M3 ([EVID-M3-001](docs/evidence/M3-EVIDENCE-ENVELOPE.md), đã hoàn tất diễn tập [DRILL-M3-G4b-001](docs/evidence/M3-G4b-DRILL-REPORT.md)) và luồng đối chiếu kết quả ĐKMH cục bộ M4 ([EVID-M4-001](docs/evidence/M4-EVIDENCE-ENVELOPE.md)), tất cả đã hợp nhất vào `main` (`c2e93b9`); đã có preview trên Cloudflare Pages, chưa có deploy production công khai, chưa có dataset TKB HK II 2026–2027 thật từ nhà trường hay release M5 (`G4a/G4b/G5`).
+Kỳ Này (tên làm việc, chưa chốt thương hiệu) là web app/PWA giúp sinh viên UET xếp thời khóa biểu từ dữ liệu trường phát hành. MVP tập trung UET, chạy tốt trên điện thoại nhưng không bỏ qua desktop. Repository hiện có foundation (M0), parser (M1), domain engine (M2), package export + CLI publish dữ liệu + web app M3 ([EVID-M3-001](docs/evidence/M3-EVIDENCE-ENVELOPE.md), đã hoàn tất diễn tập [DRILL-M3-G4b-001](docs/evidence/M3-G4b-DRILL-REPORT.md)) luồng đối chiếu kết quả ĐKMH cục bộ M4 ([EVID-M4-001](docs/evidence/M4-EVIDENCE-ENVELOPE.md)) và release hardening M5 ([EVID-M5-001](docs/evidence/M5-EVIDENCE-ENVELOPE.md): phiên bản/commit trên UI, báo sai dữ liệu không gửi mạng, trang Giới thiệu & quyền riêng tư, lazy chunk nhập ĐKMH + bundle budget, icon PWA, secret scan/audit trong CI, runbook release/rollback), tất cả đã hợp nhất vào `main` (`ba43867`); đã có preview trên Cloudflare Pages (`xeptkb-63v.pages.dev`, cũng là domain production đã chốt), chưa bật deploy production, chưa có dataset TKB HK II 2026–2027 thật từ nhà trường, chưa chạy `G4a/G4b/G5`. Việc tồn đọng: mục "Việc tồn đọng" trong EVID-M5-001.
 
 Mốc kinh doanh/kỹ thuật cần ưu tiên là khi trường công bố TKB học kỳ II năm học 2026–2027, dự kiến tuần **09–15/11/2026**. Nếu không kịp, cắt scope theo [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), không âm thầm hạ chất lượng parser hoặc privacy.
 
@@ -81,7 +81,7 @@ Một task chỉ hoàn thành khi đạt gate tương ứng trong [Agent workflo
 - docs, changelog, rollback/monitoring và handoff được cập nhật;
 - không dùng dữ liệu thật trong CI hoặc log.
 
-Các tài liệu sản phẩm ở cấp toàn dự án vẫn ở `draft`/`proposed` cho tới khi hoàn tất M5 (`G4a/G4b/G5`); riêng milestone M3 ([EVID-M3-001](docs/evidence/M3-EVIDENCE-ENVELOPE.md)) và M4 ([EVID-M4-001](docs/evidence/M4-EVIDENCE-ENVELOPE.md)) đã vượt qua trọn bộ cổng G0 + G1 + G2 + G3a/G3b/G3c kèm sign-off của Owner ngày `2026-11-06` và đã merge vào `main`. Không điền giả trạng thái deploy production hay release khi chưa chạy G4a/G4b/G5.
+Các tài liệu sản phẩm ở cấp toàn dự án vẫn ở `draft`/`proposed` cho tới khi hoàn tất M5 (`G4a/G4b/G5`); riêng milestone M3 ([EVID-M3-001](docs/evidence/M3-EVIDENCE-ENVELOPE.md)) và M4 ([EVID-M4-001](docs/evidence/M4-EVIDENCE-ENVELOPE.md)) đã vượt qua trọn bộ cổng G0 + G1 + G2 + G3a/G3b/G3c kèm sign-off của Owner ngày `2026-11-06`, M5 ([EVID-M5-001](docs/evidence/M5-EVIDENCE-ENVELOPE.md)) ngày `2026-11-12`, và đều đã merge vào `main`. Không điền giả trạng thái deploy production hay release khi chưa chạy G4a/G4b/G5.
 
 ## 6. Quy tắc cho Agent
 
