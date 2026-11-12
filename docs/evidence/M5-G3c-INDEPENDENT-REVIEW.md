@@ -3,7 +3,7 @@
 - Artifact ID: `REVIEW-M5-001`
 - Canonical gate: `G3c`
 - Producer role: `Independent Reviewer` (`.claude/agents/reviewer.md` — Independent Verification Agent)
-- Review round: `R1`
+- Review round: `R1` — Owner sign-off `2026-11-12T04:19Z` (cuối báo cáo)
 - Milestone: `M5 — Release hardening và launch readiness` (kèm mục tái kiểm định độc lập `M4 — Registration Merge UI` để đóng phần `G3c` của finding `F-M5-001` / `M5-L`)
 - Reviewed commit / branch: `5f735fc18ebd01bf02710ecd5ae0f239a158dd3c` (`5f735fc`, base commit `0e849f1` cho M5; đồng thời tái kiểm định `git diff 3c34c89..6fd1506` của M4 trên trạng thái repo tại `5f735fc`)
 - Input handoff artifact(s):
@@ -193,3 +193,11 @@ Theo [`docs/evidence/M5-SPEC.md`](file:///C:/Users/ADMIN/Desktop/XepTKB/docs/evi
     2. **Đóng phần `G3c` của `F-M5-001` (`M5-L`):** Mục 6 của báo cáo này đã đính chính toàn bộ định danh sai trong `docs/evidence/M4-G3c-INDEPENDENT-REVIEW.md` và tái xác minh đầy đủ mã nguồn M4 (`git diff 3c34c89..6fd1506`) cùng 5 finding `REV-M4-001..004` + `SEC-M4-001` bằng 100% định danh có thật kèm `file:line` trên commit `5f735fc`.
     3. **Follow-up duy nhất (`REV-M5-001`, mức `S3` non-blocking):** Đồng bộ các mục tài liệu hậu `G0`/`G1` theo `SPEC-M5-001` §1 (`docs/PRD.md`, `docs/IMPLEMENTATION_PLAN.md`) và dọn 3 câu chữ trạng thái trước `G2` trong `docs/README.md:152`, `docs/OPERATIONS.md:56, 208` và `docs/evidence/M5-RELEASE-REPORT.md:29` khi human Owner ký duyệt `G0`/`G1`/`G3` trước `G4a`/`G5`.
 - **Lưu ý quản trị (Governance Note):** Quyết định `approved-with-follow-up` trên đây là đề xuất kỹ thuật độc lập của subagent `Independent Reviewer` (`G3c`). Quyền phê duyệt đóng cổng chính thức (final gate sign-off) thuộc về **human Owner**.
+
+---
+
+## Owner sign-off (G3c)
+
+- **Decision accepted:** `review-pass-with-follow-up`; follow-up `REV-M5-001` đã sửa (`47836a3`) và đóng.
+- **Actor / UTC timestamp:** Owner (Product / Tech Lead / Security / Release Manager), `2026-11-12T04:19Z` (chat: "Tôi duyệt tất cả").
+- **Scope:** commit `5f735fc` (G2/G3 target); findings `F-M5-001`, `F-M5-002` và `REV-M5-001` đóng theo [EVID-M5-001](M5-EVIDENCE-ENVELOPE.md). CI GitHub: run `43153778627` trên `98325ae` (`check` + `e2e` pass).

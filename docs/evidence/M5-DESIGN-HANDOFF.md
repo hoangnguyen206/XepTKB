@@ -1,13 +1,13 @@
 # M5 design handoff — Release hardening without telemetry
 
 > **Artifact ID:** `DESIGN-M5-001`  
-> **Artifact status:** `draft` — G1 decision pending Owner sign-off (no `g1-approved` recorded)  
+> **Artifact status:** `g1-approved`  
 > **Canonical gate:** `G1`  
 > **Owner:** Tech Lead (+ Frontend, Platform, Release Manager per work package)  
 > **Last reviewed:** 2026-11-10  
 > **Related docs:** [M5 spec (SPEC-M5-001)](M5-SPEC.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0012](../adr/ADR-0012-dataset-publish-pipeline.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [Architecture](../ARCHITECTURE.md), [Security & privacy](../SECURITY_PRIVACY.md), [Operations](../OPERATIONS.md)  
 > **Evidence envelope:** `EVID-M5-001` (file `M5-EVIDENCE-ENVELOPE.md` is created at G2; this handoff is `N/A — docs-only`, no build/test run)  
-> **Decision actor / UTC timestamp:** pending — Owner (Tech Lead + Security) at G1
+> **Decision actor / UTC timestamp:** Approved by Owner (Tech Lead + Security) at `2026-11-12T04:19Z` (chat)
 
 ## 1. Context and constraints
 
@@ -122,14 +122,14 @@ flowchart LR
 
 ## 11. Open decisions for Owner (G1 sign-off)
 
-1. Report link target: none (copy-only, recommended default) vs GitHub issues vs a form; must be `https:` and carry no prefilled data.
-2. First version/tag (`v0.1.0` proposed) and whether `builtAt` stays in the bundle (non-reproducible builds).
-3. Bundle budget thresholds (measured + 10 %) after WP1.
-4. Disclaimer/privacy/About wording legal review (PRD §11) and production domain (D-001).
-5. Monitoring window length (72 h proposed) and ADR-0014 acceptance.
+1. Report link target: none (copy-only, recommended default) vs GitHub issues vs a form; must be `https:` and carry no prefilled data. **Decided 2026-11-11: Google Form (Owner creates it; admin feedback tab deferred).**
+2. First version/tag (`v0.1.0` proposed) and whether `builtAt` stays in the bundle (non-reproducible builds). **Decided 2026-11-12: `v0.1.0`; `builtAt` stays.**
+3. Bundle budget thresholds (measured + 10 %) after WP1. **Approved 2026-11-11.**
+4. Disclaimer/privacy/About wording legal review (PRD §11) and production domain (D-001). **Decided: AI-drafted wording accepted (2026-11-11); domain `xeptkb-63v.pages.dev` (2026-11-12).**
+5. Monitoring window length (72 h proposed) and ADR-0014 acceptance. **Decided 2026-11-12: 72 h; ADR-0014 accepted.**
 
 ## 12. Approval
 
-- Product scope approval (`SPEC-M5-001`, G0): pending.
-- Tech Lead + Security design review (G1): pending — Security consultation required for the report-issue link and clipboard (ADR-0014 §Privacy/security).
-- Decision: pending (`g1-approved` / `g1-blocked` to be recorded by Owner with UTC timestamp).
+- Product scope approval (`SPEC-M5-001`, G0): `g0-approved` by Owner (`2026-11-12T04:19Z`).
+- Tech Lead + Security design review (G1): `g1-approved` by Owner (`2026-11-12T04:19Z`); Security design review recorded as `security-design-pass` in [SEC-REVIEW-M5-001](M5-G3b-SECURITY-REVIEW.md).
+- Decision: `g1-approved` — Owner, `2026-11-12T04:19Z` (chat).

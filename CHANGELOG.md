@@ -17,7 +17,7 @@ Quy ước (chi tiết ở [OPERATIONS §4.3](docs/OPERATIONS.md)):
 
 ## [Unreleased]
 
-Thay đổi M5 (release hardening) đang triển khai trên nhánh `m5-release-hardening` theo [SPEC-M5-001](docs/evidence/M5-SPEC.md) / [DESIGN-M5-001](docs/evidence/M5-DESIGN-HANDOFF.md). G0/G1 chờ Owner duyệt; chưa qua G2/G3; chưa deploy production. Dòng nào chưa được merge khi release thì phải bỏ khỏi mục version.
+Thay đổi M5 (release hardening) đang triển khai trên nhánh `m5-release-hardening` theo [SPEC-M5-001](docs/evidence/M5-SPEC.md) / [DESIGN-M5-001](docs/evidence/M5-DESIGN-HANDOFF.md). G0/G1/G3 đã được Owner duyệt ngày 2026-11-12; chưa deploy production. Dòng nào chưa được merge khi release thì phải bỏ khỏi mục version.
 
 ### Added
 

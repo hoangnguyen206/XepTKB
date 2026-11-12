@@ -1,6 +1,6 @@
 # Operations và release runbook
 
-> **Status:** proposed — cập nhật cho M5 (`SPEC-M5-001` §3 M5-I, `DESIGN-M5-001` §7); chờ Owner duyệt G0 của spec và G1 của design/ADR-0014  
+> **Status:** proposed — cập nhật cho M5 (`SPEC-M5-001` §3 M5-I, `DESIGN-M5-001` §7); Owner đã duyệt G0/G1 (2026-11-12)  
 > **Owner:** Release Manager  
 > **Last reviewed:** 2026-11-10  
 > **Related docs:** [Data ingestion runbook](DATA_INGESTION_RUNBOOK.md), [Security](SECURITY_PRIVACY.md), [Tech stack](TECH_STACK.md), [ADR-0012](adr/ADR-0012-dataset-publish-pipeline.md), [ADR-0014](adr/ADR-0014-m5-release-observability-without-telemetry.md), [M5 spec](evidence/M5-SPEC.md), [M5 design handoff](evidence/M5-DESIGN-HANDOFF.md), [M5 release checklist](evidence/M5-RELEASE-CHECKLIST.md), [M5 release report (draft)](evidence/M5-RELEASE-REPORT.md), [HK I validation guide](evidence/M5-OWNER-HK1-VALIDATION-GUIDE.md), [CHANGELOG](../CHANGELOG.md)  
@@ -100,7 +100,7 @@ Rollback không xóa audit hoặc overwrite artifact cũ.
 
 ### 4.3 Version, tag và changelog
 
-- Version theo SemVer, nguồn duy nhất là `version` trong `package.json` gốc; footer hiển thị version này (M5-A) và **phải trùng tag**. Tag đầu tiên đề xuất `v0.1.0` (Owner quyết, DESIGN-M5-001 §11).
+- Version theo SemVer, nguồn duy nhất là `version` trong `package.json` gốc; footer hiển thị version này (M5-A) và **phải trùng tag**. Tag đầu tiên (Owner chốt 2026-11-12) `v0.1.0` (Owner quyết, DESIGN-M5-001 §11).
 - Tag annotated `vX.Y.Z` (ví dụ `git tag -a v0.1.0 -m "Kỳ Này v0.1.0" <sha>` rồi `git push origin v0.1.0`) chỉ đặt trên commit `main` đã deploy production, **chỉ do Owner tạo, chỉ sau quyết định G4a `app-released`**. Không tag preview/beta; không xóa hay dời tag đã push (sửa bằng version mới).
 - [CHANGELOG.md](../CHANGELOG.md) theo Keep a Changelog: mỗi PR có thay đổi người dùng/vận hành nhìn thấy thêm dòng vào `## [Unreleased]` (Added/Changed/Fixed/Security/Removed); lúc G4a chuyển thành mục version có ngày. Không ghi PII, raw file, URL preview hay secret vào changelog.
 - Dataset không có tag git; định danh là `datasetVersion` (ADR-0012 §7) và được ghi trong release report.
@@ -137,7 +137,7 @@ node scripts/smoke-deploy.mjs <baseUrl> [--production] [--expect-commit <sha7>]
 
 ### 5.3 Monitoring window
 
-- **Đề xuất (chờ Owner quyết, DESIGN-M5-001 §11 mục 5):** 72 giờ sau mỗi quyết định G4a `app-released`, và sau mỗi G4b publish trong tuần đăng ký.
+- **Owner chốt 2026-11-12:** 72 giờ sau mỗi quyết định G4a `app-released`, và sau mỗi G4b publish trong tuần đăng ký.
 - Trong window, Release Manager (Owner) **ít nhất một lần mỗi ngày**: xem trạng thái deploy Pages; chạy lại smoke §5.2 trên production nếu có deploy mới hoặc nghi ngờ; đọc mọi báo lỗi người dùng gửi và phân loại severity §7; đối chiếu ngẫu nhiên vài lớp trên production với file nguồn khi có báo sai dữ liệu.
 - Kết thúc window: ghi kết quả vào phần Monitoring/Post-release của release report và chuyển sang G5 (`closed` hoặc `follow-up-open`).
 

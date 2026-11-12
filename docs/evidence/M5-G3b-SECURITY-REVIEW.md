@@ -1,7 +1,7 @@
 # M5 security review — Release observability without telemetry, PII-free issue reporting, local error boundary & CI/deploy hardening (G1 + G3b)
 
 > **Artifact ID:** `SEC-REVIEW-M5-001`  
-> **Artifact status:** `needs_review` — G1 design boundary review (`ADR-0014`, `DESIGN-M5-001`) và G3b implementation verification trên commit cố định `5f735fc18ebd01bf02710ecd5ae0f239a158dd3c` (`5f735fc`, base `0e849f1`) đã hoàn tất độc lập (`0 S0`, `0 S1`, `0 S2`, `0 S3` ở mức code/CI); chờ Owner phê duyệt `G1`/`G3b` cùng ngoại lệ vận hành `RA-M5-001` (`D-M5-3`) và bước kiểm tra `SEC-M3-007` trên domain production ở `G4a`  
+> **Artifact status:** `approved` (Owner sign-off `2026-11-12T04:19Z`, cuối báo cáo) — G1 design boundary review (`ADR-0014`, `DESIGN-M5-001`) và G3b implementation verification trên commit cố định `5f735fc18ebd01bf02710ecd5ae0f239a158dd3c` (`5f735fc`, base `0e849f1`) đã hoàn tất độc lập (`0 S0`, `0 S1`, `0 S2`, `0 S3` ở mức code/CI); chờ Owner phê duyệt `G1`/`G3b` cùng ngoại lệ vận hành `RA-M5-001` (`D-M5-3`) và bước kiểm tra `SEC-M3-007` trên domain production ở `G4a`  
 > **Canonical gate:** `G1` (design boundary review cho `ADR-0014` / `DESIGN-M5-001`) + `G3b` (implementation verification trên `5f735fc`)  
 > **Owner:** Security Reviewer (agent role)  
 > **Last reviewed:** 2026-11-11  
@@ -100,3 +100,11 @@
 - **Required remediation/retest:** Không có yêu cầu sửa code (`none` ở mức G2/G3b). Tại cổng `G0`/`G1`/`G4a`, Owner ký xác nhận `RA-M5-001`, chốt `OD-M5-1..4`, và khi bật production ở `G4a` chạy `node scripts/smoke-deploy.mjs <productionUrl> --production --expect-commit <sha7>` cùng `curl.exe -sI https://<domain>/` để đóng mục vận hành `SEC-M3-007`.
 - **Actor/date/UTC:** Independent Security Reviewer subagent — `2026-11-11T13:45:00Z` (trên commit `5f735fc18ebd01bf02710ecd5ae0f239a158dd3c`).
 - **Next owner acknowledgement:** Owner (Product / Tech Lead / Security / Release Manager) xem xét và ký duyệt `G1`, `G3b` cùng `RA-M5-001` trong [`EVID-M5-001`](M5-EVIDENCE-ENVELOPE.md).
+
+---
+
+## Owner sign-off (G1 Security + G3b)
+
+- **Decision accepted:** `security-design-pass` (G1) và `security-pass-with-exception` (G3b) với ngoại lệ `RA-M5-001` được Owner chấp nhận; `SEC-M3-007` vẫn kiểm ở G4a.
+- **Actor / UTC timestamp:** Owner (Product / Tech Lead / Security / Release Manager), `2026-11-12T04:19Z` (chat: "Tôi duyệt tất cả").
+- **Scope:** commit `5f735fc` (G2/G3 target); findings `F-M5-001`, `F-M5-002` và `REV-M5-001` đóng theo [EVID-M5-001](M5-EVIDENCE-ENVELOPE.md). CI GitHub: run `43153778627` trên `98325ae` (`check` + `e2e` pass).

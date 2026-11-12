@@ -1,7 +1,7 @@
 # ADR-0014 — M5 release observability without runtime telemetry, and a report-issue channel without network egress
 
 > **Artifact ID:** `ADR-0014`  
-> **Artifact status:** `proposed` — G1 decision pending Owner sign-off  
+> **Artifact status:** `accepted` — G1 approved by Owner at `2026-11-12T04:19Z`  
 > **Canonical gate:** `G1`  
 > **Date:** 2026-11-10  
 > **Owner:** Tech Lead + Release Manager  
@@ -102,8 +102,8 @@
 
 ## Approval and risk acceptance
 
-- Decision: pending (`g1-approved` / `g1-blocked`).
-- Accepted by / actor / UTC date: pending — Owner (Tech Lead + Security).
+- Decision: `g1-approved`.
+- Accepted by / actor / UTC date: Owner (Tech Lead + Security), `2026-11-12T04:19Z` (chat).
 - Risk exception: none proposed. The lack of runtime error visibility is accepted by design (`D-M5-2`), not by exception.
 
 ## Follow-up and history

@@ -4,7 +4,7 @@
 - **Canonical Gate:** `G3a` (Independent QA Verification)
 - **Role / Author:** `Tester` (`.claude/agents/tester.md`)
 - **Date:** `2026-11-11` (bản đính chính R1.1 cùng ngày, xem §10)
-- **Status:** `needs_review` — gate recommendation `qa-pass` (G3a technical verification complete; đính chính trích dẫn R1.1 theo `F-M5-002`; `qa-pass` cho toàn bộ phạm vi tự động hóa; chờ `Owner` ký duyệt và thực hiện checklist thiết bị thật / dữ liệu HK I thật trước `G4a`)
+- **Status:** `approved` — Owner sign-off `2026-11-12T04:19Z` (cuối báo cáo); gate recommendation `qa-pass` (G3a technical verification complete; đính chính trích dẫn R1.1 theo `F-M5-002`; `qa-pass` cho toàn bộ phạm vi tự động hóa; chờ `Owner` ký duyệt và thực hiện checklist thiết bị thật / dữ liệu HK I thật trước `G4a`)
 - **Milestone / Scope:** `M5 — Release hardening và launch readiness` (kèm tái kiểm định toàn diện `M4 — So khớp kết quả ĐKMH, phương án chính thức và override giờ/phòng` theo `M5-L` / `AC-M5-19` để xử lý triệt để finding `F-M5-001`)
 - **Evidence Envelope:** `EVID-M5-001` (`docs/evidence/M5-EVIDENCE-ENVELOPE.md`)
 - **Inputs:**
@@ -216,3 +216,11 @@ Theo đúng nguyên tắc trung thực bằng chứng của `CLAUDE.md`, `docs/Q
 - **Kiểm chứng:** mọi số dòng test mà §4 dẫn (`m4-registration.test.tsx`, `m4.spec.ts`) đã được đối chiếu với nội dung thật và khớp. Chạy lại đúng các test được dẫn (§7, hàng `F-M5-002`): node:test `43/43`, Vitest `16/16`, exit `0`. `npm run check` chạy lại trên `ca907cc`: exit `0` (node:test `142/142`, Vitest `105/105`, fixtures `6/6`, dataset check OK).
 - **Ảnh hưởng tới kết luận:** không đổi kết quả PASS của `AC-M4-01..08`, `AC-04`, `AC-05` và `AC-M5-01..19` vì các test thật tồn tại và pass; nhưng tuyên bố đóng `F-M5-001` ở R1 dựa trên bằng chứng chưa chính xác. Recommendation G3a giữ `qa-pass`, có hiệu lực từ R1.1. `F-M5-001` và `F-M5-002` chỉ được coi là đóng khi Owner ký G3.
 - **Bài học quy trình:** báo cáo G3 từ nay phải kèm một lần quét định danh tự động (backtick → `git grep`/`git ls-tree`) trên commit đích trước khi tuyên bố trích dẫn đầy đủ.
+
+---
+
+## Owner sign-off (G3a)
+
+- **Decision accepted:** `qa-pass` (R1.1).
+- **Actor / UTC timestamp:** Owner (Product / Tech Lead / Security / Release Manager), `2026-11-12T04:19Z` (chat: "Tôi duyệt tất cả").
+- **Scope:** commit `5f735fc` (G2/G3 target); findings `F-M5-001`, `F-M5-002` và `REV-M5-001` đóng theo [EVID-M5-001](M5-EVIDENCE-ENVELOPE.md). CI GitHub: run `43153778627` trên `98325ae` (`check` + `e2e` pass).

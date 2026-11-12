@@ -24,12 +24,12 @@ Không điền giá trị nào dưới đây trước khi bước tương ứng 
 
 | Gate | Decision | Actor/date | Evidence ID/link | Conditions |
 | --- | --- | --- | --- | --- |
-| G0 | pending | pending | [SPEC-M5-001](M5-SPEC.md) | OD-M5-1..5, `RA-M5-001` cần Owner ký |
-| G1 | `security-design-pass` (chờ Owner `g1-approved`) | Security Reviewer (`2026-11-11`) / Owner pending | [DESIGN-M5-001](M5-DESIGN-HANDOFF.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md), [SEC-REVIEW-M5-001](M5-G3b-SECURITY-REVIEW.md) | OD-M5-5 (lazy-load vs AC-M4-02) đã kiểm chứng; chờ Owner ký |
-| G2 | `g2-ready-for-verification` (local tại `5f735fc`) | Orchestrator (`2026-11-11`) | [EVID-M5-001](M5-EVIDENCE-ENVELOPE.md) | CI run ID trên GitHub Actions bổ sung khi push nhánh/PR |
-| G3a QA | `qa-pass` (chờ Owner sign-off) | Tester (`2026-11-11`) | [TEST-M5-001](M5-G3a-QA-REPORT.md) | `19/19` `AC-M5-01..19` & `10/10` AC M4 PASS (`F-M5-001` đóng ở G3a); chờ checklist thiết bị thật trước G4a |
-| G3b Security | `security-pass-with-exception` (chờ Owner sign-off) | Security Reviewer (`2026-11-11`) | [SEC-REVIEW-M5-001](M5-G3b-SECURITY-REVIEW.md) | `0` S0/S1/S2/S3 code/CI; chờ Owner ký `RA-M5-001` và kiểm `SEC-M3-007` ở G4a |
-| G3c Review | `review-pass-with-follow-up` (chờ Owner sign-off) | Independent Reviewer (`2026-11-11`) | [REVIEW-M5-001](M5-G3c-INDEPENDENT-REVIEW.md) | `0` S0/S1/S2, `1` S3 (`REV-M5-001`); phần G3c của `F-M5-001` đã đóng |
+| G0 | `g0-approved` | Owner (`2026-11-12T04:19Z`) | [SPEC-M5-001](M5-SPEC.md) | OD-M5-1…5 đã chốt; `RA-M5-001` accepted |
+| G1 | `g1-approved` (`security-design-pass` bởi G3b) | Security Reviewer (`2026-11-11`) / Owner (`2026-11-12T04:19Z`) | [DESIGN-M5-001](M5-DESIGN-HANDOFF.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md), [SEC-REVIEW-M5-001](M5-G3b-SECURITY-REVIEW.md) | OD-M5-5 (lazy-load vs AC-M4-02) đã kiểm chứng; chờ Owner ký |
+| G2 | `g2-ready-for-verification` (local tại `5f735fc`) | Orchestrator (`2026-11-11`) | [EVID-M5-001](M5-EVIDENCE-ENVELOPE.md) | GitHub CI run `43153778627` trên `98325ae` (`check` + `e2e` pass) |
+| G3a QA | `qa-pass` — Owner ký `2026-11-12T04:19Z` | Tester (`2026-11-11`) | [TEST-M5-001](M5-G3a-QA-REPORT.md) | `19/19` `AC-M5-01..19` & `10/10` AC M4 PASS (`F-M5-001` đóng ở G3a); chờ checklist thiết bị thật trước G4a |
+| G3b Security | `security-pass-with-exception` — Owner ký `2026-11-12T04:19Z` | Security Reviewer (`2026-11-11`) | [SEC-REVIEW-M5-001](M5-G3b-SECURITY-REVIEW.md) | `0` S0/S1/S2/S3 code/CI; chờ Owner ký `RA-M5-001` và kiểm `SEC-M3-007` ở G4a |
+| G3c Review | `review-pass-with-follow-up` — Owner ký `2026-11-12T04:19Z` | Independent Reviewer (`2026-11-11`) | [REVIEW-M5-001](M5-G3c-INDEPENDENT-REVIEW.md) | `0` S0/S1/S2, `1` S3 (`REV-M5-001`); phần G3c của `F-M5-001` đã đóng |
 | G4a App | pending — not executed | pending | [checklist §4](M5-RELEASE-CHECKLIST.md) | không trong vòng M5 này (D-M5-1) |
 | G4b Dataset | pending — not executed | pending | [checklist §2–§3](M5-RELEASE-CHECKLIST.md) | HK II chờ file trường; HK I chỉ preview |
 
@@ -38,7 +38,7 @@ S0/S1 hoặc P0 coverage thiếu ⇒ `no-go`. S2/S3 exception phải ghi owner, 
 Finding/exception đã biết:
 
 - `F-M5-001` — S2 (process/evidence), M4 G3a evidence integrity; **chặn G4a** tới khi G3a/G3c M5 kiểm chứng lại. Owner: Tester + Independent Reviewer. Trạng thái: open.
-- `RA-M5-001` — single reviewer (`--accept-single-reviewer`); owner Release Manager; mitigation và expiry ở [checklist §6](M5-RELEASE-CHECKLIST.md). Trạng thái: đề xuất, chờ Owner ký.
+- `RA-M5-001` — single reviewer (`--accept-single-reviewer`); owner Release Manager; mitigation và expiry ở [checklist §6](M5-RELEASE-CHECKLIST.md). Trạng thái: **accepted** — Owner `2026-11-12T04:19Z`.
 - `SEC-M3-007` — kiểm `curl -I` header trên domain production ở G4a. Trạng thái: open (vận hành).
 
 ## Deploy/publish evidence
