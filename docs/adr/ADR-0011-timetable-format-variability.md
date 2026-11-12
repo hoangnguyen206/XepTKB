@@ -7,8 +7,8 @@
 > **Owner:** Data Parser + Tech Lead
 > **Decision owner:** Product (owner approved the approach on 2026-10-30)
 > **Last reviewed:** 2026-11-06
-> **Related docs:** [Parser spec §4–§6, §8](../PARSER_SPEC.md), [ADR-0007](ADR-0007-static-artifact-cli-admin.md), [ADR-0008](ADR-0008-m1-parser-dependencies-local-provenance.md), [ADR-0009 amendment (15)](ADR-0009-m2-domain-engine-schema.md), [Fixture policy](../evidence/M0-FIXTURE-POLICY.md), [Implementation plan §10 C-10, Q-012](../IMPLEMENTATION_PLAN.md)
-> **Evidence envelope:** [EVID-M3-001 fix round 2026-10-30 & 2026-11-06](../evidence/M3-EVIDENCE-ENVELOPE.md)
+> **Related docs:** [Parser spec §4–§6, §8](../PARSER_SPEC.md), [ADR-0007](ADR-0007-static-artifact-cli-admin.md), [ADR-0008](ADR-0008-m1-parser-dependencies-local-provenance.md), [ADR-0009 amendment (15)](ADR-0009-m2-domain-engine-schema.md), [Fixture policy](../evidence/HISTORY.md), [Implementation plan §10 C-10, Q-012](../IMPLEMENTATION_PLAN.md)
+> **Evidence envelope:** [EVID-M3-001 fix round 2026-10-30 & 2026-11-06](../evidence/HISTORY.md)
 
 ## Context
 

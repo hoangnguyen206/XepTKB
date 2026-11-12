@@ -46,7 +46,7 @@ Các milestone dưới đây đã merge vào `main` nhưng **không phải relea
 
 | Milestone | Commit trên `main` | Ngày | Nội dung chính | Evidence |
 | --- | --- | --- | --- | --- |
-| M0 + M1 | `22bf934` (vào `main` qua merge M2 `aba04b0`) | 2026-10-20 | Monorepo TypeScript, fixture policy, CI nền; parser deterministic TKB `.xlsx` UET và file kết quả ĐKMH (local) | [EVID M0](docs/evidence/M0-EVIDENCE-ENVELOPE.md), [EVID M1](docs/evidence/M1-EVIDENCE-ENVELOPE.md) |
-| M2 | `aba04b0`; fix audit `e41a806`, `4681c63` | 2026-10-25 | Domain engine thuần: tìm kiếm, Plan, conflict theo thứ × tiết × tuần, ngày tuần 1, merge, tín chỉ (schema `0.2.0`) | [EVID M2 v2](docs/evidence/M2-EVIDENCE-ENVELOPE-v2.md), [audit M0–M2](docs/evidence/M0-M2-AUDIT-2026-10-25.md) |
-| M3 | `4915a86` (PR #1); drill `3c34c89` | 2026-11-06 | Web app/PWA, artifact loader, IndexedDB, export PNG/Word/ICS, CLI publish dữ liệu (ADR-0012), diễn tập G4b | [EVID-M3-001](docs/evidence/M3-EVIDENCE-ENVELOPE.md), [DRILL-M3-G4b-001](docs/evidence/M3-G4b-DRILL-REPORT.md) |
-| M4 | `bac83bf` (PR #2); đóng S3 `c2e93b9`; docs sync `0e849f1` | 2026-11-06 | Nhập kết quả ĐKMH cục bộ, 2 slot Plan nháp/chính thức, huy hiệu override phòng/giờ | [EVID-M4-001](docs/evidence/M4-EVIDENCE-ENVELOPE.md) |
+| M0 + M1 | `22bf934` (vào `main` qua merge M2 `aba04b0`) | 2026-10-20 | Monorepo TypeScript, fixture policy, CI nền; parser deterministic TKB `.xlsx` UET và file kết quả ĐKMH (local) | [EVID M0](docs/evidence/HISTORY.md), [EVID M1](docs/evidence/HISTORY.md) |
+| M2 | `aba04b0`; fix audit `e41a806`, `4681c63` | 2026-10-25 | Domain engine thuần: tìm kiếm, Plan, conflict theo thứ × tiết × tuần, ngày tuần 1, merge, tín chỉ (schema `0.2.0`) | [EVID M2 v2](docs/evidence/HISTORY.md), [audit M0–M2](docs/evidence/HISTORY.md) |
+| M3 | `4915a86` (PR #1); drill `3c34c89` | 2026-11-06 | Web app/PWA, artifact loader, IndexedDB, export PNG/Word/ICS, CLI publish dữ liệu (ADR-0012), diễn tập G4b | [EVID-M3-001](docs/evidence/HISTORY.md), [DRILL-M3-G4b-001](docs/evidence/M3-G4b-DRILL-REPORT.md) |
+| M4 | `bac83bf` (PR #2); đóng S3 `c2e93b9`; docs sync `0e849f1` | 2026-11-06 | Nhập kết quả ĐKMH cục bộ, 2 slot Plan nháp/chính thức, huy hiệu override phòng/giờ | [EVID-M4-001](docs/evidence/HISTORY.md) |

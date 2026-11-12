@@ -8,7 +8,7 @@
 > **Decision owner:** Product + Tech Lead
 > **Last reviewed:** 2026-10-20
 > **Related docs:** [Tech stack](../TECH_STACK.md), [Architecture](../ARCHITECTURE.md), [Implementation plan §2](../IMPLEMENTATION_PLAN.md), [PRD §4](../PRD.md)
-> **Evidence envelope:** [M0-G1 threat/data-flow review](../evidence/M0-G1-threat-data-flow.md)
+> **Evidence envelope:** [M0-G1 threat/data-flow review](../evidence/HISTORY.md)
 
 ## Source and context
 
@@ -73,7 +73,7 @@ This closes the M0 foundation choice without claiming that production hosting, P
 
 - Commands: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run fixtures:run`.
 - CI definition: `.github/workflows/m0-foundation.yml`.
-- Evidence: [M0 G1 threat/data-flow review](../evidence/M0-G1-threat-data-flow.md), [M0 implementation handoff](../evidence/M0-IMPLEMENTATION-HANDOFF.md).
+- Evidence: [M0 G1 threat/data-flow review](../evidence/HISTORY.md), [M0 implementation handoff](../evidence/HISTORY.md).
 - Acceptance criteria:
   - one locked workspace command runs lint, typecheck, tests and synthetic fixtures;
   - no M0 check requires a real or personal file;

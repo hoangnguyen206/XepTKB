@@ -4,7 +4,7 @@
 > **Owner:** Data Parser + Tech Lead  
 > **Last reviewed:** 2026-10-20
 > **Related docs:** [Parser spec](PARSER_SPEC.md), [PRD](PRD.md), [API contracts](API_AND_DATA_CONTRACTS.md)
-> **Schema implementation:** `0.2.0` on `main` (merge `aba04b0`); open findings in [audit M0–M2](evidence/M0-M2-AUDIT-2026-10-25.md); see [ADR-0009](adr/ADR-0009-m2-domain-engine-schema.md) and [M2 design handoff](evidence/M2-DESIGN-HANDOFF.md)
+> **Schema implementation:** `0.2.0` on `main` (merge `aba04b0`); open findings in [audit M0–M2](evidence/HISTORY.md); see [ADR-0009](adr/ADR-0009-m2-domain-engine-schema.md) and [M2 design handoff](evidence/HISTORY.md)
 
 ## 1. Quy tắc nền
 

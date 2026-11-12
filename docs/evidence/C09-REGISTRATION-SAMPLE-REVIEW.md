@@ -5,8 +5,8 @@
 > **Canonical gate/sub-gate:** `G1` (parser contract for `vnu-registration-html`) + `G2` (adapter 0.2.0, domain merge change)
 > **Owner:** Data Parser
 > **Last reviewed:** 2026-10-29
-> **Related docs:** [Parser spec §7](../PARSER_SPEC.md), [Fixture policy](M0-FIXTURE-POLICY.md), [ADR-0008 amendment 2026-10-29](../adr/ADR-0008-m1-parser-dependencies-local-provenance.md), [ADR-0009 amendment 2026-10-29](../adr/ADR-0009-m2-domain-engine-schema.md), [Audit M0–M2 AUD-002](M0-M2-AUDIT-2026-10-25.md), [Implementation plan §10 C-09](../IMPLEMENTATION_PLAN.md), [Security & privacy](../SECURITY_PRIVACY.md)
-> **Evidence envelope:** this file (source, method, commands, results, residual risk); M3 code evidence stays in [EVID-M3-001](M3-EVIDENCE-ENVELOPE.md)
+> **Related docs:** [Parser spec §7](../PARSER_SPEC.md), [Fixture policy](HISTORY.md), [ADR-0008 amendment 2026-10-29](../adr/ADR-0008-m1-parser-dependencies-local-provenance.md), [ADR-0009 amendment 2026-10-29](../adr/ADR-0009-m2-domain-engine-schema.md), [Audit M0–M2 AUD-002](HISTORY.md), [Implementation plan §10 C-09](../IMPLEMENTATION_PLAN.md), [Security & privacy](../SECURITY_PRIVACY.md)
+> **Evidence envelope:** this file (source, method, commands, results, residual risk); M3 code evidence stays in [EVID-M3-001](HISTORY.md)
 > **Decision actor / UTC timestamp:** Claude Code agent acting as Data Parser on the owner's request, 2026-10-29 — not an independent Data Reviewer sign-off
 
 ## Source
