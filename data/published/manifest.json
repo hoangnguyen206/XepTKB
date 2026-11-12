@@ -1,13 +1,13 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-11-12T09:38:07.387Z",
+  "generatedAt": "2026-11-12T10:00:53.584Z",
   "datasets": [
     {
       "datasetVersion": "uet-2026-2027-h1-20261112-33843d5f",
       "school": "uet",
       "term": "2026-2027-h1",
       "termName": "Học kỳ I năm học 2026–2027",
-      "status": "candidate",
+      "status": "validated",
       "source": {
         "type": "official-timetable",
         "documentRef": "TKB HKI 2026-2027 SAU ĐKH 04.09.2026",
@@ -30,7 +30,8 @@
           "sha256": "887a509c6e8487ee620c3aedeed52f0e5e5eadf22f2d38bbd5f6c6a3333540cb",
           "bytes": 1041
         }
-      ]
+      ],
+      "reviewedAt": "2026-11-12T10:00:53.583Z"
     }
   ]
 }
