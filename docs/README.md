@@ -14,8 +14,9 @@ _Cập nhật mục này (và chỉ mục này) khi trạng thái dự án đổ
 - **Code:** M0–M5 đã merge vào `main` (M5 qua PR #3 `ba43867`; link báo lỗi Google Form qua PR #5/#6). Lịch sử từng milestone: [HISTORY](evidence/HISTORY.md).
 - **Gate:** M5 đã qua G0/G1/G2/G3a/G3b/G3c, Owner ký `2026-11-12T04:19Z` ([EVID-M5-001](evidence/M5-EVIDENCE-ENVELOPE.md)). Chưa chạy **G4a** (app lên production), **G4b** (publish dataset HK II), **G5**.
 - **Hosting:** Cloudflare Pages, domain production đã chốt `xeptkb-63v.pages.dev`; deploy production đang tắt tới G4a. Preview theo nhánh `<nhánh>.xeptkb-63v.pages.dev`.
-- **Dữ liệu:** `main` chưa có dataset (`data/published/manifest.json` → `datasets: []`). TKB HK I 2026–2027 đã thử trên preview và được Owner duyệt (B-07); TKB HK II chờ trường công bố.
-- **Việc tồn đọng:** danh sách B-01…B-09 ở cuối [EVID-M5-001](evidence/M5-EVIDENCE-ENVELOPE.md) — còn mở: kiểm trên thiết bị thật (P-10…P-12), dataset HK II (B-08), G4a production (B-09).
+- **Dữ liệu:** `main` chưa có dataset (`data/published/manifest.json` → `datasets: []`). TKB HK I 2026–2027 đã thử trên preview và được Owner duyệt; Owner đã kiểm trên thiết bị thật (P-10…P-12, 2026-11-12). TKB HK II chờ trường công bố.
+- **Việc tồn đọng:** danh sách B-01…B-09 ở cuối [EVID-M5-001](evidence/M5-EVIDENCE-ENVELOPE.md) — còn mở: dataset HK II (B-08), G4a production (B-09).
+- **Tiếp theo (đề xuất):** M6 làm mới frontend "Lịch có màu" — [PLAN-M6-001](evidence/M6-FRONTEND-REFRESH-PLAN.md), chờ Owner chọn hướng (§11) trước G0.
 - **Vận hành:** một người vận hành theo ngoại lệ `RA-M5-001` (hết hạn trước G4a public đầu tiên hoặc 31/01/2027).
 
 ## Cây tài liệu
@@ -57,6 +58,7 @@ _Cập nhật mục này (và chỉ mục này) khi trạng thái dự án đổ
 - [Release checklist](evidence/M5-RELEASE-CHECKLIST.md), [release report nháp](evidence/M5-RELEASE-REPORT.md), [hướng dẫn thử HK I](evidence/M5-OWNER-HK1-VALIDATION-GUIDE.md) — dùng cho G4a/G4b/G5.
 - [DRILL-M3-G4b-001](evidence/M3-G4b-DRILL-REPORT.md) — diễn tập publish/rollback dataset.
 - [REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md) — nguồn của fixture đăng ký đã xóa PII.
+- [PLAN-M6-001](evidence/M6-FRONTEND-REFRESH-PLAN.md) — đề xuất làm mới frontend (trước G0).
 - [HISTORY](evidence/HISTORY.md) — tóm tắt M0–M4; bản đầy đủ trong tag `docs-archive-2026-11-12`.
 
 ## Đội Agent và template
