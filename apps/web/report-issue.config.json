@@ -1,0 +1,4 @@
+{
+  "$comment": "B-05 / OD-M5-1: public feedback form linked from 'Mở trang báo lỗi'. Committed because Cloudflare Pages dashboard variables did not reach the build (2026-11-12 build log). VITE_REPORT_ISSUE_URL overrides it; set VITE_REPORT_ISSUE_URL=off to build without a link. Must be https (ADR-0014 point 4).",
+  "url": "https://forms.gle/gk5TfaczQwg7kvXaA"
+}

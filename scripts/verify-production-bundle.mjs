@@ -5,7 +5,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { ICON_TARGETS, readPngSize } from "./generate-icons.mjs";
-import { validateReportUrl } from "./lib/build-identity.mjs";
+import { readDefaultReportUrl, resolveReportUrlSetting } from "./lib/build-identity.mjs";
 import { repoRoot } from "./lib/cli.mjs";
 
 const fail = (message) => {
@@ -94,7 +94,7 @@ if (!cspMeta || !cspMeta.split(";").map((part) => part.trim()).includes("connect
 if (!headersText.includes("connect-src 'self'")) fail("_headers CSP must keep connect-src 'self'");
 const INERT_ORIGINS = new Set(["react.dev", "www.w3.org"]);
 // The report link (ADR-0014 point 4) is a build-time constant rendered as a plain <a>; its host may appear in the code.
-const reportUrl = validateReportUrl(process.env.VITE_REPORT_ISSUE_URL);
+const reportUrl = resolveReportUrlSetting(process.env.VITE_REPORT_ISSUE_URL, readDefaultReportUrl());
 if (reportUrl) INERT_ORIGINS.add(new URL(reportUrl).hostname.toLowerCase());
 for (const file of jsFiles) {
   const code = readFileSync(join(assetsDir, file), "utf8");

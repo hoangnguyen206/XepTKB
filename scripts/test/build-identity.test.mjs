@@ -1,8 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  readDefaultReportUrl,
+  resolveReportUrlSetting,
   MAX_REPORT_URL_LENGTH,
   buildMetaContent,
   readRootVersion,
@@ -107,4 +110,32 @@ test("validateReportUrl rejects javascript:, data:, relative, http non-localhost
   // Exactly at the limit is fine.
   const atLimit = `https://example.org/${"a".repeat(MAX_REPORT_URL_LENGTH - "https://example.org/".length)}`;
   assert.equal(validateReportUrl(atLimit), atLimit);
+});
+
+test("committed default report URL is the Owner's https Google Form (B-05)", () => {
+  const url = readDefaultReportUrl(repoRoot);
+  assert.equal(url, "https://forms.gle/gk5TfaczQwg7kvXaA");
+  assert.equal(new URL(url).protocol, "https:");
+});
+
+test("resolveReportUrlSetting: env wins, 'off' disables, empty env falls back to the default, both validated", () => {
+  const fallback = "https://forms.gle/example";
+  assert.equal(resolveReportUrlSetting(undefined, fallback), fallback);
+  assert.equal(resolveReportUrlSetting("  ", fallback), fallback);
+  assert.equal(resolveReportUrlSetting("https://example.invalid/report", fallback), "https://example.invalid/report");
+  assert.equal(resolveReportUrlSetting("off", fallback), null);
+  assert.equal(resolveReportUrlSetting("OFF", fallback), null);
+  assert.equal(resolveReportUrlSetting(undefined, null), null);
+  assert.throws(() => resolveReportUrlSetting("javascript:alert(1)", fallback), /https/);
+  assert.throws(() => resolveReportUrlSetting(undefined, "http://example.com/form"), /https/);
+});
+
+test("readDefaultReportUrl returns null without a config file and fails closed on invalid JSON", () => {
+  const root = mkdtempSync(join(tmpdir(), "ky-nay-report-url-"));
+  assert.equal(readDefaultReportUrl(root), null);
+  mkdirSync(join(root, "apps", "web"), { recursive: true });
+  writeFileSync(join(root, "apps", "web", "report-issue.config.json"), "{ not json");
+  assert.throws(() => readDefaultReportUrl(root), /not valid JSON/);
+  writeFileSync(join(root, "apps", "web", "report-issue.config.json"), JSON.stringify({ url: null }));
+  assert.equal(readDefaultReportUrl(root), null);
 });

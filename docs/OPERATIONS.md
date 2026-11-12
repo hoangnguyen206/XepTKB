@@ -20,7 +20,7 @@ Quyết định Owner áp dụng cho tài liệu này (chat 2026-11-10, ghi ở 
 
 Trình tự promote (D-M5-1): **preview → beta link → production**. Không bỏ bước: một build chỉ lên production khi cùng commit (hoặc commit chỉ khác ở `data/`/docs đã review) đã chạy trên preview và qua smoke §5.2.
 
-Không commit secret; production secrets chỉ qua secret manager/CI protected variables. `.env.example` chỉ mô tả key names. Biến build duy nhất M5 thêm là `VITE_REPORT_ISSUE_URL` (tùy chọn, không phải secret; mặc định không đặt → báo lỗi chỉ sao chép, ADR-0014 §4).
+Không commit secret; production secrets chỉ qua secret manager/CI protected variables. `.env.example` chỉ mô tả key names. Link báo lỗi (Google Form của Owner, B-05) là cấu hình công khai, được commit ở `apps/web/report-issue.config.json`; biến build `VITE_REPORT_ISSUE_URL` (tùy chọn, không phải secret) ghi đè được, `off` tắt link (ADR-0014 §4). Lý do commit: ngày 2026-11-12 biến đặt ở mục "Variables and secrets" trên dashboard Pages không tới bước build — giống `VITE_ALLOW_UNPUBLISHED` ngày 31/10 — nên không dựa vào dashboard cho cấu hình build.
 
 ### Hosting — Cloudflare Pages (D-004 hosting, owner 31/10/2026)
 
