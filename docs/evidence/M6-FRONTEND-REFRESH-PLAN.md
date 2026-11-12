@@ -1,7 +1,7 @@
 # M6 — Kế hoạch làm mới frontend "Lịch có màu"
 
 > **Artifact ID:** `PLAN-M6-001`  
-> **Status:** proposed — đề xuất trước G0, chờ Owner chọn hướng và quyết định ở §11  
+> **Status:** accepted as input — Owner duyệt hướng ngày 2026-11-12; phạm vi và tiêu chí chính thức ở [SPEC-M6-001](M6-SPEC.md)  
 > **Owner:** Product Spec + Frontend + Tech Lead  
 > **Last reviewed:** 2026-11-12  
 > **Related docs:** [docs index](../README.md), [PRD](../PRD.md), [Architecture](../ARCHITECTURE.md), [Security & privacy](../SECURITY_PRIVACY.md), [QA plan](../QA_TEST_PLAN.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md)  
@@ -105,13 +105,6 @@
 - **Màu môn kém tương phản hoặc khó phân biệt với người mù màu:** dùng bảng màu đã kiểm, luôn kèm mã môn bằng chữ, trùng lịch có sọc + biểu tượng.
 - **Phình CSS/font:** đặt ngân sách từ F1; chỉ dùng 3 độ đậm.
 
-## 11. Cần Owner quyết
+## 11. Quyết định của Owner (2026-11-12)
 
-1. Chọn hướng "Lịch có màu" (theo canvas) hay muốn xem thêm hướng khác.
-2. Màu nhấn: chàm `#4F46E5` hay màu khác.
-3. Điều hướng dưới cùng 3 mục trên điện thoại.
-4. Font Be Vietnam Pro tự host.
-5. Dark mode trong phạm vi M6.
-6. Nâng ngân sách CSS gzip từ 5 KiB lên khoảng 12 KiB, thêm ngân sách font 90 KB.
-7. Thứ tự với G4a: lên production trước bằng giao diện cũ, hay chờ M6.
-8. Ảnh xuất dạng "poster" theo màu môn: làm trong M6 (F7) hay để P1.
+Đã chốt cả 8 điểm, ghi thành D-M6-1…8 trong [SPEC-M6-001 §4](M6-SPEC.md): hướng "Lịch có màu"; màu nhấn chàm `#4F46E5`; thanh dưới cùng 3 mục; Be Vietnam Pro tự host; dark mode trong M6; CSS ≤ 12 KiB, font ≤ 90 KB; poster làm trong M6 (F7); G4a không phụ thuộc M6.

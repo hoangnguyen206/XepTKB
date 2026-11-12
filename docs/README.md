@@ -16,7 +16,7 @@ _Cập nhật mục này (và chỉ mục này) khi trạng thái dự án đổ
 - **Hosting:** Cloudflare Pages, domain production đã chốt `xeptkb-63v.pages.dev`; deploy production đang tắt tới G4a. Preview theo nhánh `<nhánh>.xeptkb-63v.pages.dev`.
 - **Dữ liệu:** `main` chưa có dataset (`data/published/manifest.json` → `datasets: []`). TKB HK I 2026–2027 đã thử trên preview và được Owner duyệt; Owner đã kiểm trên thiết bị thật (P-10…P-12, 2026-11-12). TKB HK II chờ trường công bố.
 - **Việc tồn đọng:** danh sách B-01…B-09 ở cuối [EVID-M5-001](evidence/M5-EVIDENCE-ENVELOPE.md) — còn mở: dataset HK II (B-08), G4a production (B-09).
-- **Tiếp theo (đề xuất):** M6 làm mới frontend "Lịch có màu" — [PLAN-M6-001](evidence/M6-FRONTEND-REFRESH-PLAN.md), chờ Owner chọn hướng (§11) trước G0.
+- **M6 (làm mới frontend "Lịch có màu"):** Owner duyệt hướng và 8 quyết định ngày 2026-11-12; [SPEC-M6-001](evidence/M6-SPEC.md) (G0) đang `draft`, chờ Owner ký. Kế hoạch: [PLAN-M6-001](evidence/M6-FRONTEND-REFRESH-PLAN.md). M6 không chặn G4a (D-M6-8).
 - **Vận hành:** một người vận hành theo ngoại lệ `RA-M5-001` (hết hạn trước G4a public đầu tiên hoặc 31/01/2027).
 
 ## Cây tài liệu
@@ -58,7 +58,7 @@ _Cập nhật mục này (và chỉ mục này) khi trạng thái dự án đổ
 - [Release checklist](evidence/M5-RELEASE-CHECKLIST.md), [release report nháp](evidence/M5-RELEASE-REPORT.md), [hướng dẫn thử HK I](evidence/M5-OWNER-HK1-VALIDATION-GUIDE.md) — dùng cho G4a/G4b/G5.
 - [DRILL-M3-G4b-001](evidence/M3-G4b-DRILL-REPORT.md) — diễn tập publish/rollback dataset.
 - [REVIEW-C09-001](evidence/C09-REGISTRATION-SAMPLE-REVIEW.md) — nguồn của fixture đăng ký đã xóa PII.
-- [PLAN-M6-001](evidence/M6-FRONTEND-REFRESH-PLAN.md) — đề xuất làm mới frontend (trước G0).
+- [SPEC-M6-001](evidence/M6-SPEC.md) (G0, draft) và [PLAN-M6-001](evidence/M6-FRONTEND-REFRESH-PLAN.md) — làm mới frontend.
 - [HISTORY](evidence/HISTORY.md) — tóm tắt M0–M4; bản đầy đủ trong tag `docs-archive-2026-11-12`.
 
 ## Đội Agent và template
