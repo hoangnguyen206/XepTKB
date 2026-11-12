@@ -12,6 +12,7 @@ import {
   clampReportNote,
   isReportFieldId,
   looksLikePersonalInfo,
+  reportLinkNotice,
   type ReportDataset,
   type ReportFieldId,
   type ReportSection,
@@ -145,6 +146,7 @@ export function ReportIssueForm(props: { section?: ReportSection; onClose?: () =
         ) : null}
         {props.onClose ? <button type="button" className="button secondary" onClick={props.onClose}>Đóng</button> : null}
       </div>
+      {context.reportUrl ? <p className="report-link-notice">{reportLinkNotice(context.reportUrl)}</p> : null}
       <div role="status" className="report-status">
         {copy === "copied" ? <p>Đã sao chép nội dung báo cáo.{context.reportUrl ? " Hãy dán vào trang báo lỗi." : ""}</p> : null}
         {copy === "manual" ? <p>Không sao chép tự động được. Nội dung trong ô “Nội dung báo cáo” đã được chọn — hãy sao chép thủ công (giữ để chọn hoặc Ctrl+C).</p> : null}

@@ -50,6 +50,7 @@ export const ABOUT_SECTIONS: readonly AboutSection[] = [
           "Không có công cụ theo dõi, thống kê hay quảng cáo; không gửi báo cáo lỗi tự động.",
           "Không dùng cookie; không tải script hay phông chữ của bên thứ ba.",
           "Ứng dụng chỉ tải dữ liệu thời khóa biểu công khai từ chính trang này.",
+          "Nút “Mở trang báo lỗi” (nếu có) chỉ mở một biểu mẫu Google Forms bên ngoài; ứng dụng không gắn thêm dữ liệu nào vào liên kết. Những gì bạn tự dán và bấm gửi ở biểu mẫu được Google lưu theo chính sách của Google.",
         ],
       },
       { kind: "p", text: "Cách xóa: mở “Dữ liệu trên máy” ở cuối trang và chọn “Xóa dữ liệu trên máy”. Thao tác này xóa phương án, dữ liệu đã lưu và bộ nhớ đệm của ứng dụng trên thiết bị này. Bạn cũng có thể xóa dữ liệu trang web trong cài đặt trình duyệt." },
