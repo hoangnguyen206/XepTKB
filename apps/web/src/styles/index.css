@@ -1,0 +1,22 @@
+/*
+ * The only stylesheet entry (DESIGN-M6-001 §2, ADR-0015 point 1), imported once from main.tsx. Component modules never
+ * import CSS: a lazy chunk with its own CSS would add a request and leave the budget (requireSingleCss).
+ * Layer order, lowest first: tokens → base → legacy (M3–M5 screens, removed phase by phase) → components → screens → print.
+ * base (element defaults such as `button { color: inherit }`) sits BELOW legacy: a higher layer wins regardless of
+ * specificity, so element rules above legacy would override its class rules (`.button.primary` lost its text colour).
+ * New components still override legacy. screens/ files arrive with F2–F6.
+ */
+@layer tokens, base, legacy, components, screens, print;
+
+@import "./tokens.css" layer(tokens);
+@import "./fonts.css" layer(base);
+@import "./base.css" layer(base);
+@import "./legacy.css" layer(legacy);
+@import "./components/button.css" layer(components);
+@import "./components/chip.css" layer(components);
+@import "./components/segmented.css" layer(components);
+@import "./components/sheet.css" layer(components);
+@import "./components/toast.css" layer(components);
+@import "./components/cards.css" layer(components);
+@import "./components/course-color.css" layer(components);
+@import "./print.css" layer(print);

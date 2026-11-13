@@ -2,12 +2,15 @@
  * "Giới thiệu, quyền riêng tư & báo lỗi" (M5-C). Part of the app shell, so it also opens offline. Contents come from
  * `model/about-content.ts`; the general report form is the same PII-free one as on section cards.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 import { buildLabel, type BuildInfo } from "../app/build-info.js";
+import { THEME_LABELS, THEME_PREFERENCES, type ThemePreference } from "../app/theme.js";
 import type { DatasetEntry } from "../data/contract.js";
 import { ABOUT_SECTIONS, ABOUT_TITLE, REPORT_HELP, type AboutBlock } from "../model/about-content.js";
 import { sourceLabel, statusLabel } from "../model/labels.js";
+import { IconMonitor, IconMoon, IconSun } from "./icons.js";
 import { ReportIssueForm } from "./ReportIssue.js";
+import { SegmentedControl } from "./ui/SegmentedControl.js";
 
 export const ABOUT_PANEL_ID = "about-panel";
 export const LOCAL_DATA_ID = "local-data";
@@ -31,7 +34,21 @@ function goToLocalData(): void {
   summary?.scrollIntoView?.({ block: "center" });
 }
 
-export function AboutPanel(props: { build: BuildInfo; entry?: DatasetEntry; onClose: () => void }) {
+const THEME_ICONS: Record<ThemePreference, ReactElement> = { system: <IconMonitor size={18} />, light: <IconSun size={18} />, dark: <IconMoon size={18} /> };
+
+/** M6-A / AC-M6-01: Hệ thống (default, follows the OS) / Sáng / Tối, saved on this device. */
+export function ThemePicker(props: { theme: ThemePreference; onChange: (theme: ThemePreference) => void }) {
+  return (
+    <SegmentedControl
+      label="Giao diện"
+      options={THEME_PREFERENCES.map((value) => ({ value, label: THEME_LABELS[value], icon: THEME_ICONS[value] }))}
+      value={props.theme}
+      onChange={props.onChange}
+    />
+  );
+}
+
+export function AboutPanel(props: { build: BuildInfo; entry?: DatasetEntry; onClose: () => void; theme?: ThemePreference; onThemeChange?: (theme: ThemePreference) => void }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     const heading = headingRef.current;
@@ -44,6 +61,13 @@ export function AboutPanel(props: { build: BuildInfo; entry?: DatasetEntry; onCl
         <h2 id="about-heading" ref={headingRef} tabIndex={-1}>{ABOUT_TITLE}</h2>
         <button type="button" className="button secondary small" onClick={props.onClose}>Đóng giới thiệu</button>
       </div>
+      {props.onThemeChange ? (
+        <section className="about-section" aria-labelledby="about-theme">
+          <h3 id="about-theme">Giao diện</h3>
+          <ThemePicker theme={props.theme ?? "system"} onChange={props.onThemeChange} />
+          <p className="muted">“Hệ thống” theo cài đặt sáng/tối của thiết bị. Lựa chọn chỉ lưu trên máy này.</p>
+        </section>
+      ) : null}
       {ABOUT_SECTIONS.map((section) => (
         <section key={section.id} className="about-section" aria-labelledby={`about-${section.id}`}>
           <h3 id={`about-${section.id}`}>{section.heading}</h3>

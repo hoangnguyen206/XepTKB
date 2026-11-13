@@ -1,0 +1,87 @@
+/*
+ * "In / Lưu PDF": A4 landscape, controls hidden, print sheet only (Q-002). Printing always uses the light values
+ * (DESIGN-M6-001 §2): the print layer is last, so these tokens win over both dark blocks of tokens.css.
+ * styles/contrast.test.ts checks that the colour tokens here equal the light block of tokens.css.
+ */
+@media print {
+  :root,
+  :root[data-theme] {
+    --bg: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-2: #EEF0F6;
+    --ink: #15172A;
+    --muted: #5B5F78;
+    --line: #555555;
+    --line-strong: #555555;
+    --accent: #4F46E5;
+    --accent-ink: #FFFFFF;
+    --accent-text: #4338CA;
+    --accent-weak: #EEF0FF;
+    --danger: #B91C1C;
+    --danger-weak: #FEE2E2;
+    --danger-solid: #B91C1C;
+    --danger-solid-ink: #FFFFFF;
+    --conflict-edge: #DC2626;
+    --warning: #92400E;
+    --warning-weak: #FEF3C7;
+    --success: #15803D;
+    --success-weak: #DCFCE7;
+    --focus: #4F46E5;
+    --row: 34px;
+    color-scheme: light;
+    font-size: 11px;
+    background: #FFFFFF;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  body {
+    background: #FFFFFF;
+  }
+
+  .app-header,
+  .app-footer,
+  .skip-link,
+  main > :not(.workspace),
+  .workspace > :not(.print-only) {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  main {
+    padding: 0;
+    max-width: none;
+  }
+
+  .grid-scroll {
+    overflow: visible;
+  }
+
+  .week-grid {
+    min-width: 0;
+  }
+
+  .block {
+    break-inside: avoid;
+  }
+
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    break-before: auto;
+  }
+
+  .print-table th,
+  .print-table td {
+    border: 1px solid var(--line);
+    padding: 2px 4px;
+    text-align: left;
+  }
+}

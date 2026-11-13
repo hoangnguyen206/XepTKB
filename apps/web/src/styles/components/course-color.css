@@ -1,0 +1,15 @@
+/*
+ * Course colours (DESIGN-M6-001 §3): courseColorStyle() in model/palette.ts sets --c-bg/--c-edge/--c-ink and their
+ * -dark twins through the React style prop (CSSOM, allowed by style-src 'self'). Those inline values sit on the
+ * element itself and would beat any stylesheet rule, so they are never consumed directly: .course-color resolves them
+ * into --course-bg/--course-edge/--course-ink, switching to the -dark twins in both dark selectors, and components
+ * read the --course-* variables.
+ */
+.course-color { --course-bg: var(--c-bg); --course-edge: var(--c-edge); --course-ink: var(--c-ink); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .course-color { --course-bg: var(--c-bg-dark); --course-edge: var(--c-edge-dark); --course-ink: var(--c-ink-dark); }
+}
+:root[data-theme="dark"] .course-color { --course-bg: var(--c-bg-dark); --course-edge: var(--c-edge-dark); --course-ink: var(--c-ink-dark); }
+.course-chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--s-3); border-left: 4px solid var(--course-edge); border-radius: var(--r-sm); background: var(--course-bg); color: var(--course-ink); font-weight: var(--fw-bold); }
+.swatch { display: inline-grid; place-items: center; width: var(--tap); height: var(--tap); border: 3px solid transparent; border-radius: var(--r-pill); background: var(--course-bg); box-shadow: inset 0 0 0 2px var(--course-edge); cursor: pointer; }
+.swatch[aria-pressed="true"] { border-color: var(--ink); }

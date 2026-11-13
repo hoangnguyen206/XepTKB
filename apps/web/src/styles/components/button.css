@@ -1,0 +1,29 @@
+/* Button.tsx (DESIGN-M6-001 §6): every size keeps a 44 px touch target. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 var(--s-4);
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-16);
+  font-weight: var(--fw-bold);
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--t-fast), border-color var(--t-fast);
+}
+.btn-sm { font-size: var(--fs-14); padding: 0 var(--s-3); }
+.btn-lg { min-height: 52px; padding: 0 var(--s-6); font-size: var(--fs-20); }
+.btn-icon-only { padding: 0; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); box-shadow: var(--shadow-1); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-text); }
+.btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+.btn-secondary:hover:not(:disabled) { background: var(--surface-2); }
+.btn-danger { background: var(--danger-solid); color: var(--danger-solid-ink); }
+.btn-ghost { background: transparent; color: var(--accent-text); }
+.btn-ghost:hover:not(:disabled) { background: var(--accent-weak); }
+.btn:disabled { background: var(--surface-2); color: var(--muted); border-color: var(--line); box-shadow: none; cursor: not-allowed; }
