@@ -1,0 +1,12 @@
+/*
+ * Course colours (DESIGN-M6-001 §3): courseColorStyle() in model/palette.ts sets --c-bg/--c-edge/--c-ink and their
+ * -dark twins through the React style prop (CSSOM, allowed by style-src 'self'); both dark selectors switch to the
+ * twins. Used by the gallery and the theme settings now, by CourseBlock/ListRow from F3.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .course-color { --c-bg: var(--c-bg-dark); --c-edge: var(--c-edge-dark); --c-ink: var(--c-ink-dark); }
+}
+:root[data-theme="dark"] .course-color { --c-bg: var(--c-bg-dark); --c-edge: var(--c-edge-dark); --c-ink: var(--c-ink-dark); }
+.course-chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--s-3); border-left: 4px solid var(--c-edge); border-radius: var(--r-sm); background: var(--c-bg); color: var(--c-ink); font-weight: var(--fw-bold); }
+.swatch { display: inline-grid; place-items: center; width: var(--tap); height: var(--tap); border: 3px solid transparent; border-radius: var(--r-pill); background: var(--c-bg); box-shadow: inset 0 0 0 2px var(--c-edge); cursor: pointer; }
+.swatch[aria-pressed="true"] { border-color: var(--ink); }

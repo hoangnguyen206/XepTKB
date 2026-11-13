@@ -1,0 +1,21 @@
+/* SegmentedControl.tsx: a group of pressed/unpressed buttons (keeps the slot switcher semantics). */
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 100%; padding: 3px; border-radius: var(--r-md); background: var(--surface-2); }
+.seg-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  min-height: 38px;
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+}
+.seg-option::after { content: ""; position: absolute; inset: -3px 0; }
+.seg-option[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1); }
+.seg-count { min-width: 1.5em; padding: 0 6px; border-radius: var(--r-pill); background: var(--accent-weak); color: var(--accent-text); font-size: var(--fs-12); }

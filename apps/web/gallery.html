@@ -2,7 +2,7 @@
 <!--
   DESIGN-M6-001 §12: component gallery (test-only page). It is a build input only when KY_NAY_GALLERY=1, which the
   Playwright web server sets for the e2e build; scripts/verify-production-bundle.mjs fails if dist/ contains it.
-  F1b adds the module script that renders the design-system components into #gallery.
+  F1b: the module script renders the design-system components into #gallery.
 -->
 <html lang="vi">
   <head>
@@ -12,9 +12,8 @@
     <title>Kỳ Này — trang mẫu thành phần (chỉ dùng kiểm thử)</title>
   </head>
   <body>
-    <main id="gallery">
-      <h1>Trang mẫu thành phần</h1>
-      <p>Trang này chỉ có trong bản build kiểm thử.</p>
-    </main>
+    <noscript>Trang mẫu thành phần cần JavaScript.</noscript>
+    <div id="gallery"></div>
+    <script type="module" src="./src/gallery/main.tsx"></script>
   </body>
 </html>

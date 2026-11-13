@@ -40,6 +40,7 @@ export const ABOUT_SECTIONS: readonly AboutSection[] = [
           "Phương án nháp và phương án chính thức: các lớp đã chọn, tuần 1 / khóa, và thay đổi phòng/tiết lấy từ file ĐKMH.",
           "Bản sao bộ dữ liệu thời khóa biểu đã tải, để mở được khi mất mạng.",
           "Cài đặt: học kỳ đang xem, phương án đang chọn và danh sách lớp trong file ĐKMH chưa khớp dữ liệu (chỉ mã lớp, mã môn và lịch học).",
+          "Cài đặt giao diện: sáng/tối, màu bạn chọn cho từng mã môn và các gợi ý đã xem.",
           "Bản sao lưu của phương án không đọc được (nếu có), để bạn tải về hoặc xóa.",
         ],
       },

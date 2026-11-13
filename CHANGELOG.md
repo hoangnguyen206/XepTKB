@@ -43,6 +43,7 @@ Thay đổi M5 (release hardening) đã merge vào `main` qua PR #3 (`ba43867`, 
 ### M6 "Lịch có màu" (chỉ trên nhánh tích hợp `m6-frontend`; `main` nhận một lần sau G3 của M6, D-M6-10)
 
 - F1a (nền tảng): font Be Vietnam Pro 400/800 tự host, subset latin + vietnamese, 67 424 B; bỏ độ đậm 600 (D-M6-12). Thêm `licenses.txt` (OFL, ISC, MIT) được precache. Ngân sách: CSS ban đầu ≤ 12 KiB gzip, font ≤ 90 000 B, đúng một file CSS. Lint cấm tạo stylesheet/FontFace lúc chạy và `url()` có scheme trong CSS. `verify:bundle` kiểm CSP khớp từng ký tự và production không có trang mẫu thành phần. CI có job `visual` cho ảnh so sánh (DESIGN-M6-001 §13).
+- F1b (design system): token màu sáng/tối (chàm `#4F46E5`), font Be Vietnam Pro trên toàn ứng dụng, các màn cũ chạy được ở theme tối. Mục "Giao diện" trong trang Giới thiệu (Hệ thống/Sáng/Tối) lưu trên máy (IndexedDB) và bị xóa cùng "Xóa dữ liệu trên máy". Thêm bảng 10 màu môn và cách gán màu tất định, bộ icon SVG nhúng, các thành phần giao diện mới (nút, chip, sheet, thông báo…) và trang mẫu thành phần chỉ có trong bản kiểm thử. Chưa đổi bố cục màn nào (F2–F7).
 
 ## Lịch sử milestone trước khi có version
 

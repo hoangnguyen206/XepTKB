@@ -113,7 +113,7 @@ export function App() {
           <Notice key={notice.text} tone={notice.kind} action={<button type="button" className="button secondary small" onClick={() => controller.dismissNotice(index)}>Đóng</button>}>{notice.text}</Notice>
         ))}
         {ready ? <DatasetBanners ready={ready} online={online} /> : null}
-        {aboutOpen ? <AboutPanel build={build} {...(ready ? { entry: ready.dataset.entry } : {})} onClose={closeAbout} /> : null}
+        {aboutOpen ? <AboutPanel build={build} {...(ready ? { entry: ready.dataset.entry } : {})} onClose={closeAbout} theme={controller.theme} onThemeChange={(theme) => void controller.setTheme(theme)} /> : null}
         {ready && provenanceOpen ? <ProvenancePanel entry={ready.dataset.entry} cachedAt={ready.dataset.cachedAt} offline={!online || ready.cached?.reason === "offline"} /> : null}
         {state.status === "loading" ? <p className="loading" role="status">Đang tải dữ liệu thời khóa biểu…</p> : null}
         {state.status === "unavailable" ? (
