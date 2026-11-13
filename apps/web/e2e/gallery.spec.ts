@@ -41,6 +41,23 @@ for (const size of SIZES) {
   }
 }
 
+test("course colours switch to their dark values in the dark theme (inline custom properties do not block it)", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "visual");
+  const chip = page.locator(".course-chip", { hasText: /^Tím$/ });
+  const dot = page.locator(".list-row-dot").first();
+  await openGallery(page, 360, 780, "light");
+  await expect(chip).toHaveCSS("background-color", "rgb(237, 233, 254)");
+  await expect(chip).toHaveCSS("color", "rgb(76, 29, 149)");
+  await expect(dot).toHaveCSS("background-color", "rgb(124, 58, 237)");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(chip).toHaveCSS("background-color", "rgb(46, 16, 101)");
+  await expect(chip).toHaveCSS("color", "rgb(237, 233, 254)");
+  await expect(dot).toHaveCSS("background-color", "rgb(167, 139, 250)");
+  // A forced light theme wins over a dark OS.
+  await page.getByRole("group", { name: "Giao diện" }).getByRole("button", { name: "Sáng" }).click();
+  await expect(chip).toHaveCSS("background-color", "rgb(237, 233, 254)");
+});
+
 test("gallery sheet: opens as a modal, Esc closes it and focus returns to the opener", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "visual");
   await openGallery(page, 360, 780, "light");

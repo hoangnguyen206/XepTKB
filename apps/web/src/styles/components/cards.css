@@ -24,7 +24,7 @@
 }
 button.list-row { cursor: pointer; }
 button.list-row:hover { background: var(--surface-2); }
-.list-row-dot { flex: none; width: 12px; height: 12px; border-radius: var(--r-pill); background: var(--c-edge, var(--muted)); }
+.list-row-dot { flex: none; width: 12px; height: 12px; border-radius: var(--r-pill); background: var(--course-edge, var(--muted)); }
 .list-row-text { flex: 1 1 auto; min-width: 0; }
 .list-row-title { display: block; font-weight: var(--fw-bold); }
 .list-row-meta { display: block; color: var(--muted); font-size: var(--fs-14); }
