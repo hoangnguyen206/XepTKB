@@ -391,5 +391,6 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     expect(await screen.findByRole("heading", { name: "Phương án nháp" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Phương án chính thức/ })).toBeNull();
     uaSpy.mockRestore();
-  });
+    // A long end-to-end flow in jsdom (~2.6 s alone): the 5 s default timed out under full-suite load (2 of 4 local runs).
+  }, 20_000);
 });

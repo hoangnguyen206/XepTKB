@@ -158,14 +158,20 @@ test("AC-M5-06/17 — About panel and report form: keyboard, no overflow, zero s
   // Per-section report form (open, with the personal-data warning) at every width. At 1200 px the search pane moves
   // into the side column and remounts, so the form is opened again there.
   const card = page.getByRole("article", { name: "Lớp SYN2004 1" });
+  // The layout switch after setViewportSize is asynchronous (media query → re-render): a one-shot isVisible() could
+  // see the old pane's card just before the remount and then wait forever on a button that no longer exists (flaky on
+  // CI push runs #51/#53). toPass() retries the whole step until the form is open in the current layout.
   const openReport = async () => {
-    await openSearch(page);
-    if (!(await card.isVisible())) {
-      await page.getByLabel("Mã hoặc tên môn").fill("SYN2004");
-      await page.getByRole("button", { name: /^SYN2004/ }).click();
-    }
     const note = card.getByLabel("Mô tả (không bắt buộc)");
-    if (!(await note.isVisible())) await card.getByRole("button", { name: "Báo sai dữ liệu" }).click();
+    await expect(async () => {
+      await openSearch(page);
+      if (!(await card.isVisible())) {
+        await page.getByLabel("Mã hoặc tên môn").fill("SYN2004");
+        await page.getByRole("button", { name: /^SYN2004/ }).click({ timeout: 3_000 });
+      }
+      if (!(await note.isVisible())) await card.getByRole("button", { name: "Báo sai dữ liệu" }).click({ timeout: 3_000 });
+      await expect(note).toBeVisible({ timeout: 3_000 });
+    }).toPass({ timeout: 45_000 });
     if ((await note.inputValue()) === "") await note.fill("Mã 24028888");
     await expect(card.getByText("Mô tả có thể chứa thông tin cá nhân")).toBeVisible();
     await expect(card.getByLabel("Nội dung báo cáo")).toBeVisible();
