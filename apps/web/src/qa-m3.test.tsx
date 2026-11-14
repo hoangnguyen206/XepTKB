@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { createPlan, type Course, type Plan, type Section, type Session } from "@ky-nay/domain";
 import type { LoadedDataset, TimetableArtifact } from "./data/contract.js";
-import { icsFile } from "./export/files.js";
+import { icsFile } from "./export/exporters.js";
 import { buildAppCatalog } from "./model/catalog.js";
 import { applyPick, previewPick } from "./model/picker.js";
 import { buildPlanView } from "./model/plan-view.js";

@@ -202,7 +202,7 @@
 
 | Rủi ro | Giảm thiểu / ngưỡng kích hoạt |
 | --- | --- |
-| JS ban đầu chỉ còn trống 10.3 KiB | poster lazy; icon export riêng từng cái; xóa `Tabs`/`WeekPicker`/`Footer`. Nếu sau F6 JS ban đầu > 112 KiB: F7 dời `icsFile`/`wordFile`/`renderPng` vào chunk lazy prefetch (chunk **new** `exporters-`) |
+| JS ban đầu chỉ còn trống 10.3 KiB | poster lazy; icon export riêng từng cái; xóa `Tabs`/`WeekPicker`/`Footer`. Nếu sau F6 JS ban đầu > 112 KiB: F7 dời `icsFile`/`wordFile`/`renderPng` vào chunk lazy prefetch (chunk **new** `exporters-`). **Đã kích hoạt sau F3** (117 104 B gzip): Owner đồng ý 2026-11-14, làm ngay trước F4 — `export/exporters.ts` + `export/exporters-lazy.ts`, prefetch khi `Workspace` mount; JS ban đầu còn 113 871 B; `scripts/bundle-budget.json` cấm marker `BEGIN:VCALENDAR` và `mso-page-orientation` trong chunk ban đầu |
 | Font > 90 KB (6 file chưa đo) | **đã kích hoạt ở F1a:** 6 file = 101 632 B; Owner chọn bỏ độ đậm 600 (D-M6-12, sửa D-M6-4), còn 4 file = 67 424 B |
 | Cửa sổ 0 request của M4 bị phá bởi font hoặc chunk | `warmFonts()` lúc khởi động; mọi chunk lazy prefetch lúc `Workspace` mount; `e2e/m4.spec.ts` không nới lỏng |
 | Ảnh so sánh chập chờn giữa các OS | mốc chỉ tạo và so trên Linux CI; đồng hồ cố định; chờ fonts.ready; che phần tử volatile |
