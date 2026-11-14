@@ -20,6 +20,7 @@ import { NonFixedList, WeekView } from "./WeekView.js";
 import type { CourseColorId } from "../model/palette.js";
 import { visiblePeriods } from "../model/grid-view.js";
 import { SearchPanel } from "./SearchPanel.js";
+import { prefetchExporters } from "../export/exporters-lazy.js";
 import { creditsLine } from "../export/files.js";
 
 const ISSUE_TEXT: Record<string, string> = {
@@ -100,6 +101,8 @@ export function Workspace(props: {
   useEffect(() => {
     // Prefetch right after mount (DESIGN-M5-001 §5): opening the panel must not issue a request (AC-M4-02 / AC-04).
     prefetchRegistrationImport();
+    // DESIGN-M6-001 §14: export builders are a lazy chunk; prefetched here so an export makes no request.
+    prefetchExporters();
   }, []);
   // Desktop keeps the search in the left column: "Thêm lớp" shows the calendar and moves focus to the search box.
   const shown: AppView = desktop && props.view === "add" ? "week" : props.view;
