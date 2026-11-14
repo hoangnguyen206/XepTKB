@@ -52,7 +52,8 @@ async function openSearch(page: Page): Promise<void> {
 async function openCourse(page: Page, query: string, code: string): Promise<void> {
   await openSearch(page);
   await page.getByLabel("Mã hoặc tên môn").fill(query);
-  const toggle = page.getByRole("button", { name: new RegExp(`^${code}`) });
+  // Scoped to the search list: from 1200 px the calendar blocks (also named by course code) are on screen too.
+  const toggle = page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${code}`) });
   if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
 }
 
@@ -98,7 +99,8 @@ test("AC-M3-01/02/03/04/06 — core flow on a 360 px phone, persisted across rel
   await expect(page.getByText("Không có giờ cố định (không xếp vào lưới)").first()).toBeVisible();
   await shot(page, "360-week-grid");
 
-  // F2: the day list sits under the week grid in the Lịch view (F3 replaces both).
+  // F3: tapping a day in the day strip opens that day's list.
+  await page.getByRole("button", { name: /^Xem Thứ 2 12\/04\/2027/ }).click();
   await expect(page.getByRole("heading", { name: /Thứ 2, 12\/04\/2027/ })).toBeVisible();
   await shot(page, "360-day-list");
 
@@ -136,11 +138,11 @@ test("AC-M3-05 — no horizontal page scroll at 360/768/1200/1280 and no serious
     await openView(page, "Lịch");
     await shot(page, `${viewport.name}-week`);
   }
-  // Sunday session adds a CN column; the grid scrolls inside its own region on phones.
+  // Sunday session adds a CN column; since M6 (AC-M6-05) every day column fits at 360 px with no horizontal scroll.
   await page.setViewportSize({ width: 360, height: 780 });
-  await expect(page.getByRole("heading", { name: /CN/ }).first()).toBeAttached();
-  const scroller = await page.locator(".grid-scroll").first().evaluate((element) => ({ scroll: element.scrollWidth, client: element.clientWidth }));
-  expect(scroller.scroll).toBeGreaterThan(scroller.client);
+  await expect(page.getByRole("button", { name: /^Xem Chủ nhật/ }).first()).toBeAttached();
+  const scroller = await page.locator(".week-grid-wrap").first().evaluate((element) => ({ scroll: element.scrollWidth, client: element.clientWidth }));
+  expect(scroller.scroll).toBeLessThanOrEqual(scroller.client);
 });
 
 test("AC-M3-05 — keyboard-only path from onboarding to a pick, with visible focus", async ({ page }) => {

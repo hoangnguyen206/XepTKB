@@ -181,9 +181,11 @@ test("AC-M4-01..07 (AC-04, AC-05) — local-only registration merge, zero networ
   await expect(grid.getByText(/Đã đổi phòng/).first()).toBeAttached();
 
   // Check DayList shows override badge and detail
-  await page.getByRole("region", { name: "Theo ngày" }).scrollIntoViewIfNeeded();
+  // M6 F3: the session sheet (tap the overridden block) shows the badge and the "from → to" detail.
+  await grid.locator(".block.is-overridden").first().click();
   await expect(page.getByText("Đã đổi phòng").first()).toBeVisible();
   await expect(page.getByText(/Phòng học: 203-G2 → 505-G2 \(theo ĐKMH\)/).first()).toBeVisible();
+  await page.keyboard.press("Escape");
 
   // Check PlanSummary and export .ics and .doc from Phương án chính thức
   await openView(page, "Phương án");

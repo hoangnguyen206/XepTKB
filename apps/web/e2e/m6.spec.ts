@@ -4,6 +4,9 @@
  * precached), AC-M6-16 (dark theme on the screens not yet redesigned: axe 0 serious/critical).
  * F2: AC-M6-03 (grid within the first 200 px at 360×780; 3-item navigation ≥ 44 px with a current state), AC-M6-04
  * (status chips instead of banners, chip → details, source within 2 taps), AC-M6-12 (independence sentence placement).
+ * F3: AC-M6-05 (T2–T7 at 360 px, no horizontal scroll, colour + code + room, conflict not by colour alone), AC-M6-06
+ * (buttons, swipe, keys, "Tuần này"; today and the time line only in the current week; fixed clock), AC-M6-07 (session
+ * sheet, course colour saved across reload), AC-M6-08 (day view in the same colours; sessions without fixed times).
  */
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test, type Page } from "./fixture.js";
@@ -184,4 +187,135 @@ test("AC-M6-12 — the independence sentence is on the start screen and in the (
   await expect(page.getByText(/không phải sản phẩm của nhà trường/).filter({ visible: true })).toHaveCount(0);
   await page.getByRole("button", { name: ABOUT }).click();
   await expect(page.getByRole("dialog", { name: ABOUT }).getByText(/không phải sản phẩm của nhà trường/).first()).toBeVisible();
+});
+
+/** Fixed clock: Wednesday 2027-03-03 09:30 in Vietnam = week 3 of the synthetic HK II (week 1 = 2027-02-15 for K69). */
+async function startAt(page: Page, width = 360) {
+  await page.clock.setFixedTime(new Date("2027-03-03T09:30:00+07:00"));
+  await page.setViewportSize({ width, height: 780 });
+  await startDraftPlan(page);
+}
+
+async function addClass(page: Page, query: string, section: string, button: RegExp = /^(Chọn lớp này|Vẫn chọn)/) {
+  if ((page.viewportSize()?.width ?? 0) < 1200) await navButton(page, "Thêm lớp").click();
+  await page.getByLabel("Mã hoặc tên môn").fill(query);
+  const toggle = page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${section.split(" ")[0]}`) });
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  const card = page.getByRole("article", { name: `Lớp ${section}` });
+  await card.getByRole("button", { name: button }).click();
+  await expect(card.getByText(/✓ Đã chọn/)).toBeVisible();
+}
+
+test("AC-M6-05 — at 360 px every day T2–T7 fits without horizontal scroll; blocks show code + room in the course colour; conflicts are not colour-only", async ({ page }) => {
+  await startAt(page);
+  await addClass(page, "SYN1001", "SYN1001 2");
+  await addClass(page, "dai so", "SYN1002 2");
+  await addClass(page, "SYN2002", "SYN2002 1");
+  await navButton(page, "Lịch").click();
+  const grid = page.getByRole("region", { name: "Lưới thời khóa biểu tuần 3" });
+  await expect(grid).toBeVisible();
+  const box = (await grid.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(360);
+  expect(await grid.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  for (const day of ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"]) {
+    const cell = grid.getByRole("button", { name: new RegExp(`^Xem ${day} `) });
+    const cellBox = (await cell.boundingBox())!;
+    expect(cellBox.x + cellBox.width, day).toBeLessThanOrEqual(360);
+  }
+  const block = grid.getByRole("button", { name: /^SYN2002 / });
+  await expect(block).toContainText("SYN2002");
+  await expect(block).toContainText("ĐHKHTN 101-T1");
+  const background = await block.evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(background).not.toBe("rgba(0, 0, 0, 0)");
+  // Conflict: red border + "Trùng" label + the partner in the accessible name, in addition to colour.
+  const conflicting = grid.locator(".block.is-conflict");
+  await expect(conflicting).toHaveCount(2);
+  await expect(conflicting.first()).toContainText("Trùng");
+  await expect(grid.getByRole("button", { name: /^SYN1002 .*đang trùng lịch với SYN1001$/ })).toBeVisible();
+  expect(await conflicting.first().evaluate((element) => getComputedStyle(element).borderTopWidth)).toBe("3px");
+});
+
+test("AC-M6-06 — weeks change by buttons, swipe and keys; Tuần này; today and the time line only in the current week", async ({ page }) => {
+  await startAt(page);
+  await addClass(page, "SYN2002", "SYN2002 1");
+  await navButton(page, "Lịch").click();
+  const select = page.getByLabel("Chọn tuần");
+  await expect(select).toHaveValue("3");
+  await expect(page.getByRole("button", { name: /^Xem Thứ 4 03\/03\/2027, hôm nay/ })).toBeVisible();
+  await expect(page.locator(".now-line")).toHaveCount(1);
+  await expect(page.locator(".day-body.is-today")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Tuần này" })).toBeDisabled();
+
+  await page.getByRole("button", { name: "Tuần sau" }).click();
+  await expect(select).toHaveValue("4");
+  await expect(page.locator(".now-line")).toHaveCount(0);
+  await expect(page.locator(".day-body.is-today")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /hôm nay/ })).toHaveCount(0);
+
+  // Swipe right (finger moves right) = previous week; touch pointer events only.
+  const swipeArea = page.locator(".week-swipe");
+  const area = (await swipeArea.boundingBox())!;
+  const y = area.y + area.height / 2;
+  await swipeArea.dispatchEvent("pointerdown", { pointerType: "touch", pointerId: 7, isPrimary: true, clientX: area.x + 60, clientY: y });
+  await swipeArea.dispatchEvent("pointerup", { pointerType: "touch", pointerId: 7, isPrimary: true, clientX: area.x + 200, clientY: y + 10 });
+  await expect(select).toHaveValue("3");
+  // A mouse drag does not change the week.
+  await swipeArea.dispatchEvent("pointerdown", { pointerType: "mouse", pointerId: 8, isPrimary: true, clientX: area.x + 200, clientY: y });
+  await swipeArea.dispatchEvent("pointerup", { pointerType: "mouse", pointerId: 8, isPrimary: true, clientX: area.x + 20, clientY: y });
+  await expect(select).toHaveValue("3");
+
+  // Keys while focus is in the calendar (not in the select): → next, ← previous, T this week.
+  await page.getByRole("button", { name: "Tuần sau" }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(select).toHaveValue("4");
+  await page.keyboard.press("ArrowRight");
+  await expect(select).toHaveValue("5");
+  await page.keyboard.press("t");
+  await expect(select).toHaveValue("3");
+  await page.getByRole("button", { name: "Tuần sau" }).click();
+  await page.getByRole("button", { name: "Tuần này" }).click();
+  await expect(select).toHaveValue("3");
+});
+
+test("AC-M6-07 — a block opens its details; the chosen course colour survives a reload", async ({ page }) => {
+  await startAt(page);
+  await addClass(page, "SYN2002", "SYN2002 1");
+  await navButton(page, "Lịch").click();
+  const block = page.getByRole("button", { name: /^SYN2002 / });
+  await block.click();
+  const sheet = page.getByRole("dialog", { name: /^SYN2002 · / });
+  await expect(sheet).toBeVisible();
+  for (const text of [/Thứ 4, tiết 4–6 \(\d\d:\d\d–\d\d:\d\d\)/, /ĐHKHTN 101-T1/, /SYN2002 1/]) await expect(sheet.getByText(text).first()).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Tự động" })).toHaveAttribute("aria-pressed", "true");
+  await sheet.getByRole("button", { name: "Xám" }).click();
+  await expect(sheet.getByRole("button", { name: "Xám" })).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
+  const slate = "rgb(226, 232, 240)";
+  await expect(block).toHaveCSS("background-color", slate);
+  await page.reload();
+  await expect(page.getByRole("button", { name: /^SYN2002 / })).toHaveCSS("background-color", slate);
+  // "Tự động" removes the choice.
+  await page.getByRole("button", { name: /^SYN2002 / }).click();
+  await page.getByRole("dialog", { name: /^SYN2002 · / }).getByRole("button", { name: "Tự động" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: /^SYN2002 / })).not.toHaveCSS("background-color", slate);
+});
+
+test("AC-M6-08 — the day view uses the same colours; sessions without fixed times stay off the grid and count in credits", async ({ page }) => {
+  await startAt(page);
+  await addClass(page, "SYN2002", "SYN2002 1");
+  await addClass(page, "ky nang so", "SYN3001 1");
+  await navButton(page, "Lịch").click();
+  const blockColour = await page.getByRole("button", { name: /^SYN2002 / }).evaluate((element) => getComputedStyle(element).backgroundColor);
+  await expect(page.getByRole("region", { name: "Lưới thời khóa biểu tuần 3" }).getByRole("button", { name: /^SYN3001/ })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Không có giờ cố định (không xếp vào lưới)" })).toBeVisible();
+  await page.getByRole("button", { name: /^Xem Thứ 4 03\/03\/2027/ }).click();
+  await expect(page.getByRole("heading", { name: /^Thứ 4, 03\/03\/2027/ })).toBeVisible();
+  const row = page.locator(".day-row", { hasText: "SYN2002" });
+  await expect(row).toHaveCSS("background-color", blockColour);
+  await page.getByRole("button", { name: "Cả tuần" }).click();
+  await navButton(page, "Phương án").click();
+  await expect(page.getByText(/2 lớp · \d+ tín chỉ/)).toBeVisible();
 });

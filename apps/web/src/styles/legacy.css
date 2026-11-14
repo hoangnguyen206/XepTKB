@@ -23,7 +23,6 @@
   --bt-edge: var(--warning);
   --other: var(--surface-2);
   --other-edge: var(--muted);
-  --row: 46px;
   --radius: var(--r-sm);
 }
 
@@ -262,106 +261,6 @@ input[type="file"] { width: 100%; }
 .preview-list { list-style: none; padding: 0; margin: 8px 0; }
 .preview-list li { margin-bottom: 4px; }
 
-/* Week grid: day columns scroll inside their own region; the page itself never scrolls sideways. */
-.week-picker { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-.week-picker select { flex: 1 1 auto; min-width: 0; }
-
-.grid-scroll {
-  /* Positioned so absolutely positioned descendants (screen-reader text) stay inside the scroller. */
-  position: relative;
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  margin-bottom: 12px;
-}
-
-.week-grid { display: flex; min-width: calc(52px + 6 * 92px); }
-.time-col { flex: 0 0 52px; border-right: 1px solid var(--border); }
-.day-col { flex: 1 1 92px; min-width: 92px; border-right: 1px solid var(--border); }
-.day-col:last-child { border-right: 0; }
-
-.col-head {
-  height: 52px;
-  margin: 0;
-  padding: 6px 4px;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.95rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.col-date { font-weight: 400; font-size: 0.8rem; color: var(--muted); }
-
-.time-cell {
-  height: var(--row);
-  border-bottom: 1px solid var(--line);
-  padding: 2px 4px;
-  font-size: 0.75rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.period-no { font-weight: 600; }
-.period-time { color: var(--muted); }
-
-.day-body {
-  position: relative;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  height: calc(var(--periods) * var(--row));
-  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--row) - 1px), var(--line) calc(var(--row) - 1px), var(--line) var(--row));
-}
-
-.block {
-  position: absolute;
-  padding: 3px 4px;
-  border: 1.5px solid var(--other-edge);
-  border-radius: 6px;
-  background: var(--other);
-  font-size: 0.75rem;
-  line-height: 1.2;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  /* Lanes split the column; 2px gutters keep neighbours apart. */
-  box-shadow: inset 0 0 0 1px var(--surface);
-}
-
-.block.kind-LT { background: var(--lt); border-color: var(--lt-edge); }
-.block.kind-TH { background: var(--th); border-color: var(--th-edge); }
-.block.kind-BT { background: var(--bt); border-color: var(--bt-edge); }
-
-.block.is-conflict {
-  border: 3px solid var(--danger);
-  background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--danger) 16%, transparent) 0 6px, transparent 6px 12px);
-}
-
-.block > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
-.block.is-split { padding: 2px; font-size: 0.68rem; }
-.block-code { font-weight: 700; }
-.block-meta { color: var(--text); }
-.block-override { color: var(--override); font-weight: 700; }
-.block-flag { color: var(--danger); font-weight: 700; }
-
-.non-fixed { border: 1px dashed var(--border); border-radius: var(--radius); padding: 8px 12px; background: var(--surface); margin-bottom: 12px; }
-.non-fixed ul { margin: 0; padding-left: 20px; }
-
-/* Day list */
-.day-list { list-style: none; padding: 0; margin: 0; }
-.day-entry { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; }
-.day-entry.is-today { border: 2px solid var(--primary); }
-.day-entry ul { list-style: none; padding: 0; margin: 0; }
-.day-entry li { display: flex; flex-wrap: wrap; gap: 2px 10px; padding: 6px 0; border-top: 1px solid var(--line); }
-.day-entry li:first-child { border-top: 0; }
-.day-entry li.is-conflict { color: var(--text); }
-.day-entry .time { font-weight: 700; min-width: 7.5em; }
-.day-entry .flag { color: var(--danger); font-weight: 700; }
-
 /* Plan summary */
 .facts { display: grid; gap: 4px 16px; margin: 0 0 12px; }
 .facts > div { display: flex; flex-wrap: wrap; gap: 0 8px; }
@@ -428,8 +327,6 @@ textarea {
 @media (min-width: 768px) {
   main { padding: 16px 24px 32px; }
   .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  :root { --row: 50px; }
-  .week-grid { min-width: 0; }
 }
 
 @media (min-width: 1200px) {

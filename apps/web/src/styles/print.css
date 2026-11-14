@@ -60,15 +60,26 @@
     max-width: none;
   }
 
-  .grid-scroll {
-    overflow: visible;
+  /* Course colours print in their light values whatever the screen theme. */
+  .course-color {
+    --course-bg: var(--c-bg);
+    --course-edge: var(--c-edge);
+    --course-ink: var(--c-ink);
   }
 
-  .week-grid {
-    min-width: 0;
+  .week-grid-wrap {
+    margin: 0;
+    box-shadow: none;
   }
 
-  .block {
+  .grid-head {
+    display: grid;
+    grid-template-columns: var(--times) repeat(var(--days), minmax(0, 1fr));
+    font-weight: var(--fw-bold);
+    text-align: center;
+  }
+
+  .block-slot {
     break-inside: avoid;
   }
 

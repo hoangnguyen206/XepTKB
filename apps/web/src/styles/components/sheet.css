@@ -11,7 +11,8 @@
   color: var(--ink);
   box-shadow: var(--shadow-2);
   overflow: hidden;
-  transition: transform var(--t-slow), opacity var(--t-slow);
+  /* Slide only: an opacity fade would let axe (and readers) meet the text below its contrast while it animates. */
+  transition: transform var(--t-slow);
 }
 .sheet[open] { display: flex; flex-direction: column; }
 .sheet.size-full { height: 92dvh; }
@@ -20,7 +21,7 @@
 .sheet-head h2 { margin: 0; font-size: var(--fs-20); }
 .sheet-body { padding: var(--s-4) var(--s-5) var(--s-6); overflow-y: auto; overscroll-behavior: contain; }
 @starting-style {
-  .sheet[open] { transform: translateY(24px); opacity: 0; }
+  .sheet[open] { transform: translateY(24px); }
 }
 @media (min-width: 768px) {
   .sheet { width: min(560px, calc(100% - 48px)); max-height: 86dvh; margin: auto; border-radius: var(--r-lg); }
