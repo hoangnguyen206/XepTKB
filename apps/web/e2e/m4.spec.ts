@@ -99,7 +99,14 @@ async function startDraftPlan(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
   await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
   await page.getByRole("button", { name: "Tạo phương án" }).click();
-  await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
+}
+
+/** M6 F2: Lịch · Thêm lớp · Phương án are main-navigation buttons (formerly tabs). Switching views makes no request. */
+async function openView(page: Page, name: "Lịch" | "Thêm lớp" | "Phương án"): Promise<void> {
+  const button = page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("button", { name, exact: true });
+  await button.click();
+  await expect(button).toHaveAttribute("aria-current", "page");
 }
 
 async function pageOverflow(page: Page): Promise<number> {
@@ -121,6 +128,7 @@ test("AC-M4-01..07 (AC-04, AC-05) — local-only registration merge, zero networ
   await page.getByLabel("Mã hoặc tên môn").fill("SYN2004");
   await page.getByRole("button", { name: /^SYN2004/ }).click();
   await page.getByRole("article", { name: "Lớp SYN2004 1" }).getByRole("button", { name: "Chọn lớp này" }).click();
+  await openView(page, "Phương án");
   await expect(page.getByRole("button", { name: "Phương án nháp (1)" })).toBeVisible();
 
   // Wait for service worker ready before starting strict zero-network capture for registration import
@@ -167,17 +175,18 @@ test("AC-M4-01..07 (AC-04, AC-05) — local-only registration merge, zero networ
   await expect(page.getByText(/★ 3 thay đổi từ ĐKMH/)).toBeVisible();
 
   // Check WeekGrid shows override badge
+  await openView(page, "Lịch");
   const grid = page.getByRole("region", { name: /Lưới thời khóa biểu/ });
   await expect(grid.locator(".block.is-overridden").first()).toBeVisible();
   await expect(grid.getByText(/Đã đổi phòng/).first()).toBeAttached();
 
   // Check DayList shows override badge and detail
-  await page.getByRole("tab", { name: "Theo ngày" }).click();
+  await page.getByRole("region", { name: "Theo ngày" }).scrollIntoViewIfNeeded();
   await expect(page.getByText("Đã đổi phòng").first()).toBeVisible();
   await expect(page.getByText(/Phòng học: 203-G2 → 505-G2 \(theo ĐKMH\)/).first()).toBeVisible();
 
   // Check PlanSummary and export .ics and .doc from Phương án chính thức
-  await page.getByRole("tab", { name: /^Phương án/ }).click();
+  await openView(page, "Phương án");
   await expect(page.getByText(/Có 1 lớp trong file ĐKMH chưa khớp dữ liệu TKB/)).toBeVisible();
 
   const [icsDownload] = await Promise.all([
@@ -241,6 +250,7 @@ test("AC-M4-01..07 (AC-04, AC-05) — local-only registration merge, zero networ
   await expect(page.getByRole("heading", { name: "Phương án chính thức" })).toBeVisible();
   await expectActiveSlotPersisted(page, "final");
   await page.reload();
+  await openView(page, "Phương án");
   await expect(page.getByRole("heading", { name: "Phương án chính thức" })).toBeVisible();
   await expect(page.getByText(/★ 3 thay đổi từ ĐKMH/)).toBeVisible();
 });
@@ -248,6 +258,7 @@ test("AC-M4-01..07 (AC-04, AC-05) — local-only registration merge, zero networ
 test("AC-M4-08 — no horizontal overflow and zero serious/critical axe violations at 360/768/1200 px", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
   await startDraftPlan(page);
+  await openView(page, "Phương án");
   await page.getByRole("button", { name: "Nhập kết quả ĐKMH" }).click();
   const fileInput = page.getByLabel("Chọn file Kết quả đăng ký môn học (.doc, .htm, .html)");
   await fileInput.setInputFiles({
@@ -268,10 +279,10 @@ test("AC-M4-08 — no horizontal overflow and zero serious/critical axe violatio
 
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize(viewport);
-    for (const tab of [/^(Tuần|Lịch tuần)$/, /^(Ngày|Theo ngày)$/, /^Phương án/]) {
-      await page.getByRole("tab", { name: tab }).click();
-      expect(await pageOverflow(page), `final plan ${tab} overflow at ${viewport.name}`).toBeLessThanOrEqual(0);
-      expect(await axeSerious(page), `final plan ${tab} axe at ${viewport.name}`).toEqual([]);
+    for (const view of ["Lịch", "Phương án"] as const) {
+      await openView(page, view);
+      expect(await pageOverflow(page), `final plan ${view} overflow at ${viewport.name}`).toBeLessThanOrEqual(0);
+      expect(await axeSerious(page), `final plan ${view} axe at ${viewport.name}`).toEqual([]);
     }
   }
 });

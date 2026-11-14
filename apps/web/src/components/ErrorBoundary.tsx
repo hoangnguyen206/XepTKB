@@ -74,11 +74,11 @@ export function AppErrorFallback(props: { errorName: string } & RecoveryActions)
 
   return (
     <>
-      <header className="app-header">
-        <div className="brand">
+      <header className="app-bar">
+        <div className="app-bar-row">
           <p className="app-name">{APP_NAME}</p>
-          <p className="tagline">{INDEPENDENCE_NOTE}</p>
         </div>
+        <p className="independence-note">{INDEPENDENCE_NOTE}</p>
       </header>
       <main id="main" className="error-screen">
         <div className="card">

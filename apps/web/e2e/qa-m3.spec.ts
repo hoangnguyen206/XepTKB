@@ -39,7 +39,14 @@ async function serveCrafted(page: Page, options: { version: string; courses: Jso
 async function start(page: Page): Promise<void> {
   await page.goto("/");
   await page.getByRole("button", { name: "Tạo phương án" }).click();
-  await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
+}
+
+/** M6 F2: Lịch · Thêm lớp · Phương án are main-navigation buttons (formerly tabs). */
+async function openView(page: Page, name: "Lịch" | "Thêm lớp" | "Phương án"): Promise<void> {
+  const button = page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("button", { name, exact: true });
+  await button.click();
+  await expect(button).toHaveAttribute("aria-current", "page");
 }
 
 async function open(page: Page, code: string): Promise<void> {
@@ -79,7 +86,9 @@ test("QA-M3 — PRD AC-01 exact case, adjacency, week-scoped grid flags and a gr
   await a.getByLabel("Nhóm 2").check();
   await expect(a.getByText("⚠ Trùng lịch với QAC001 1 (Môn C): Thứ 5, tiết 2, tuần 5")).toBeVisible();
   await a.getByRole("button", { name: "Đổi nhóm" }).click();
+  await openView(page, "Phương án");
   await expect(page.locator(".plan-bar")).toContainText("⚠ 1 chỗ trùng lịch");
+  await openView(page, "Lịch");
   await page.getByLabel("Chọn tuần").selectOption("5");
   await expect(page.getByRole("region", { name: /Lưới thời khóa biểu tuần 5/ }).locator(".block.is-conflict")).toHaveCount(2);
   await page.getByLabel("Chọn tuần").selectOption("6");
@@ -97,15 +106,16 @@ test("QA-M3 — hostile manifest and dataset strings stay inert in the UI and th
     sections: [["QAX001 1", [fixed("x1", 2, 1, 3, range(1, 15), { room: payload, campus: payload, lecturers: [payload] })], { homeClasses: [payload] }]],
   });
   await start(page);
-  await page.getByRole("tab", { name: "Tìm môn" }).click();
+  await openView(page, "Thêm lớp");
   await open(page, "QAX001");
   await page.getByRole("article", { name: "Lớp QAX001 1" }).getByRole("button", { name: "Chọn lớp này" }).click();
-  await page.getByRole("button", { name: /Dữ liệu mẫu \(tổng hợp\)/ }).click();
-  const provenance = page.getByRole("region", { name: "Nguồn và phiên bản dữ liệu" });
+  await page.getByRole("button", { name: /^Nguồn dữ liệu: / }).click();
+  const provenance = page.getByRole("dialog", { name: "Nguồn và phiên bản dữ liệu" });
   await expect(provenance.getByText("<script>window.__qaXss=2</script>")).toBeVisible();
   await expect(provenance.getByText(`HK ${payload}`)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
-  await page.getByRole("tab", { name: /^Phương án/ }).click();
+  await page.keyboard.press("Escape");
+  await openView(page, "Phương án");
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Tải Word (.doc)" }).click()]);
   const word = readFileSync(await download.path(), "utf8");
   for (const raw of ["<img src", "<script>", "<svg", "<b>Môn"]) expect(word).not.toContain(raw);

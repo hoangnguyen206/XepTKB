@@ -192,6 +192,7 @@
 | **F7 Hoàn thiện** | Frontend + Platform | **new** `app/motion.ts`, **new** `export/poster.ts`, `export/poster-lazy.ts`, `export/canvas-kit.ts`, `export/png.ts`, xóa `styles/legacy.css`, `components/Schedule.tsx`, `components/Chrome.tsx`, **new** `e2e/visual.spec.ts` + 30 mốc, rà lại theme tối | 15, 16, 19, cả bộ 17/18/20 | F6; renderer poster làm song song được từ F3 vì là module thuần |
 
 - **Song song thật sự chỉ có:** F1a ∥ F1b; renderer poster ∥ F3–F6; phần `components/Onboarding.tsx` của F5 ∥ F4. Những phase còn lại cùng sửa `components/Workspace.tsx`, `WeekGrid.tsx` (**new**) hoặc `e2e/*.spec.ts` nên phải đi nối tiếp.
+- **Ghi chú triển khai F2 (2026-11-14):** state `view` (week, add, plan) nằm ở `App.tsx` để thanh điều hướng vào được AppBar ở ≥ 1200 px; mỗi view là `section` có tên (region "Lịch", "Thêm lớp", "Phương án") thay cho tabpanel. Trong F2, danh sách "Theo ngày" nằm ngay dưới lưới tuần trong view Lịch (không có nút chuyển Tuần/Ngày, để lưới vẫn bắt đầu trong 200 px khi có 2 chip trạng thái); F3 thay bằng DayStrip/DayView. Thông báo "Có phiên bản mới" và cảnh báo của controller là toast ghim (có nút, không tự tắt). Câu độc lập tạm đặt dưới màn Bắt đầu trong `App.tsx` cho tới khi F5 đưa vào `Onboarding`.
 - **Quy tắc "main luôn release được":** mỗi phase chuyển trọn một tính năng (không có màn hỏng giữa chừng). Màn chưa chuyển vẫn đúng ở hai theme nhờ legacy đã dùng token. Ngân sách và axe tối chạy từ F1. Bộ e2e đã sửa đi cùng PR.
 
 ## 14. Rollback và rủi ro

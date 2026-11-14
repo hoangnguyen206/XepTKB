@@ -15,12 +15,22 @@ beforeEach(() => {
   vi.stubGlobal("fetch", stubFetch(serveDataset({ status: "published" }).files));
 });
 
+/** M6 F2: Lịch · Thêm lớp · Phương án live in the main navigation (formerly tabs). */
+const nav = (name: "Lịch" | "Thêm lớp" | "Phương án") => within(screen.getByRole("navigation", { name: "Điều hướng chính" })).getByRole("button", { name });
+
 async function startPlan(user: ReturnType<typeof userEvent.setup>) {
   render(<App />);
   await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
   await user.selectOptions(screen.getByLabelText("Khóa"), "K69");
   await user.click(screen.getByRole("button", { name: "Tạo phương án" }));
-  await screen.findByRole("heading", { name: "Phương án nháp" });
+  await screen.findByRole("navigation", { name: "Điều hướng chính" });
+  await user.click(nav("Thêm lớp"));
+}
+
+/** The plan summary line ("N lớp · M tín chỉ …") is on the Phương án view; returns to Thêm lớp afterwards. */
+async function expectPlanLine(user: ReturnType<typeof userEvent.setup>, pattern: RegExp) {
+  await user.click(nav("Phương án"));
+  expect(await screen.findByText(pattern)).toBeTruthy();
 }
 
 async function openCourse(user: ReturnType<typeof userEvent.setup>, query: string, code: string) {
@@ -39,19 +49,20 @@ describe("onboarding (AC-M3-01, C-08)", () => {
     expect(previewWeek1(term, "cohort", "K71", "").date).toBe("2027-02-22");
   });
 
-  it("shows the synthetic-data banner and the independence disclaimer", async () => {
+  it("shows the synthetic-data status chip and the independence disclaimer", async () => {
+    vi.stubGlobal("fetch", stubFetch(serveDataset().files));
     render(<App />);
-    expect(await screen.findByText(/Dữ liệu mẫu tổng hợp để thử nghiệm/)).toBeTruthy();
+    await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
+    expect(await screen.findByRole("button", { name: "Dữ liệu mẫu" })).toBeTruthy();
     expect(screen.getAllByText(/không phải sản phẩm của nhà trường/).length).toBeGreaterThan(0);
   });
 
   it("creates a draft Plan that survives a remount", async () => {
     const user = userEvent.setup();
     await startPlan(user);
-    const first = screen.getByText(/Học kỳ II \(thử nghiệm\) · 0 lớp/);
-    expect(first).toBeTruthy();
+    await expectPlanLine(user, /Học kỳ II \(thử nghiệm\) · 0 lớp/);
     render(<App />);
-    await waitFor(() => expect(screen.getAllByRole("heading", { name: "Phương án nháp" }).length).toBe(2));
+    await waitFor(() => expect(screen.getAllByRole("navigation", { name: "Điều hướng chính" }).length).toBe(2));
   });
 });
 
@@ -61,11 +72,12 @@ describe("plan bar credits (AC-M3-11, QA-M3-008)", () => {
     await startPlan(user);
     await openCourse(user, "seminar", "SYN4001");
     await user.click(within(screen.getByRole("article", { name: "Lớp SYN4001 1" })).getByRole("button", { name: "Chọn lớp này" }));
-    expect(await screen.findByText(/1 lớp · chưa rõ tín chỉ/)).toBeTruthy();
+    await expectPlanLine(user, /1 lớp · chưa rõ tín chỉ/);
     expect(screen.queryByText(/1 lớp · 0 tín chỉ/)).toBeNull();
+    await user.click(nav("Thêm lớp"));
     await openCourse(user, "giai tich", "SYN1001");
     await user.click(within(screen.getByRole("article", { name: "Lớp SYN1001 2" })).getByRole("button", { name: /Chọn lớp này/ }));
-    expect(await screen.findByText(/2 lớp · 4 tín chỉ \+ 1 môn chưa rõ tín chỉ/)).toBeTruthy();
+    await expectPlanLine(user, /2 lớp · 4 tín chỉ \+ 1 môn chưa rõ tín chỉ/);
   });
 });
 
@@ -79,13 +91,14 @@ describe("picker and plan (AC-M3-02, AC-M3-03, AC-M3-11, AC-M3-13)", () => {
     expect((pick as HTMLButtonElement).disabled).toBe(true);
     await user.click(within(card).getByLabelText("Nhóm 1"));
     await user.click(pick);
-    expect(await screen.findByText(/1 lớp · 4 tín chỉ/)).toBeTruthy();
+    await expectPlanLine(user, /1 lớp · 4 tín chỉ/);
 
+    await user.click(nav("Thêm lớp"));
     await openCourse(user, "vat ly", "SYN1003");
     const conflicting = screen.getByRole("article", { name: "Lớp SYN1003 1" });
     expect(within(conflicting).getByText(/Trùng lịch với SYN1001 1 \(Giải tích 1\): Thứ 2, tiết 1–3, tuần 9–15/)).toBeTruthy();
     await user.click(within(conflicting).getByRole("button", { name: "Vẫn chọn lớp này (đang trùng lịch)" }));
-    expect(await screen.findByText(/⚠ 1 chỗ trùng lịch/)).toBeTruthy();
+    await expectPlanLine(user, /⚠ 1 chỗ trùng lịch/);
   });
 
   it("renders dataset text as text, never as markup", async () => {
@@ -102,11 +115,11 @@ describe("picker and plan (AC-M3-02, AC-M3-03, AC-M3-11, AC-M3-13)", () => {
     await startPlan(user);
     await openCourse(user, "ky nang so", "SYN3001");
     await user.click(screen.getByRole("button", { name: "Chọn lớp này" }));
-    await user.click(screen.getByRole("tab", { name: "Tuần" }));
-    const panel = await screen.findByRole("tabpanel");
+    await user.click(nav("Lịch"));
+    const panel = await screen.findByRole("region", { name: "Lịch" });
     expect(within(panel).getByText("Không có giờ cố định (không xếp vào lưới)")).toBeTruthy();
     expect(panel.querySelectorAll(".day-body .block")).toHaveLength(0);
-    expect(screen.getByText(/1 lớp · 2 tín chỉ/)).toBeTruthy();
+    await expectPlanLine(user, /1 lớp · 2 tín chỉ/);
   });
 
   it("disables 'Đổi nhóm' when a dataset revision/rebase removes or clears the picked group (QA-M3-101)", async () => {
@@ -155,8 +168,8 @@ describe("picker and plan (AC-M3-02, AC-M3-03, AC-M3-11, AC-M3-13)", () => {
     expect(within(card2).getByText(/ⓘ Học liền tiết với SYN1001 1 nhưng khác cơ sở \(Cầu Giấy ↔ Hòa Lạc\), Thứ 2, tuần 1–3/)).toBeTruthy();
     await user.click(within(card2).getByRole("button", { name: "Chọn lớp này" }));
 
-    await user.click(screen.getByRole("tab", { name: /^Phương án/ }));
-    const panel = await screen.findByRole("tabpanel");
+    await user.click(nav("Phương án"));
+    const panel = await screen.findByRole("region", { name: "Phương án" });
     expect(within(panel).getByText(/Cần kiểm tra/)).toBeTruthy();
     expect(within(panel).getByText(/SYN1001 1 và SYN1003 2 học liền tiết nhưng khác cơ sở \(Cầu Giấy ↔ Hòa Lạc\), Thứ 2, tuần 1–3/)).toBeTruthy();
   });

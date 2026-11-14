@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { weekLabel } from "../model/week.js";
 
 export function useMediaQuery(query: string): boolean {
@@ -13,60 +13,6 @@ export function useMediaQuery(query: string): boolean {
     return () => media.removeEventListener("change", update);
   }, [query]);
   return matches;
-}
-
-export type TabItem = { id: string; label: string };
-
-/** WAI-ARIA tabs with roving focus (Arrow keys, Home, End). */
-export function Tabs(props: { label: string; tabs: readonly TabItem[]; active: string; onChange: (id: string) => void; idPrefix: string }) {
-  const refs = useRef(new Map<string, HTMLButtonElement>());
-  const move = (event: KeyboardEvent<HTMLDivElement>) => {
-    const index = props.tabs.findIndex((tab) => tab.id === props.active);
-    const next = event.key === "ArrowRight" ? (index + 1) % props.tabs.length
-      : event.key === "ArrowLeft" ? (index - 1 + props.tabs.length) % props.tabs.length
-        : event.key === "Home" ? 0
-          : event.key === "End" ? props.tabs.length - 1
-            : -1;
-    if (next < 0) return;
-    event.preventDefault();
-    const tab = props.tabs[next]!;
-    props.onChange(tab.id);
-    refs.current.get(tab.id)?.focus();
-  };
-  return (
-    <div className="tabs" role="tablist" aria-label={props.label} onKeyDown={move}>
-      {props.tabs.map((tab) => {
-        const selected = tab.id === props.active;
-        return (
-          <button
-            key={tab.id}
-            ref={(element) => {
-              if (element) refs.current.set(tab.id, element);
-              else refs.current.delete(tab.id);
-            }}
-            type="button"
-            role="tab"
-            id={`${props.idPrefix}-tab-${tab.id}`}
-            aria-selected={selected}
-            aria-controls={`${props.idPrefix}-panel-${tab.id}`}
-            tabIndex={selected ? 0 : -1}
-            className="tab"
-            onClick={() => props.onChange(tab.id)}
-          >
-            {tab.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-export function TabPanel(props: { idPrefix: string; id: string; active: boolean; children: ReactNode }) {
-  return (
-    <div role="tabpanel" id={`${props.idPrefix}-panel-${props.id}`} aria-labelledby={`${props.idPrefix}-tab-${props.id}`} hidden={!props.active} className="tab-panel">
-      {props.active ? props.children : null}
-    </div>
-  );
 }
 
 export type WeekChoice = number | "all";
