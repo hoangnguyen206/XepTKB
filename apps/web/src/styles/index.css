@@ -19,4 +19,5 @@
 @import "./components/toast.css" layer(components);
 @import "./components/cards.css" layer(components);
 @import "./components/course-color.css" layer(components);
+@import "./screens/app-shell.css" layer(screens);
 @import "./print.css" layer(print);

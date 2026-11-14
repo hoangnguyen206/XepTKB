@@ -42,8 +42,9 @@
     background: #FFFFFF;
   }
 
-  .app-header,
-  .app-footer,
+  .app-bar,
+  .main-nav,
+  .toast-region,
   .skip-link,
   main > :not(.workspace),
   .workspace > :not(.print-only) {

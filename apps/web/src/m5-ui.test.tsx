@@ -37,8 +37,11 @@ async function startPlan(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
   await user.selectOptions(screen.getByLabelText("Khóa"), "K69");
   await user.click(screen.getByRole("button", { name: "Tạo phương án" }));
-  await screen.findByRole("heading", { name: "Phương án nháp" });
+  await screen.findByRole("navigation", { name: "Điều hướng chính" });
 }
+
+/** M6 F2: Lịch · Thêm lớp · Phương án live in the main navigation (formerly tabs). */
+const nav = (name: "Lịch" | "Thêm lớp" | "Phương án") => within(screen.getByRole("navigation", { name: "Điều hướng chính" })).getByRole("button", { name });
 
 async function openCourse(user: ReturnType<typeof userEvent.setup>, query: string, code: string) {
   const input = screen.getByLabelText("Mã hoặc tên môn");
@@ -56,27 +59,29 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("footer build line (AC-M5-01)", () => {
+describe("build line (AC-M5-01; in the (i) sheet since D-M6-11 / ADR-0015 point 7)", () => {
   it("shows the version and short commit", async () => {
+    const user = userEvent.setup();
     render(<App />);
     await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
-    const footer = screen.getByRole("contentinfo");
-    expect(within(footer).getByText(/^Phiên bản \S+ · (?:[0-9a-f]{7}(?:-dirty)?|unknown)/)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }));
+    const sheet = await screen.findByRole("dialog", { name: "Giới thiệu, quyền riêng tư & báo lỗi" });
+    expect(within(sheet).getByText(/^Phiên bản \S+ · (?:[0-9a-f]{7}(?:-dirty)?|unknown)/)).toBeTruthy();
   });
 });
 
 describe("About panel (M5-C, AC-M5-06)", () => {
-  it("opens from the footer by keyboard, lists every section and the IndexedDB contents, and returns focus on close", async () => {
+  it("opens from the (i) button by keyboard as a sheet, lists every section and the IndexedDB contents, and returns focus on close", async () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
     const toggle = screen.getByRole("button", { name: "Giới thiệu, quyền riêng tư & báo lỗi" });
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.getAttribute("aria-haspopup")).toBe("dialog");
     toggle.focus();
     await user.keyboard("{Enter}");
-    const panel = await screen.findByRole("region", { name: "Giới thiệu, quyền riêng tư & báo lỗi" });
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(document.activeElement).toBe(within(panel).getByRole("heading", { level: 2 }));
+    const panel = await screen.findByRole("dialog", { name: "Giới thiệu, quyền riêng tư & báo lỗi" });
+    expect((panel as HTMLDialogElement).open).toBe(true);
+    expect(within(panel).getByRole("heading", { level: 2, name: "Giới thiệu, quyền riêng tư & báo lỗi" })).toBeTruthy();
     for (const heading of ["Công cụ độc lập", "Nguồn và cách cập nhật dữ liệu", "Quyền riêng tư", "Trình duyệt hỗ trợ", "Giới hạn đã biết", "Phiên bản", "Báo sai dữ liệu"]) {
       expect(within(panel).getByRole("heading", { name: heading, level: 3 })).toBeTruthy();
     }
@@ -91,14 +96,14 @@ describe("About panel (M5-C, AC-M5-06)", () => {
     expect(within(versions).getByText(/^Phiên bản \S+ · /)).toBeTruthy();
     expect(within(versions).getByText(new RegExp(`^${VERSION} · `))).toBeTruthy();
 
-    // "Đến mục Dữ liệu trên máy" opens the footer disclosure that holds "Xóa dữ liệu trên máy".
+    // "Đến mục Dữ liệu trên máy" opens the disclosure further down the sheet that holds "Xóa dữ liệu trên máy".
     await user.click(within(panel).getByRole("button", { name: "Đến mục “Dữ liệu trên máy”" }));
     const details = document.getElementById("local-data") as HTMLDetailsElement;
     expect(details.open).toBe(true);
     expect(within(details).getByRole("button", { name: "Xóa dữ liệu trên máy" })).toBeTruthy();
 
-    await user.click(within(panel).getByRole("button", { name: "Đóng giới thiệu" }));
-    expect(screen.queryByRole("region", { name: "Giới thiệu, quyền riêng tư & báo lỗi" })).toBeNull();
+    await user.click(within(panel).getByRole("button", { name: "Đóng" }));
+    expect(screen.queryByRole("dialog", { name: "Giới thiệu, quyền riêng tư & báo lỗi" })).toBeNull();
     expect(document.activeElement).toBe(toggle);
   });
 
@@ -107,7 +112,7 @@ describe("About panel (M5-C, AC-M5-06)", () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
     await user.click(screen.getByRole("button", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }));
-    const panel = await screen.findByRole("region", { name: "Giới thiệu, quyền riêng tư & báo lỗi" });
+    const panel = await screen.findByRole("dialog", { name: "Giới thiệu, quyền riêng tư & báo lỗi" });
     expect(within(panel).queryByRole("link", { name: /Mở trang báo lỗi/ })).toBeNull();
     expect(within(panel).getByText(/Chưa có trang báo lỗi được cấu hình/)).toBeTruthy();
     const output = within(panel).getByLabelText("Nội dung báo cáo") as HTMLTextAreaElement;
@@ -202,8 +207,10 @@ describe("per-section report in the app (AC-M5-02)", () => {
   it("only carries public identifiers, even with a final Plan built from a registration file with PII and overrides", async () => {
     const user = userEvent.setup();
     await startPlan(user);
+    await user.click(nav("Thêm lớp"));
     await openCourse(user, "seminar", "SYN4001");
     await user.click(within(screen.getByRole("article", { name: "Lớp SYN4001 1" })).getByRole("button", { name: "Chọn lớp này" }));
+    await user.click(nav("Phương án"));
     expect(await screen.findByRole("button", { name: "Phương án nháp (1)" })).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Nhập kết quả ĐKMH" }));
@@ -213,7 +220,7 @@ describe("per-section report in the app (AC-M5-02)", () => {
     expect(await screen.findByRole("heading", { name: "Phương án chính thức" })).toBeTruthy();
     expect(screen.getByText(/thay đổi từ ĐKMH/)).toBeTruthy();
 
-    await user.click(screen.getByRole("tab", { name: "Tìm môn" }));
+    await user.click(nav("Thêm lớp"));
     await openCourse(user, "vat ly", "SYN1003");
     const card = screen.getByRole("article", { name: "Lớp SYN1003 1" });
     const reportButton = within(card).getByRole("button", { name: "Báo sai dữ liệu" });
@@ -236,16 +243,18 @@ describe("per-section report in the app (AC-M5-02)", () => {
   });
 });
 
-describe("stale and offline data banners (M5-D)", () => {
-  it("warns with text and role=status when expiresAt has passed (AC-M5-07)", async () => {
+describe("stale and offline data status (M5-D; chips + data-source sheet since ADR-0015 point 7)", () => {
+  it("warns with an always-visible chip and the full sentence in the data-source sheet when expiresAt has passed (AC-M5-07)", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2027-07-15T03:00:00.000Z"));
     vi.stubGlobal("fetch", stubFetch(servedWith({ expiresAt: "2027-07-01T00:00:00.000Z" })));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
     render(<App />);
     await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
-    const status = screen.getAllByRole("status").find((element) => /Dữ liệu đã hết hiệu lực/.test(element.textContent ?? ""));
-    expect(status).toBeTruthy();
-    expect(status!.textContent).toMatch(/hết hiệu lực từ 01\/07\/2027/);
+    await user.click(screen.getByRole("button", { name: "Hết hiệu lực" }));
+    const sheet = await screen.findByRole("dialog", { name: "Nguồn và phiên bản dữ liệu" });
+    expect(within(sheet).getByText("Dữ liệu đã hết hiệu lực")).toBeTruthy();
+    expect(within(sheet).getByText(/hết hiệu lực từ 01\/07\/2027/)).toBeTruthy();
   });
 
   it("shows no expiry warning for a future or missing expiresAt", async () => {
@@ -255,6 +264,7 @@ describe("stale and offline data banners (M5-D)", () => {
     const { unmount } = render(<App />);
     await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
     expect(screen.queryByText("Dữ liệu đã hết hiệu lực")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Hết hiệu lực" })).toBeNull();
     unmount();
     vi.stubGlobal("fetch", stubFetch(serveDataset({ status: "published" }).files));
     render(<App />);
@@ -262,7 +272,7 @@ describe("stale and offline data banners (M5-D)", () => {
     expect(screen.queryByText("Dữ liệu đã hết hiệu lực")).toBeNull();
   });
 
-  it("offline with the saved dataset: the age is shown outside the provenance panel, with no extra request (AC-M5-08)", async () => {
+  it("offline with the saved dataset: an Ngoại tuyến chip, the age one tap away, and no extra request (AC-M5-08)", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-10T03:00:00.000Z"));
     const files = servedWith({ publishedAt: "2026-11-06T02:00:00.000Z" });
@@ -281,10 +291,12 @@ describe("stale and offline data banners (M5-D)", () => {
 
     const requests: string[] = [];
     vi.stubGlobal("fetch", stubFetch(files, { offline: true, requests }));
+    const user = userEvent.setup();
     render(<App />);
-    expect(await screen.findByText("Đang ngoại tuyến")).toBeTruthy();
-    expect(screen.getByText(/Dữ liệu công bố 4 ngày trước\./)).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "Nguồn và phiên bản dữ liệu" })).toBeNull();
+    await user.click(await screen.findByRole("button", { name: "Ngoại tuyến" }));
+    const sheet = await screen.findByRole("dialog", { name: "Nguồn và phiên bản dữ liệu" });
+    expect(within(sheet).getByText("Đang ngoại tuyến")).toBeTruthy();
+    expect(within(sheet).getByText(/Dữ liệu công bố 4 ngày trước\./)).toBeTruthy();
     expect(requests.every((url) => url === "data/manifest.json")).toBe(true);
   });
 });

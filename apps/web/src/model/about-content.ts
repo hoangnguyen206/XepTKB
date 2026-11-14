@@ -25,7 +25,7 @@ export const ABOUT_SECTIONS: readonly AboutSection[] = [
     blocks: [
       { kind: "p", text: "Dữ liệu thời khóa biểu được chuyển đổi từ văn bản do nhà trường phát hành công khai. Mỗi bộ dữ liệu ghi rõ văn bản nguồn, mã kiểm tra (SHA-256), phiên bản bộ đọc, thời điểm nhập/duyệt/công bố và trạng thái dự kiến hay chính thức." },
       { kind: "p", text: "Mỗi lần nhà trường phát hành bản mới, dữ liệu được nhập lại, kiểm tra và duyệt thủ công trước khi công bố. Dữ liệu đáng ngờ không được công bố. Khi có bản mới, ứng dụng báo để bạn cập nhật phương án." },
-      { kind: "p", text: `${VERIFY_NOTE} Bấm vào nhãn dữ liệu ở đầu trang để xem nguồn và phiên bản đang dùng.` },
+      { kind: "p", text: `${VERIFY_NOTE} Bấm vào chip học kỳ ở đầu trang để xem nguồn và phiên bản đang dùng.` },
     ],
   },
   {
@@ -54,7 +54,7 @@ export const ABOUT_SECTIONS: readonly AboutSection[] = [
           "Nút “Mở trang báo lỗi” (nếu có) chỉ mở một biểu mẫu Google Forms bên ngoài; ứng dụng không gắn thêm dữ liệu nào vào liên kết. Những gì bạn tự dán và bấm gửi ở biểu mẫu được Google lưu theo chính sách của Google.",
         ],
       },
-      { kind: "p", text: "Cách xóa: mở “Dữ liệu trên máy” ở cuối trang và chọn “Xóa dữ liệu trên máy”. Thao tác này xóa phương án, dữ liệu đã lưu và bộ nhớ đệm của ứng dụng trên thiết bị này. Bạn cũng có thể xóa dữ liệu trang web trong cài đặt trình duyệt." },
+      { kind: "p", text: "Cách xóa: mở “Dữ liệu trên máy” ngay bên dưới và chọn “Xóa dữ liệu trên máy”. Thao tác này xóa phương án, dữ liệu đã lưu và bộ nhớ đệm của ứng dụng trên thiết bị này. Bạn cũng có thể xóa dữ liệu trang web trong cài đặt trình duyệt." },
     ],
   },
   {

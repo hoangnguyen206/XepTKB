@@ -38,7 +38,7 @@ afterEach(() => {
 
 async function openAbout(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole("button", { name: ABOUT }));
-  return screen.findByRole("region", { name: ABOUT });
+  return screen.findByRole("dialog", { name: ABOUT });
 }
 
 describe("applyTheme", () => {

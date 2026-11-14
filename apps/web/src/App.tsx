@@ -1,72 +1,27 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPlan } from "@ky-nay/domain";
-import { formatDate } from "@ky-nay/export";
 import { readBuildInfo } from "./app/build-info.js";
-import { useAppController, type Ready } from "./app/controller.js";
+import { useAppController } from "./app/controller.js";
 import { useOnline, usePendingUpdate } from "./app/sw-client.js";
-import { AboutPanel } from "./components/AboutPanel.js";
-import { Footer, Header, ProvenancePanel } from "./components/Chrome.js";
-import { Notice } from "./components/common.js";
+import { AboutSheet } from "./components/AboutPanel.js";
+import { AppBar } from "./components/AppBar.js";
+import { BottomNav, type AppView } from "./components/BottomNav.js";
+import { Notice, useMediaQuery } from "./components/common.js";
+import { DataSourceSheet } from "./components/DataSourceSheet.js";
 import { Onboarding, type Week1Choice } from "./components/Onboarding.js";
 import { ReportIssueProvider } from "./components/ReportIssue.js";
+import { StatusChips } from "./components/StatusChips.js";
+import { ToastRegion, type PinnedToast } from "./components/ui/Toast.js";
 import { Workspace } from "./components/Workspace.js";
-import type { ArtifactError } from "./data/contract.js";
-import { ageText, datasetFreshness } from "./model/freshness.js";
-import { SYNTHETIC_NOTE, formatInstant, isSynthetic, statusLabel } from "./model/labels.js";
-
-const ERROR_TEXT: Record<ArtifactError["code"], string> = {
-  MANIFEST_UNAVAILABLE: "Không kết nối được tới nguồn dữ liệu.",
-  INVALID_MANIFEST: "Danh mục dữ liệu không hợp lệ.",
-  NO_DATASET: "Chưa có dữ liệu thời khóa biểu được công bố cho kỳ này.",
-  INVALID_ARTIFACT: "Dữ liệu tải về không hợp lệ.",
-  HASH_MISMATCH: "Dữ liệu tải về không khớp mã kiểm tra (có thể bị hỏng hoặc bị thay đổi).",
-  SCHEMA_UNSUPPORTED: "Dữ liệu dùng định dạng mà phiên bản ứng dụng này chưa hỗ trợ.",
-  DOMAIN_INVALID: "Dữ liệu vi phạm quy tắc thời khóa biểu nên đã bị từ chối.",
-  TOO_LARGE: "Dữ liệu tải về vượt giới hạn kích thước.",
-  INSECURE_CONTEXT: "Trình duyệt không kiểm tra được dữ liệu vì trang không được mở qua HTTPS. Hãy mở bằng địa chỉ https://.",
-};
-
-/** `expiresAt` is a UTC instant; the date shown is the Vietnam calendar day. */
-function expiryDate(expiresAt: string): string {
-  const vn = new Date(Date.parse(expiresAt) + 7 * 3_600_000).toISOString().slice(0, 10);
-  return formatDate(vn);
-}
-
-export function DatasetBanners(props: { ready: Ready; online: boolean; now?: Date }) {
-  const { entry, cachedAt } = props.ready.dataset;
-  const cached = props.ready.cached;
-  // M5-D: computed from the entry already in memory — no network call.
-  const freshness = datasetFreshness(entry, cachedAt, props.now ?? new Date());
-  const age = `${ageText(freshness)}.`;
-  return (
-    <>
-      {freshness.expired && freshness.expiresAt ? (
-        <div role="status">
-          <Notice tone="warning" title="Dữ liệu đã hết hiệu lực">
-            Bộ dữ liệu {entry.datasetVersion} đã hết hiệu lực từ {expiryDate(freshness.expiresAt)}. Lịch có thể đã thay đổi — hãy đối chiếu với cổng đăng ký của trường.
-          </Notice>
-        </div>
-      ) : null}
-      {isSynthetic(entry) ? <Notice tone="warning" title="Dữ liệu mẫu">{SYNTHETIC_NOTE}</Notice> : null}
-      {/* ADR-0010 §2 rule 4: every unpublished dataset says so, synthetic ones included (REV-M3-009d). */}
-      {entry.status !== "published" ? (
-        <Notice tone="warning" title="Dữ liệu chưa được công bố">Bộ dữ liệu này đang ở trạng thái “{statusLabel(entry.status)}”, chỉ dùng để thử nghiệm.</Notice>
-      ) : null}
-      {!props.online || cached?.reason === "offline" ? (
-        <Notice tone="info" title="Đang ngoại tuyến">Bạn vẫn xem và xuất được phương án. {age} Bản đang dùng được lưu trên máy lúc {formatInstant(cachedAt)}.</Notice>
-      ) : null}
-      {cached?.reason === "invalid" ? (
-        <Notice tone="error" title="Không cập nhật được dữ liệu">{ERROR_TEXT[cached.error.code]} Ứng dụng tiếp tục dùng bản đã lưu lúc {formatInstant(cachedAt)}. {age}</Notice>
-      ) : null}
-    </>
-  );
-}
+import { ERROR_TEXT, datasetStatuses } from "./model/dataset-status.js";
+import { INDEPENDENCE_NOTE } from "./model/labels.js";
 
 export function App() {
   const controller = useAppController();
-  const [provenanceOpen, setProvenanceOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const aboutButtonRef = useRef<HTMLButtonElement>(null);
+  const [view, setView] = useState<AppView>("week");
+  const desktop = useMediaQuery("(min-width: 1200px)");
   const build = useMemo(() => readBuildInfo(), []);
   const pendingUpdate = usePendingUpdate();
   const online = useOnline();
@@ -79,6 +34,15 @@ export function App() {
   const activeSlot: "draft" | "final" = preferredSlot === "final" && finalPlan ? "final" : !draftPlan && finalPlan ? "final" : "draft";
   const activePlan = activeSlot === "final" && finalPlan ? finalPlan : draftPlan ?? finalPlan;
   const baseDraftPlan = draftPlan ?? finalPlan;
+  const hasWorkspace = Boolean(ready && activePlan && baseDraftPlan);
+
+  // AC-M6-04: the M5 banners' conditions and sentences, shown as chips; the sheet carries the full text.
+  const statuses = useMemo(
+    () => (ready ? datasetStatuses({ entry: ready.dataset.entry, cachedAt: ready.dataset.cachedAt, ...(ready.cached ? { cached: ready.cached } : {}), online }) : []),
+    [ready, online],
+  );
+  // A new term starts on the calendar again.
+  useEffect(() => setView("week"), [termId]);
 
   const create = (choice: Week1Choice) => {
     if (!ready) return;
@@ -92,78 +56,93 @@ export function App() {
       ...(choice.cohort ? { cohort: choice.cohort } : {}),
       ...(choice.week1 ? { week1: choice.week1 } : {}),
     }, now));
+    setView("week");
   };
 
-  const closeAbout = () => {
-    setAboutOpen(false);
-    aboutButtonRef.current?.focus();
-  };
+  // The service-worker update and the controller's storage notices stay until the user acts (DESIGN-M6-001 §6).
+  const pinned: PinnedToast[] = [
+    ...(pendingUpdate ? [{ id: "update", tone: "info" as const, title: "Có phiên bản mới của ứng dụng", text: "Phương án của bạn vẫn được giữ nguyên.", action: { label: "Tải lại", onClick: pendingUpdate } }] : []),
+    ...controller.notices.map((notice, index) => ({ id: notice.text, tone: notice.kind, text: notice.text, onClose: () => controller.dismissNotice(index) })),
+  ];
+
+  const nav = hasWorkspace ? <BottomNav view={view} onChange={setView} placement={desktop ? "bar" : "bottom"} {...(activePlan ? { planCount: activePlan.picks.length } : {})} /> : null;
 
   return (
     <ReportIssueProvider build={build} {...(ready ? { dataset: ready.dataset.entry } : {})}>
-      <a href="#main" className="skip-link">Bỏ qua tới nội dung chính</a>
-      <Header {...(ready ? { entry: ready.dataset.entry } : {})} provenanceOpen={provenanceOpen} onToggleProvenance={() => setProvenanceOpen((open) => !open)} />
-      <main id="main" tabIndex={-1}>
-        {pendingUpdate ? (
-          <Notice tone="info" title="Có phiên bản mới của ứng dụng" action={<button type="button" className="button primary" onClick={pendingUpdate}>Tải lại</button>}>
-            Phương án của bạn vẫn được giữ nguyên.
-          </Notice>
-        ) : null}
-        {controller.notices.map((notice, index) => (
-          <Notice key={notice.text} tone={notice.kind} action={<button type="button" className="button secondary small" onClick={() => controller.dismissNotice(index)}>Đóng</button>}>{notice.text}</Notice>
-        ))}
-        {ready ? <DatasetBanners ready={ready} online={online} /> : null}
-        {aboutOpen ? <AboutPanel build={build} {...(ready ? { entry: ready.dataset.entry } : {})} onClose={closeAbout} theme={controller.theme} onThemeChange={(theme) => void controller.setTheme(theme)} /> : null}
-        {ready && provenanceOpen ? <ProvenancePanel entry={ready.dataset.entry} cachedAt={ready.dataset.cachedAt} offline={!online || ready.cached?.reason === "offline"} /> : null}
-        {state.status === "loading" ? <p className="loading" role="status">Đang tải dữ liệu thời khóa biểu…</p> : null}
-        {state.status === "unavailable" ? (
-          <div className="card">
-            <h2>Chưa xem được thời khóa biểu</h2>
-            <Notice tone="error">{ERROR_TEXT[state.error.code]}{state.error.code === "MANIFEST_UNAVAILABLE" ? " Lần đầu sử dụng cần có kết nối mạng để tải dữ liệu." : ""}</Notice>
-            <div className="actions">
-              <button type="button" className="button primary" onClick={() => void controller.retry()}>Thử lại</button>
-              {state.terms.map((term) => (
-                <button key={term.term} type="button" className="button secondary" onClick={() => void controller.switchTerm(term.term)}>Xem {term.termName}</button>
-              ))}
+      <ToastRegion pinned={pinned}>
+        <a href="#main" className="skip-link">Bỏ qua tới nội dung chính</a>
+        <AppBar
+          {...(ready ? { entry: ready.dataset.entry } : {})}
+          onOpenSource={() => setSourceOpen(true)}
+          onOpenAbout={() => setAboutOpen(true)}
+          chips={<StatusChips statuses={statuses} onOpen={() => setSourceOpen(true)} {...(ready ? { baselineKey: ready.dataset.entry.datasetVersion } : {})} />}
+          nav={desktop ? nav : null}
+        />
+        <main id="main" tabIndex={-1} className={hasWorkspace && !desktop ? "has-bottom-nav" : undefined}>
+          {state.status === "loading" ? <p className="loading" role="status">Đang tải dữ liệu thời khóa biểu…</p> : null}
+          {state.status === "unavailable" ? (
+            <div className="card">
+              <h2>Chưa xem được thời khóa biểu</h2>
+              <Notice tone="error">{ERROR_TEXT[state.error.code]}{state.error.code === "MANIFEST_UNAVAILABLE" ? " Lần đầu sử dụng cần có kết nối mạng để tải dữ liệu." : ""}</Notice>
+              <div className="actions">
+                <button type="button" className="button primary" onClick={() => void controller.retry()}>Thử lại</button>
+                {state.terms.map((term) => (
+                  <button key={term.term} type="button" className="button secondary" onClick={() => void controller.switchTerm(term.term)}>Xem {term.termName}</button>
+                ))}
+              </div>
+              <p className="independence-note">{INDEPENDENCE_NOTE}</p>
             </div>
-          </div>
-        ) : null}
-        {ready && !activePlan ? (
-          <Onboarding key={ready.catalog.term.id} terms={ready.terms} term={ready.catalog.term} loadingTerm={false} onSwitchTerm={(term) => void controller.switchTerm(term)} onCreate={create} />
-        ) : null}
-        {ready && activePlan && baseDraftPlan ? (
-          <Workspace
-            key={ready.catalog.term.id}
-            plan={activePlan}
-            draftPlan={baseDraftPlan}
-            {...(finalPlan ? { finalPlan } : {})}
-            activeSlot={activeSlot}
-            {...(ready.registrationNotes[ready.catalog.term.id] ? { registrationNotes: ready.registrationNotes[ready.catalog.term.id]! } : {})}
-            catalog={ready.catalog}
-            onPlanChange={(next) => void controller.persistPlan(next)}
-            onSelectSlot={(slot) => void controller.selectSlot(ready.catalog.term.id, slot)}
-            onConfirmRegistration={(nextFinal, notes) => void controller.applyRegistrationImport(nextFinal, notes)}
-            {...(finalPlan ? { onDeleteFinalPlan: () => void controller.removeFinalPlan(finalPlan.id, ready.catalog.term.id) } : {})}
+          ) : null}
+          {ready && !activePlan ? (
+            <>
+              <Onboarding key={ready.catalog.term.id} terms={ready.terms} term={ready.catalog.term} loadingTerm={false} onSwitchTerm={(term) => void controller.switchTerm(term)} onCreate={create} />
+              {/* A-M6-1: the independence sentence on the start screen (F5 moves it into Onboarding). */}
+              <p className="independence-note">{INDEPENDENCE_NOTE}</p>
+            </>
+          ) : null}
+          {ready && activePlan && baseDraftPlan ? (
+            <Workspace
+              key={ready.catalog.term.id}
+              plan={activePlan}
+              draftPlan={baseDraftPlan}
+              {...(finalPlan ? { finalPlan } : {})}
+              activeSlot={activeSlot}
+              {...(ready.registrationNotes[ready.catalog.term.id] ? { registrationNotes: ready.registrationNotes[ready.catalog.term.id]! } : {})}
+              catalog={ready.catalog}
+              view={view}
+              onViewChange={setView}
+              onPlanChange={(next) => void controller.persistPlan(next)}
+              onSelectSlot={(slot) => void controller.selectSlot(ready.catalog.term.id, slot)}
+              onConfirmRegistration={(nextFinal, notes) => void controller.applyRegistrationImport(nextFinal, notes)}
+              {...(finalPlan ? { onDeleteFinalPlan: () => void controller.removeFinalPlan(finalPlan.id, ready.catalog.term.id) } : {})}
+            />
+          ) : null}
+        </main>
+        {!desktop ? nav : null}
+        {ready ? (
+          <DataSourceSheet
+            open={sourceOpen}
+            onClose={() => setSourceOpen(false)}
+            entry={ready.dataset.entry}
+            cachedAt={ready.dataset.cachedAt}
+            offline={!online || ready.cached?.reason === "offline"}
+            statuses={statuses}
+            terms={ready.terms}
+            onSwitchTerm={(term) => void controller.switchTerm(term)}
           />
         ) : null}
-        {ready && activePlan && ready.terms.length > 1 ? (
-          <div className="term-switch">
-            <label htmlFor="term-switch">Đổi học kỳ</label>
-            <select id="term-switch" value={ready.catalog.term.id} onChange={(event) => void controller.switchTerm(event.target.value)}>
-              {ready.terms.map((term) => <option key={term.term} value={term.term}>{term.termName}</option>)}
-            </select>
-          </div>
-        ) : null}
-      </main>
-      <Footer
-        ref={aboutButtonRef}
-        {...(controller.db() ? { db: controller.db()! } : {})}
-        wipeGeneration={controller.wipeGeneration}
-        onWipe={controller.wipe}
-        build={build}
-        aboutOpen={aboutOpen}
-        onToggleAbout={() => (aboutOpen ? closeAbout() : setAboutOpen(true))}
-      />
+        <AboutSheet
+          open={aboutOpen}
+          onClose={() => setAboutOpen(false)}
+          build={build}
+          {...(ready ? { entry: ready.dataset.entry } : {})}
+          theme={controller.theme}
+          onThemeChange={(theme) => void controller.setTheme(theme)}
+          {...(controller.db() ? { db: controller.db()! } : {})}
+          wipeGeneration={controller.wipeGeneration}
+          onWipe={controller.wipe}
+        />
+      </ToastRegion>
     </ReportIssueProvider>
   );
 }

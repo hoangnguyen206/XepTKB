@@ -25,4 +25,9 @@
   pointer-events: auto;
 }
 .toast.tone-error { background: var(--danger-solid); color: var(--danger-solid-ink); }
+.toast-text { flex: 1 1 auto; }
+.toast .btn-secondary { background: transparent; border-color: currentColor; }
+@media (min-width: 1200px) {
+  .toast-region { bottom: var(--s-6); }
+}
 .toast .btn { color: inherit; }

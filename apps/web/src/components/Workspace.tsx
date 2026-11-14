@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { Plan } from "@ky-nay/domain";
 import { buildGridLayout, conflictKeys, dayLabel, formatDate, formatPeriods, formatWeeks, kindText, nonFixedSessions, periodTimes } from "@ky-nay/export";
 import type { AppCatalog } from "../model/catalog.js";
@@ -7,7 +7,8 @@ import { applyPick, unpick } from "../model/picker.js";
 import { buildPlanView, rebasePlan, setPickedGroup, type PlanView } from "../model/plan-view.js";
 import { defaultWeek, todayInVietnam, weekLabel } from "../model/week.js";
 import type { TermRegistrationNotes } from "../storage/local-data.js";
-import { Notice, TabPanel, Tabs, useMediaQuery, WeekPicker, type WeekChoice } from "./common.js";
+import type { AppView } from "./BottomNav.js";
+import { Notice, useMediaQuery, WeekPicker, type WeekChoice } from "./common.js";
 import { ExportPanel } from "./ExportPanel.js";
 import type { Week1Choice } from "./Onboarding.js";
 import { PlanSummary, StalePlanNotice } from "./PlanSummary.js";
@@ -70,6 +71,9 @@ export function Workspace(props: {
   activeSlot: "draft" | "final";
   registrationNotes?: TermRegistrationNotes;
   catalog: AppCatalog;
+  /** M6-D (F2): which main view is on screen; owned by App so the navigation can sit in the app bar on desktop. */
+  view: AppView;
+  onViewChange: (view: AppView) => void;
   onPlanChange: (plan: Plan) => void;
   onSelectSlot: (slot: "draft" | "final") => void;
   onConfirmRegistration: (finalPlan: Plan, notes: TermRegistrationNotes) => void;
@@ -80,22 +84,21 @@ export function Workspace(props: {
   const view = useMemo(() => buildPlanView(plan, catalog), [plan, catalog]);
   const today = todayInVietnam();
   const [week, setWeek] = useState<WeekChoice>(() => (view.week1 ? defaultWeek(view.week1.date, catalog.term.teachingWeeks, today) : "all"));
-  const [tab, setTab] = useState<string>("search");
   const [pickError, setPickError] = useState<string | undefined>(undefined);
   const [importOpen, setImportOpen] = useState(false);
+  const searchPaneRef = useRef<HTMLElement>(null);
   // M5-F: the registration import chunk is loaded lazily; a retry after a failed load needs a fresh lazy component.
   const [RegistrationImportPanel, setRegistrationImportPanel] = useState(() => createLazyRegistrationPanel());
   useEffect(() => {
     // Prefetch right after mount (DESIGN-M5-001 §5): opening the panel must not issue a request (AC-M4-02 / AC-04).
     prefetchRegistrationImport();
   }, []);
-  const activeTab = desktop && tab === "search" ? "week" : tab;
-  const tabs = [
-    ...(desktop ? [] : [{ id: "search", label: "Tìm môn" }]),
-    { id: "week", label: desktop ? "Lịch tuần" : "Tuần" },
-    { id: "day", label: desktop ? "Theo ngày" : "Ngày" },
-    { id: "plan", label: `Phương án (${plan.picks.length})` },
-  ];
+  // Desktop keeps the search in the left column: "Thêm lớp" shows the calendar and moves focus to the search box.
+  const shown: AppView = desktop && props.view === "add" ? "week" : props.view;
+  useEffect(() => {
+    if (desktop && props.view === "add") searchPaneRef.current?.querySelector<HTMLInputElement>("input[type=search]")?.focus();
+  }, [desktop, props.view]);
+
   const now = () => new Date().toISOString();
   const weekNumber = week === "all" ? undefined : week;
   const layout = useMemo(
@@ -126,120 +129,137 @@ export function Workspace(props: {
     const { cohort: _cohort, week1: _week1, ...rest } = plan;
     props.onPlanChange({ ...rest, ...(choice.cohort ? { cohort: choice.cohort } : {}), ...(choice.week1 ? { week1: choice.week1 } : {}), updatedAt: now() });
   };
-  const search = <SearchPanel catalog={catalog} plan={plan} onPick={onPick} onUnpick={onUnpick} headingLevel={desktop ? "h2" : "h3"} />;
+  const search = (
+    <>
+      {pickError ? <Notice tone="error">{pickError}</Notice> : null}
+      <SearchPanel catalog={catalog} plan={plan} onPick={onPick} onUnpick={onUnpick} headingLevel={desktop ? "h2" : "h3"} />
+    </>
+  );
+  const planNotices = (
+    <>
+      {view.stale ? <StalePlanNotice plan={plan} catalog={catalog} onRebase={() => props.onPlanChange(rebasePlan(plan, catalog, now()))} /> : null}
+      {view.week1Issue ? <Notice tone="warning">Chưa xác định được tuần 1 cho phương án này. Hãy mở Phương án → Thiết lập tuần 1.</Notice> : null}
+    </>
+  );
 
   return (
     <div className={desktop ? "workspace two-col" : "workspace"}>
-      {desktop ? <aside className="pane-left card" aria-label="Tìm và chọn lớp">{search}</aside> : null}
+      {desktop ? <aside ref={searchPaneRef} className="pane-left card" aria-label="Tìm và chọn lớp">{search}</aside> : null}
       <div className="pane-main">
-        <div className="plan-bar">
-          <div className="plan-bar-top">
-            <h2>{plan.name}</h2>
-            <div className="plan-slot-controls">
-              <div className="slot-switcher" role="group" aria-label="Chọn phương án">
-                <button
-                  type="button"
-                  className={`button small ${activeSlot === "draft" ? "primary" : "secondary"}`}
-                  aria-pressed={activeSlot === "draft"}
-                  onClick={() => props.onSelectSlot("draft")}
-                >
-                  Phương án nháp ({draftPlan.picks.length})
-                </button>
-                {finalPlan ? (
+        {shown === "add" ? (
+          <section className="view view-add" aria-labelledby="view-add-heading">
+            <h2 id="view-add-heading" className="visually-hidden">Thêm lớp</h2>
+            {search}
+          </section>
+        ) : null}
+        {shown === "week" ? (
+          <section className="view view-week" aria-labelledby="view-week-heading">
+            <h2 id="view-week-heading" className="visually-hidden">Lịch</h2>
+            {planNotices}
+            {view.week1 ? (
+              <>
+                <WeekPicker week1={view.week1.date} teachingWeeks={catalog.term.teachingWeeks} value={week} onChange={setWeek} />
+                <WeekGrid layout={layout} frame={catalog.frame} week1={view.week1.date} week={week} caption={week === "all" ? "Lưới thời khóa biểu tất cả các tuần" : `Lưới thời khóa biểu tuần ${week}`} />
+                {view.sessions.length === 0 ? (
+                  <p className="muted">
+                    Chưa có lớp nào.{" "}
+                    <button type="button" className="button link" onClick={() => props.onViewChange("add")}>Thêm lớp</button>
+                  </p>
+                ) : null}
+                <NonFixedList sessions={nonFixedSessions(view.sessions)} />
+                <section className="day-section" aria-labelledby="view-day-heading">
+                  <h3 id="view-day-heading">Theo ngày</h3>
+                  <DayList sessions={view.sessions} frame={catalog.frame} week1={view.week1.date} week={week} today={today} conflictKeys={keys} />
+                </section>
+              </>
+            ) : null}
+          </section>
+        ) : null}
+        {shown === "plan" ? (
+          <section className="view view-plan" aria-label="Phương án">
+            <div className="plan-bar">
+              <div className="plan-bar-top">
+                <h2 id="view-plan-heading">{plan.name}</h2>
+                <div className="plan-slot-controls">
+                  <div className="slot-switcher" role="group" aria-label="Chọn phương án">
+                    <button
+                      type="button"
+                      className={`button small ${activeSlot === "draft" ? "primary" : "secondary"}`}
+                      aria-pressed={activeSlot === "draft"}
+                      onClick={() => props.onSelectSlot("draft")}
+                    >
+                      Phương án nháp ({draftPlan.picks.length})
+                    </button>
+                    {finalPlan ? (
+                      <button
+                        type="button"
+                        className={`button small ${activeSlot === "final" ? "primary" : "secondary"}`}
+                        aria-pressed={activeSlot === "final"}
+                        onClick={() => props.onSelectSlot("final")}
+                      >
+                        Phương án chính thức ({finalPlan.picks.length})
+                      </button>
+                    ) : null}
+                  </div>
                   <button
                     type="button"
-                    className={`button small ${activeSlot === "final" ? "primary" : "secondary"}`}
-                    aria-pressed={activeSlot === "final"}
-                    onClick={() => props.onSelectSlot("final")}
+                    className="button secondary small"
+                    aria-expanded={importOpen}
+                    onClick={() => setImportOpen((open) => !open)}
                   >
-                    Phương án chính thức ({finalPlan.picks.length})
+                    {finalPlan ? "Cập nhật từ file ĐKMH" : "Nhập kết quả ĐKMH"}
                   </button>
-                ) : null}
+                </div>
               </div>
-              <button
-                type="button"
-                className="button secondary small"
-                aria-expanded={importOpen}
-                onClick={() => setImportOpen((open) => !open)}
-              >
-                {finalPlan ? "Cập nhật từ file ĐKMH" : "Nhập kết quả ĐKMH"}
-              </button>
+              <p className="muted">
+                {/* AC-M3-11: unknown credits are "chưa rõ", never counted as 0 (QA-M3-008). */}
+                {catalog.term.name} · {plan.picks.length} lớp · {view.credits.knownTotal === 0 && view.credits.unknownCourseCodes.length > 0 ? "chưa rõ" : view.credits.knownTotal} tín chỉ
+                {view.credits.unknownCourseCodes.length > 0 && view.credits.knownTotal > 0 ? ` + ${view.credits.unknownCourseCodes.length} môn chưa rõ tín chỉ` : ""}
+                {activeOverrideCount > 0 ? <strong className="override-count"> · ★ {activeOverrideCount} thay đổi từ ĐKMH</strong> : null}
+                {view.conflicts.length > 0 ? <strong className="conflict-count"> · ⚠ {view.conflicts.length} chỗ trùng lịch</strong> : null}
+                {view.unresolved.length > 0 ? <strong className="conflict-count"> · ⚠ {view.unresolved.length} lớp cần xử lý</strong> : null}
+              </p>
             </div>
-          </div>
-          <p className="muted">
-            {/* AC-M3-11: unknown credits are "chưa rõ", never counted as 0 (QA-M3-008). */}
-            {catalog.term.name} · {plan.picks.length} lớp · {view.credits.knownTotal === 0 && view.credits.unknownCourseCodes.length > 0 ? "chưa rõ" : view.credits.knownTotal} tín chỉ
-            {view.credits.unknownCourseCodes.length > 0 && view.credits.knownTotal > 0 ? ` + ${view.credits.unknownCourseCodes.length} môn chưa rõ tín chỉ` : ""}
-            {activeOverrideCount > 0 ? <strong className="override-count"> · ★ {activeOverrideCount} thay đổi từ ĐKMH</strong> : null}
-            {view.conflicts.length > 0 ? <strong className="conflict-count"> · ⚠ {view.conflicts.length} chỗ trùng lịch</strong> : null}
-            {view.unresolved.length > 0 ? <strong className="conflict-count"> · ⚠ {view.unresolved.length} lớp cần xử lý</strong> : null}
-          </p>
-        </div>
-        {importOpen ? (
-          <LocalErrorBoundary
-            onRetry={() => {
-              resetRegistrationImport();
-              setRegistrationImportPanel(() => createLazyRegistrationPanel());
-            }}
-            fallback={(retry) => (
-              <Notice tone="error" title="Chưa tải được phần nhập ĐKMH" action={<button type="button" className="button secondary small" onClick={retry}>Thử lại</button>}>
-                Hãy kết nối mạng rồi thử lại. Phương án của bạn không bị ảnh hưởng.
-              </Notice>
-            )}
-          >
-            <Suspense fallback={<p className="loading" role="status">Đang mở phần nhập kết quả ĐKMH…</p>}>
-              <RegistrationImportPanel
-                catalog={catalog}
-                draftPlan={draftPlan}
-                {...(finalPlan ? { existingFinalPlan: finalPlan } : {})}
-                onConfirm={(nextFinalPlan, notes) => {
-                  setImportOpen(false);
-                  props.onConfirmRegistration(nextFinalPlan, notes);
+            {importOpen ? (
+              <LocalErrorBoundary
+                onRetry={() => {
+                  resetRegistrationImport();
+                  setRegistrationImportPanel(() => createLazyRegistrationPanel());
                 }}
-                onClose={() => setImportOpen(false)}
-              />
-            </Suspense>
-          </LocalErrorBoundary>
+                fallback={(retry) => (
+                  <Notice tone="error" title="Chưa tải được phần nhập ĐKMH" action={<button type="button" className="button secondary small" onClick={retry}>Thử lại</button>}>
+                    Hãy kết nối mạng rồi thử lại. Phương án của bạn không bị ảnh hưởng.
+                  </Notice>
+                )}
+              >
+                <Suspense fallback={<p className="loading" role="status">Đang mở phần nhập kết quả ĐKMH…</p>}>
+                  <RegistrationImportPanel
+                    catalog={catalog}
+                    draftPlan={draftPlan}
+                    {...(finalPlan ? { existingFinalPlan: finalPlan } : {})}
+                    onConfirm={(nextFinalPlan, notes) => {
+                      setImportOpen(false);
+                      props.onConfirmRegistration(nextFinalPlan, notes);
+                    }}
+                    onClose={() => setImportOpen(false)}
+                  />
+                </Suspense>
+              </LocalErrorBoundary>
+            ) : null}
+            {planNotices}
+            <PlanSummary
+              plan={plan}
+              view={view}
+              catalog={catalog}
+              {...(props.registrationNotes ? { registrationNotes: props.registrationNotes } : {})}
+              onUnpick={onUnpick}
+              onSelectGroup={onSelectGroup}
+              onWeek1={onWeek1}
+              {...(props.onDeleteFinalPlan ? { onDeleteFinalPlan: props.onDeleteFinalPlan } : {})}
+            />
+            <ExportPanel plan={plan} view={view} catalog={catalog} week={week} />
+          </section>
         ) : null}
-        {view.stale ? <StalePlanNotice plan={plan} catalog={catalog} onRebase={() => props.onPlanChange(rebasePlan(plan, catalog, now()))} /> : null}
-        {view.week1Issue ? <Notice tone="warning">Chưa xác định được tuần 1 cho phương án này. Hãy mở Phương án → Thiết lập tuần 1.</Notice> : null}
-        {pickError ? <Notice tone="error">{pickError}</Notice> : null}
-        <Tabs label="Các phần của phương án" tabs={tabs} active={activeTab} onChange={setTab} idPrefix="ws" />
-        {desktop ? null : <TabPanel idPrefix="ws" id="search" active={activeTab === "search"}>{search}</TabPanel>}
-        <TabPanel idPrefix="ws" id="week" active={activeTab === "week"}>
-          <h3 className="visually-hidden">Lịch tuần</h3>
-          {view.week1 ? (
-            <>
-              <WeekPicker week1={view.week1.date} teachingWeeks={catalog.term.teachingWeeks} value={week} onChange={setWeek} />
-              {view.sessions.length === 0 ? <p className="muted">Chưa có lớp nào. Hãy tìm môn và chọn lớp.</p> : null}
-              <WeekGrid layout={layout} frame={catalog.frame} week1={view.week1.date} week={week} caption={week === "all" ? "Lưới thời khóa biểu tất cả các tuần" : `Lưới thời khóa biểu tuần ${week}`} />
-              <NonFixedList sessions={nonFixedSessions(view.sessions)} />
-            </>
-          ) : null}
-        </TabPanel>
-        <TabPanel idPrefix="ws" id="day" active={activeTab === "day"}>
-          <h3 className="visually-hidden">Lịch theo ngày</h3>
-          {view.week1 ? (
-            <>
-              <WeekPicker week1={view.week1.date} teachingWeeks={catalog.term.teachingWeeks} value={week} onChange={setWeek} />
-              <DayList sessions={view.sessions} frame={catalog.frame} week1={view.week1.date} week={week} today={today} conflictKeys={keys} />
-              <NonFixedList sessions={nonFixedSessions(view.sessions)} />
-            </>
-          ) : null}
-        </TabPanel>
-        <TabPanel idPrefix="ws" id="plan" active={activeTab === "plan"}>
-          <PlanSummary
-            plan={plan}
-            view={view}
-            catalog={catalog}
-            {...(props.registrationNotes ? { registrationNotes: props.registrationNotes } : {})}
-            onUnpick={onUnpick}
-            onSelectGroup={onSelectGroup}
-            onWeek1={onWeek1}
-            {...(props.onDeleteFinalPlan ? { onDeleteFinalPlan: props.onDeleteFinalPlan } : {})}
-          />
-          <ExportPanel plan={plan} view={view} catalog={catalog} week={week} />
-        </TabPanel>
       </div>
       <PrintSheet plan={plan} view={view} catalog={catalog} week={week} />
     </div>

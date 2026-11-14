@@ -21,7 +21,14 @@ async function startDraftPlan(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
   await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
   await page.getByRole("button", { name: "Tạo phương án" }).click();
-  await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
+}
+
+/** M6 F2: Lịch · Thêm lớp · Phương án are main-navigation buttons (formerly tabs). */
+async function openView(page: Page, name: "Lịch" | "Thêm lớp" | "Phương án"): Promise<void> {
+  const button = page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("button", { name, exact: true });
+  await button.click();
+  await expect(button).toHaveAttribute("aria-current", "page");
 }
 
 async function pageOverflow(page: Page): Promise<number> {
@@ -36,14 +43,16 @@ async function axeSerious(page: Page): Promise<string[]> {
 }
 
 async function openSearch(page: Page): Promise<void> {
-  if ((page.viewportSize()?.width ?? 0) < 1200) await page.getByRole("tab", { name: "Tìm môn" }).click();
+  if ((page.viewportSize()?.width ?? 0) < 1200) await openView(page, "Thêm lớp");
   await expect(page.getByLabel("Mã hoặc tên môn")).toBeVisible();
 }
 
-test("AC-M5-01 — the footer shows the app version and short commit (and matches the build meta tag when present)", async ({ page }) => {
+test("AC-M5-01 — the (i) sheet shows the app version and short commit (and matches the build meta tag when present)", async ({ page }) => {
+  // D-M6-11 / ADR-0015 point 7: the always-visible footer is gone; the version is in the (i) sheet, the error screen and the meta tag.
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
-  const line = page.getByRole("contentinfo").getByText(BUILD_LINE);
+  await page.getByRole("button", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }).click();
+  const line = page.getByRole("dialog", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }).getByText(BUILD_LINE);
   await expect(line).toBeVisible();
   const [, version, commit] = BUILD_LINE.exec((await line.textContent()) ?? "")!;
   // The meta tag arrives with WP2's build plugin; when present it must name the same build.
@@ -62,6 +71,7 @@ test("AC-M5-03/04 — report from a section card: PII-free text copied, zero req
   await page.getByRole("button", { name: /^SYN2004/ }).click();
   const card = page.getByRole("article", { name: "Lớp SYN2004 1" });
   await card.getByRole("button", { name: "Chọn lớp này" }).click();
+  await openView(page, "Phương án");
   await expect(page.getByRole("button", { name: "Phương án nháp (1)" })).toBeVisible();
 
   const reportRequests: { url: string; method: string }[] = [];
@@ -110,7 +120,7 @@ test("AC-M5-10 — onboarding does not load the registration chunk; the workspac
 
   await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
   await page.getByRole("button", { name: "Tạo phương án" }).click();
-  await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
   await expect.poll(() => pageRequests.filter((url) => /\/assets\/RegistrationImport-[^/]+\.js$/.test(url)).length).toBe(1);
 });
 
@@ -124,8 +134,13 @@ test("AC-M5-10 — offline after the service worker is ready, the registration i
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText("Đang ngoại tuyến")).toBeVisible();
-  await expect(page.getByText(/Dữ liệu (?:công bố|duyệt|nhập) (?:\d+ ngày trước|hôm nay)\./)).toBeVisible();
+  // AC-M6-04: the offline banner is now a chip; its sentence (with the age) is one tap away.
+  await page.getByRole("button", { name: "Ngoại tuyến" }).click();
+  const source = page.getByRole("dialog", { name: "Nguồn và phiên bản dữ liệu" });
+  await expect(source.getByText("Đang ngoại tuyến")).toBeVisible();
+  await expect(source.getByText(/Dữ liệu (?:công bố|duyệt|nhập) (?:\d+ ngày trước|hôm nay)\./)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await openView(page, "Phương án");
   await page.getByRole("button", { name: "Nhập kết quả ĐKMH" }).click();
   await expect(page.getByRole("heading", { name: "Nhập kết quả đăng ký môn học (ĐKMH)" })).toBeVisible();
   await expect(page.getByText("Chưa tải được phần nhập ĐKMH")).toHaveCount(0);
@@ -138,9 +153,10 @@ test("AC-M5-06/17 — About panel and report form: keyboard, no overflow, zero s
   const toggle = page.getByRole("button", { name: "Giới thiệu, quyền riêng tư & báo lỗi" });
   await toggle.focus();
   await page.keyboard.press("Enter");
-  const panel = page.getByRole("region", { name: "Giới thiệu, quyền riêng tư & báo lỗi" });
+  const panel = page.getByRole("dialog", { name: "Giới thiệu, quyền riêng tư & báo lỗi" });
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole("heading", { level: 2 })).toBeFocused();
+  // A modal sheet: focus moves inside it.
+  await expect.poll(() => page.evaluate(() => Boolean(document.activeElement?.closest("dialog[open]")))).toBe(true);
   for (const heading of ["Công cụ độc lập", "Nguồn và cách cập nhật dữ liệu", "Quyền riêng tư", "Trình duyệt hỗ trợ", "Giới hạn đã biết", "Phiên bản", "Báo sai dữ liệu"]) {
     await expect(panel.getByRole("heading", { name: heading, level: 3 })).toBeVisible();
   }
@@ -152,7 +168,7 @@ test("AC-M5-06/17 — About panel and report form: keyboard, no overflow, zero s
     expect(await axeSerious(page), `about axe at ${viewport.name}`).toEqual([]);
   }
 
-  await panel.getByRole("button", { name: "Đóng giới thiệu" }).click();
+  await panel.getByRole("button", { name: "Đóng", exact: true }).click();
   await expect(toggle).toBeFocused();
 
   // Per-section report form (open, with the personal-data warning) at every width. At 1200 px the search pane moves
@@ -257,7 +273,7 @@ test("AC-M5-09/17 — a render error shows the recovery screen (name only), no r
 
   // "Tải lại trang" keeps the Plan (the crash flag does not survive a reload).
   await page.getByRole("button", { name: "Tải lại trang" }).click();
-  await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
 
   // Crash again, then wipe with confirmation: the next load starts from onboarding.
   await page.evaluate(() => {
