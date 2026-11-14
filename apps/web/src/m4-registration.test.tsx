@@ -362,10 +362,13 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     await user.click(nav("Lịch"));
     const calendar = await screen.findByRole("region", { name: "Lịch" });
     await user.selectOptions(within(calendar).getByLabelText("Chọn tuần"), "all");
-    const dayPanel = within(calendar).getByRole("region", { name: "Theo ngày" });
+    // M6 F3: the session sheet (tap the block) carries the override badge and "from → to" detail.
+    await user.click(within(calendar).getAllByRole("button", { name: /^SYN1003 Vật lý đại cương/ })[0]!);
+    const dayPanel = await screen.findByRole("dialog", { name: /^SYN1003/ });
     expect(within(dayPanel).getAllByText("Đã đổi phòng").length).toBeGreaterThan(0);
     expect(within(dayPanel).getByText(/Phòng học: Hòa Lạc A101 → 409-G2 \(theo ĐKMH\)/)).toBeTruthy();
     expect(within(dayPanel).queryByText(/305-G2/)).toBeNull();
+    await user.click(within(dayPanel).getByRole("button", { name: "Đóng" }));
 
     // Switch back to Phương án nháp -> SYN4001 1 is still preserved
     await user.click(nav("Phương án"));

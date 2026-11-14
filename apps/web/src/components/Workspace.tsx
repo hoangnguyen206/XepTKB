@@ -8,13 +8,17 @@ import { buildPlanView, rebasePlan, setPickedGroup, type PlanView } from "../mod
 import { defaultWeek, todayInVietnam, weekLabel } from "../model/week.js";
 import type { TermRegistrationNotes } from "../storage/local-data.js";
 import type { AppView } from "./BottomNav.js";
-import { Notice, useMediaQuery, WeekPicker, type WeekChoice } from "./common.js";
+import { Notice, useMediaQuery, type WeekChoice } from "./common.js";
 import { ExportPanel } from "./ExportPanel.js";
 import type { Week1Choice } from "./Onboarding.js";
 import { PlanSummary, StalePlanNotice } from "./PlanSummary.js";
 import { LocalErrorBoundary } from "./ErrorBoundary.js";
 import { createLazyRegistrationPanel, prefetchRegistrationImport, resetRegistrationImport } from "./registration-lazy.js";
-import { DayList, NonFixedList, WeekGrid } from "./Schedule.js";
+import { useCourseColors, type CourseColorLookup } from "./useCourseColors.js";
+import { WeekGrid } from "./WeekGrid.js";
+import { NonFixedList, WeekView } from "./WeekView.js";
+import type { CourseColorId } from "../model/palette.js";
+import { visiblePeriods } from "../model/grid-view.js";
 import { SearchPanel } from "./SearchPanel.js";
 import { creditsLine } from "../export/files.js";
 
@@ -27,16 +31,16 @@ const ISSUE_TEXT: Record<string, string> = {
 };
 
 /** Print-only sheet (A4 landscape via print CSS): grid of the selected week plus the session table. */
-function PrintSheet(props: { plan: Plan; view: PlanView; catalog: AppCatalog; week: WeekChoice }) {
+function PrintSheet(props: { plan: Plan; view: PlanView; catalog: AppCatalog; week: WeekChoice; colors: CourseColorLookup }) {
   const { plan, view, catalog } = props;
   const week = props.week === "all" ? undefined : props.week;
-  const layout = buildGridLayout(view.sessions, { ...(week !== undefined ? { week } : {}), maxPeriod: catalog.maxPeriod, conflictKeys: conflictKeys(view.conflicts, week) });
+  const layout = buildGridLayout(view.sessions, { ...(week !== undefined ? { week } : {}), maxPeriod: visiblePeriods(view.sessions, catalog.maxPeriod), conflictKeys: conflictKeys(view.conflicts, week) });
   const fixed = view.sessions.filter((session) => session.fixed);
   return (
     <div className="print-only" aria-hidden="true">
       <h2>{plan.name} — {catalog.term.name}</h2>
       <p>{week !== undefined && view.week1 ? weekLabel(view.week1.date, week) : "Tất cả các tuần"}{view.week1 ? ` · Tuần 1 bắt đầu ${formatDate(view.week1.date)}` : ""} · {creditsLine(view)}</p>
-      {view.week1 ? <WeekGrid layout={layout} frame={catalog.frame} week1={view.week1.date} week={props.week} caption="Bản in lưới thời khóa biểu" print /> : null}
+      {view.week1 ? <WeekGrid layout={layout} frame={catalog.frame} week1={view.week1.date} week={props.week} caption="Bản in lưới thời khóa biểu" variant="print" colorOf={props.colors.colorOf} /> : null}
       <table className="print-table">
         <thead><tr><th>Thứ</th><th>Tiết (giờ)</th><th>Môn</th><th>Lớp</th><th>Loại</th><th>Phòng</th><th>Tuần</th></tr></thead>
         <tbody>
@@ -78,8 +82,12 @@ export function Workspace(props: {
   onSelectSlot: (slot: "draft" | "final") => void;
   onConfirmRegistration: (finalPlan: Plan, notes: TermRegistrationNotes) => void;
   onDeleteFinalPlan?: () => void;
+  /** M6-E (F3): course colours chosen on this device and the setter (DESIGN-M6-001 §3/§7). */
+  courseColors: Readonly<Record<string, CourseColorId>>;
+  onCourseColor: (courseCode: string, color: CourseColorId | undefined) => void;
 }) {
   const { plan, draftPlan, finalPlan, activeSlot, catalog } = props;
+  const colors = useCourseColors(draftPlan.planKind === "draft" ? draftPlan : undefined, finalPlan, catalog, props.courseColors);
   const desktop = useMediaQuery("(min-width: 1200px)");
   const view = useMemo(() => buildPlanView(plan, catalog), [plan, catalog]);
   const today = todayInVietnam();
@@ -100,12 +108,6 @@ export function Workspace(props: {
   }, [desktop, props.view]);
 
   const now = () => new Date().toISOString();
-  const weekNumber = week === "all" ? undefined : week;
-  const layout = useMemo(
-    () => buildGridLayout(view.sessions, { ...(weekNumber !== undefined ? { week: weekNumber } : {}), maxPeriod: catalog.maxPeriod, conflictKeys: conflictKeys(view.conflicts, weekNumber) }),
-    [view, weekNumber, catalog.maxPeriod],
-  );
-  const keys = useMemo(() => conflictKeys(view.conflicts, weekNumber), [view.conflicts, weekNumber]);
   const activeOverrideCount = useMemo(
     () => view.sessions.reduce((sum, session) => sum + (session.overrides?.length ?? 0), 0),
     [view.sessions],
@@ -157,21 +159,25 @@ export function Workspace(props: {
             <h2 id="view-week-heading" className="visually-hidden">Lịch</h2>
             {planNotices}
             {view.week1 ? (
-              <>
-                <WeekPicker week1={view.week1.date} teachingWeeks={catalog.term.teachingWeeks} value={week} onChange={setWeek} />
-                <WeekGrid layout={layout} frame={catalog.frame} week1={view.week1.date} week={week} caption={week === "all" ? "Lưới thời khóa biểu tất cả các tuần" : `Lưới thời khóa biểu tuần ${week}`} />
-                {view.sessions.length === 0 ? (
+              <WeekView
+                sessions={view.sessions}
+                conflicts={view.conflicts}
+                frame={catalog.frame}
+                maxPeriod={catalog.maxPeriod}
+                week1={view.week1.date}
+                teachingWeeks={catalog.term.teachingWeeks}
+                week={week}
+                onWeekChange={setWeek}
+                colors={colors}
+                onCourseColor={props.onCourseColor}
+                onUnpick={onUnpick}
+                empty={view.sessions.length === 0 ? (
                   <p className="muted">
                     Chưa có lớp nào.{" "}
                     <button type="button" className="button link" onClick={() => props.onViewChange("add")}>Thêm lớp</button>
                   </p>
                 ) : null}
-                <NonFixedList sessions={nonFixedSessions(view.sessions)} />
-                <section className="day-section" aria-labelledby="view-day-heading">
-                  <h3 id="view-day-heading">Theo ngày</h3>
-                  <DayList sessions={view.sessions} frame={catalog.frame} week1={view.week1.date} week={week} today={today} conflictKeys={keys} />
-                </section>
-              </>
+              />
             ) : null}
           </section>
         ) : null}
@@ -261,7 +267,7 @@ export function Workspace(props: {
           </section>
         ) : null}
       </div>
-      <PrintSheet plan={plan} view={view} catalog={catalog} week={week} />
+      <PrintSheet plan={plan} view={view} catalog={catalog} week={week} colors={colors} />
     </div>
   );
 }

@@ -115,6 +115,8 @@ export function App() {
               onSelectSlot={(slot) => void controller.selectSlot(ready.catalog.term.id, slot)}
               onConfirmRegistration={(nextFinal, notes) => void controller.applyRegistrationImport(nextFinal, notes)}
               {...(finalPlan ? { onDeleteFinalPlan: () => void controller.removeFinalPlan(finalPlan.id, ready.catalog.term.id) } : {})}
+              courseColors={ready.courseColors}
+              onCourseColor={(code, color) => void controller.setCourseColor(code, color)}
             />
           ) : null}
         </main>

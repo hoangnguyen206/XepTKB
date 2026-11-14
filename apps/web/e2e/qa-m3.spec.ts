@@ -51,7 +51,8 @@ async function openView(page: Page, name: "Lịch" | "Thêm lớp" | "Phương �
 
 async function open(page: Page, code: string): Promise<void> {
   await page.getByLabel("Mã hoặc tên môn").fill(code);
-  const toggle = page.getByRole("button", { name: new RegExp(`^${code}`) });
+  // Scoped to the search list: from 1200 px the calendar blocks (also named by course code) are on screen too.
+  const toggle = page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${code}`) });
   if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
 }
 
