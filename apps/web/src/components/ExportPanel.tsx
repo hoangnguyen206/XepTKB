@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { Plan } from "@ky-nay/domain";
 import { buildGridLayout, conflictKeys, formatDate, nonFixedSessions } from "@ky-nay/export";
-import { downloadBlob, icsFile, wordFile, creditsLine } from "../export/files.js";
-import { renderPng } from "../export/png.js";
+import { loadExporters, resetExporters } from "../export/exporters-lazy.js";
+import { downloadBlob, creditsLine } from "../export/files.js";
 import type { AppCatalog } from "../model/catalog.js";
 import { exportDisclaimer, fileStem, provenanceLine, VERIFY_NOTE } from "../model/labels.js";
 import type { PlanView } from "../model/plan-view.js";
@@ -24,20 +24,25 @@ export function ExportPanel(props: { plan: Plan; view: PlanView; catalog: AppCat
     try {
       setMessage({ tone: "success", text: await task() });
     } catch {
+      // A failed chunk load (offline before it was cached) can be retried by pressing the button again.
+      resetExporters();
       setMessage({ tone: "error", text: "Không tạo được file. Hãy thử lại hoặc dùng trình duyệt khác." });
     }
   };
-  const exportIcs = () => run(() => {
+  const exportIcs = () => run(async () => {
+    const { icsFile } = await loadExporters();
     const file = icsFile(plan, view, catalog);
     downloadBlob(file.blob, file.fileName);
     return `Đã tạo ${file.fileName} gồm ${file.events} buổi học. Mở file để thêm vào ứng dụng lịch.`;
   });
-  const exportWord = () => run(() => {
+  const exportWord = () => run(async () => {
+    const { wordFile } = await loadExporters();
     const file = wordFile(plan, view, catalog);
     downloadBlob(file.blob, file.fileName);
     return `Đã tạo ${file.fileName}.`;
   });
   const exportPng = () => run(async () => {
+    const { renderPng } = await loadExporters();
     const week = props.week === "all" ? undefined : props.week;
     const layout = buildGridLayout(view.sessions, { ...(week !== undefined ? { week } : {}), maxPeriod: catalog.maxPeriod, conflictKeys: conflictKeys(view.conflicts, week) });
     const blob = await renderPng({
