@@ -5,6 +5,7 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
 import { AxeBuilder } from "@axe-core/playwright";
+import type { Locator } from "@playwright/test";
 import { expect, test, type Page } from "./fixture.js";
 
 const SCREENSHOTS = process.env.M3_SCREENSHOT_DIR;
@@ -49,20 +50,54 @@ async function openSearch(page: Page): Promise<void> {
   await expect(page.getByLabel("Mã hoặc tên môn")).toBeVisible();
 }
 
-async function openCourse(page: Page, query: string, code: string): Promise<void> {
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** M6 F4: the class sheet of a course is a modal dialog named "{code} {name}". */
+const classSheet = (page: Page, code: string) => page.getByRole("dialog", { name: new RegExp(`^${escapeRegExp(code)} `) });
+
+/** The course row in the search results (from 1200 px the calendar blocks, also named by course code, are on screen too). */
+const courseRow = (page: Page, code: string) => page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${escapeRegExp(code)} `) });
+
+/** Opens the class sheet of `code` and returns it. */
+async function openCourse(page: Page, query: string, code: string) {
   await openSearch(page);
   await page.getByLabel("Mã hoặc tên môn").fill(query);
-  // Scoped to the search list: from 1200 px the calendar blocks (also named by course code) are on screen too.
-  const toggle = page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${code}`) });
-  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await courseRow(page, code).click();
+  const sheet = classSheet(page, code);
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+/** Opens the course of `section`, selects that class chip ("Lớp {id}[ đã chọn][ Trùng]") and returns its article. */
+async function openSection(page: Page, query: string, section: string) {
+  const sheet = await openCourse(page, query, section.split(" ")[0]!);
+  await checkChip(sheet.getByRole("radio", { name: new RegExp(`^Lớp ${escapeRegExp(section)}(?!\\d)`) }));
+  return sheet.getByRole("article", { name: `Lớp ${section}` });
+}
+
+/**
+ * Chip radios (class and group chips) are visually-hidden inputs under their label chip, which intercepts pointer
+ * events, so `locator.check()` cannot click the input: the chip (its label) is clicked, as a user would.
+ */
+async function checkChip(radio: Locator): Promise<void> {
+  if (await radio.isChecked()) return;
+  const id = await radio.getAttribute("id");
+  await radio.page().locator(`label[for="${id}"]`).click();
+  await expect(radio).toBeChecked();
+}
+
+/** A successful pick closes the sheet and marks the course row "✓ đã chọn lớp {id}". */
+async function expectPicked(page: Page, section: string): Promise<void> {
+  const code = section.split(" ")[0]!;
+  await expect(classSheet(page, code)).toBeHidden();
+  await expect(courseRow(page, code)).toHaveAccessibleName(new RegExp(` · ✓ đã chọn lớp ${escapeRegExp(section)}$`));
 }
 
 async function pick(page: Page, query: string, section: string, options: { group?: string; button?: RegExp } = {}): Promise<void> {
-  await openCourse(page, query, section.split(" ")[0]!);
-  const card = page.getByRole("article", { name: `Lớp ${section}` });
-  if (options.group) await card.getByLabel(`Nhóm ${options.group}`).check();
-  await card.getByRole("button", { name: options.button ?? /^(Chọn lớp này|Vẫn chọn)/ }).click();
-  await expect(card.getByText(/✓ Đã chọn/)).toBeVisible();
+  const card = await openSection(page, query, section);
+  if (options.group) await checkChip(card.getByLabel(`Nhóm ${options.group}`));
+  await card.getByRole("button", { name: options.button ?? /^(Thêm vào lịch|Vẫn thêm lớp này)$/ }).click();
+  await expectPicked(page, section);
 }
 
 async function pageOverflow(page: Page): Promise<number> {
@@ -84,10 +119,10 @@ test("AC-M3-01/02/03/04/06 — core flow on a 360 px phone, persisted across rel
   await page.setViewportSize({ width: 360, height: 780 });
   await startPlan(page);
   await pick(page, "giai tich", "SYN1001 1", { group: "1" });
-  await openCourse(page, "vat ly", "SYN1003");
-  const conflicting = page.getByRole("article", { name: "Lớp SYN1003 1" });
+  const conflicting = await openSection(page, "vat ly", "SYN1003 1");
   await expect(conflicting.getByText("⚠ Trùng lịch với SYN1001 1 (Giải tích 1): Thứ 2, tiết 1–3, tuần 9–15")).toBeVisible();
-  await conflicting.getByRole("button", { name: "Vẫn chọn lớp này (đang trùng lịch)" }).click();
+  await conflicting.getByRole("button", { name: "Vẫn thêm lớp này" }).click();
+  await expectPicked(page, "SYN1003 1");
   await pick(page, "ky nang so", "SYN3001 1");
   await expectPlanLine(page, /⚠ 1 chỗ trùng lịch/);
 
@@ -122,14 +157,17 @@ test("AC-M3-05 — no horizontal page scroll at 360/768/1200/1280 and no serious
   await page.getByRole("button", { name: "Tạo phương án" }).click();
   await pick(page, "lap trinh", "SYN2001 1", { group: "2" });
   await pick(page, "SYN1001", "SYN1001 2");
-  await pick(page, "dai so", "SYN1002 2", { button: /Vẫn chọn/ });
+  await pick(page, "dai so", "SYN1002 2", { button: /^Vẫn thêm lớp này$/ });
   await pick(page, "giao duc", "SYN3005 1");
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize(viewport);
-    await openCourse(page, "SYN2001", "SYN2001");
+    const sheet = await openCourse(page, "SYN2001", "SYN2001");
     expect(await pageOverflow(page), `search at ${viewport.name}`).toBeLessThanOrEqual(0);
     expect(await axeSerious(page), `search axe at ${viewport.name}`).toEqual([]);
     await shot(page, `${viewport.name}-search`);
+    // The class sheet is modal: close it before using the navigation.
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
     for (const view of ["Lịch", "Phương án"] as const) {
       await openView(page, view);
       expect(await pageOverflow(page), `${view} at ${viewport.name}`).toBeLessThanOrEqual(0);
@@ -172,9 +210,10 @@ test("AC-M3-05 — keyboard-only path from onboarding to a pick, with visible fo
   await page.keyboard.type("SYN2003");
   await focusOn((element) => element.text.startsWith("SYN2003"));
   await page.keyboard.press("Enter");
-  await focusOn((element) => element.text === "Chọn lớp này");
+  await expect(classSheet(page, "SYN2003")).toBeVisible();
+  await focusOn((element) => element.text === "Thêm vào lịch");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("article", { name: "Lớp SYN2003 1" }).getByText(/✓ Đã chọn/)).toBeVisible();
+  await expectPicked(page, "SYN2003 1");
   // F2: the main navigation is reached and used with the keyboard (buttons with aria-current).
   const planNav = page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("button", { name: "Phương án", exact: true });
   await planNav.focus();
@@ -373,7 +412,7 @@ test("REV-M3-001/003 — a revision that renames a picked group keeps the confli
   await page.setViewportSize({ width: 1280, height: 900 });
   await startPlan(page);
   await pick(page, "SYN1001", "SYN1001 1", { group: "2" });
-  await pick(page, "SYN1003", "SYN1003 1", { button: /^Vẫn chọn/ });
+  await pick(page, "SYN1003", "SYN1003 1", { button: /^Vẫn thêm lớp này$/ });
   await openView(page, "Phương án");
   const bar = page.locator(".plan-bar");
   await expect(bar.getByText(/1 chỗ trùng lịch/)).toBeVisible();
@@ -395,7 +434,7 @@ test("REV-M3-001/003 — a revision that renames a picked group keeps the confli
   // An unrelated class can still be picked while SYN1001 1 waits for a group.
   await pick(page, "SYN2004", "SYN2004 1");
   // The common Monday session still overlaps SYN1003 1, so the button says so (QA-M3-007).
-  await pick(page, "SYN1001", "SYN1001 1", { group: "3", button: /^Vẫn đổi nhóm \(đang trùng lịch\)/ });
+  await pick(page, "SYN1001", "SYN1001 1", { group: "3", button: /^Vẫn đổi nhóm$/ });
   await expect(bar.getByText(/lớp cần xử lý/)).toHaveCount(0);
 });
 
@@ -421,6 +460,8 @@ test("AC-M3-08/13 — provenance, CSP, same-origin requests only and inert datas
   await expect(page.getByRole("dialog", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }).getByText("không phải sản phẩm của nhà trường").first()).toBeVisible();
   await page.keyboard.press("Escape");
   await pick(page, "kiem thu", "SYN9999 1");
+  // The lecturer text is shown in the class sheet, which a successful pick closes: reopen it.
+  await courseRow(page, "SYN9999").click();
   await expect(page.getByText(/<img src=x onerror=/).first()).toBeVisible();
   expect(await page.evaluate(() => (window as { __kyNayXss?: number }).__kyNayXss)).toBeUndefined();
   expect(requests.filter((request) => !request.url.startsWith(baseURL!))).toEqual([]);

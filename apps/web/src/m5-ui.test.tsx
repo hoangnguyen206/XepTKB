@@ -43,11 +43,19 @@ async function startPlan(user: ReturnType<typeof userEvent.setup>) {
 /** M6 F2: Lịch · Thêm lớp · Phương án live in the main navigation (formerly tabs). */
 const nav = (name: "Lịch" | "Thêm lớp" | "Phương án") => within(screen.getByRole("navigation", { name: "Điều hướng chính" })).getByRole("button", { name });
 
-async function openCourse(user: ReturnType<typeof userEvent.setup>, query: string, code: string) {
+/**
+ * M6 F4: the course row opens the class sheet (dialog "{code} {name}"); the class radio is "Lớp {id}[ đã chọn][ Trùng]"
+ * (jsdom drops the space after the visually-hidden "Lớp "). Returns the selected class's article "Lớp {id}".
+ */
+async function openSection(user: ReturnType<typeof userEvent.setup>, query: string, sectionId: string) {
+  const code = sectionId.split(" ")[0]!;
   const input = screen.getByLabelText("Mã hoặc tên môn");
   await user.clear(input);
   await user.type(input, query);
-  await user.click(await screen.findByRole("button", { name: new RegExp(`^${code}`) }));
+  await user.click(await screen.findByRole("button", { name: new RegExp(`^${code} `) }));
+  const dialog = await screen.findByRole("dialog", { name: new RegExp(`^${code} `) });
+  await user.click(within(dialog).getByRole("radio", { name: new RegExp(`^Lớp ?${sectionId}(?!\\d)`) }));
+  return within(dialog).getByRole("article", { name: `Lớp ${sectionId}` });
 }
 
 beforeEach(() => {
@@ -191,14 +199,15 @@ describe("report form (M5-B)", () => {
   });
 
   it("is hidden on section cards outside a provider", async () => {
-    const { SectionCard } = await import("./components/SectionCard.js");
+    const { SectionDetail } = await import("./components/ClassSheet.js");
+    const { COURSE_PALETTE } = await import("./model/palette.js");
     const { buildAppCatalog } = await import("./model/catalog.js");
     const { testMetadata, testTimetable } = await import("./test/fixture.js");
     const { createPlan } = await import("@ky-nay/domain");
     const { entry } = serveDataset({ status: "published" });
     const catalog = buildAppCatalog({ entry, timetable: testTimetable(), metadata: testMetadata(), cachedAt: "2026-10-25T00:00:00.000Z" });
     const plan = createPlan({ id: "p", term: catalog.term.id, datasetVersion: VERSION, name: "Phương án nháp", planKind: "draft", cohort: "K69" }, "2026-10-25T00:00:00.000Z");
-    render(<SectionCard section={catalog.sectionById.get("SYN1001 2")!} plan={plan} catalog={catalog} onPick={() => undefined} onUnpick={() => undefined} headingLevel="h3" />);
+    render(<SectionDetail section={catalog.sectionById.get("SYN1001 2")!} plan={plan} catalog={catalog} colorOf={() => COURSE_PALETTE[0]!} onPick={() => undefined} onUnpick={() => undefined} />);
     expect(screen.queryByRole("button", { name: "Báo sai dữ liệu" })).toBeNull();
   });
 });
@@ -208,8 +217,8 @@ describe("per-section report in the app (AC-M5-02)", () => {
     const user = userEvent.setup();
     await startPlan(user);
     await user.click(nav("Thêm lớp"));
-    await openCourse(user, "seminar", "SYN4001");
-    await user.click(within(screen.getByRole("article", { name: "Lớp SYN4001 1" })).getByRole("button", { name: "Chọn lớp này" }));
+    await user.click(within(await openSection(user, "seminar", "SYN4001 1")).getByRole("button", { name: "Thêm vào lịch" }));
+    expect(screen.queryByRole("dialog", { name: /^SYN4001 / })).toBeNull();
     await user.click(nav("Phương án"));
     expect(await screen.findByRole("button", { name: "Phương án nháp (1)" })).toBeTruthy();
 
@@ -221,8 +230,7 @@ describe("per-section report in the app (AC-M5-02)", () => {
     expect(screen.getByText(/thay đổi từ ĐKMH/)).toBeTruthy();
 
     await user.click(nav("Thêm lớp"));
-    await openCourse(user, "vat ly", "SYN1003");
-    const card = screen.getByRole("article", { name: "Lớp SYN1003 1" });
+    const card = await openSection(user, "vat ly", "SYN1003 1");
     const reportButton = within(card).getByRole("button", { name: "Báo sai dữ liệu" });
     expect(reportButton.getAttribute("aria-expanded")).toBe("false");
     await user.click(reportButton);

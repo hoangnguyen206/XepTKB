@@ -127,7 +127,8 @@ test("AC-M4-01..07 (AC-04, AC-05) — local-only registration merge, zero networ
   // Pick SYN2004 1 in the draft plan
   await page.getByLabel("Mã hoặc tên môn").fill("SYN2004");
   await page.getByRole("button", { name: /^SYN2004/ }).click();
-  await page.getByRole("article", { name: "Lớp SYN2004 1" }).getByRole("button", { name: "Chọn lớp này" }).click();
+  await page.getByRole("article", { name: "Lớp SYN2004 1" }).getByRole("button", { name: "Thêm vào lịch" }).click();
+  await expect(page.getByRole("dialog", { name: /^SYN2004 / })).toBeHidden();
   await openView(page, "Phương án");
   await expect(page.getByRole("button", { name: "Phương án nháp (1)" })).toBeVisible();
 

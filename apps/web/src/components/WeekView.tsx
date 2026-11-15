@@ -87,6 +87,8 @@ export function WeekView(props: {
   onUnpick: (sectionId: string) => void;
   /** Shown when the plan has no session at all (F5 turns it into the empty state). */
   empty?: ReactNode;
+  /** F4 §8 (desktop): the Plan with a previewed class; its sessions in `keys` are drawn as dashed ghosts. */
+  ghost?: { sessions: readonly ScheduledSession[]; conflicts: readonly HardConflict[]; keys: ReadonlySet<string>; sectionId: string };
 }) {
   const selectId = useId();
   const now = useNow();
@@ -96,13 +98,16 @@ export function WeekView(props: {
   const currentWeek = weekOfDate(props.week1, now.date);
   const inTerm = currentWeek >= 1 && currentWeek <= props.teachingWeeks;
   const isCurrentWeek = weekNumber !== undefined && weekNumber === currentWeek;
-  const periods = useMemo(() => visiblePeriods(props.sessions, props.maxPeriod), [props.sessions, props.maxPeriod]);
-  const keys = useMemo(() => conflictKeys(props.conflicts, weekNumber), [props.conflicts, weekNumber]);
+  const gridSessions = props.ghost?.sessions ?? props.sessions;
+  const gridConflicts = props.ghost?.conflicts ?? props.conflicts;
+  const periods = useMemo(() => visiblePeriods(gridSessions, props.maxPeriod), [gridSessions, props.maxPeriod]);
+  const keys = useMemo(() => conflictKeys(gridConflicts, weekNumber), [gridConflicts, weekNumber]);
   const layout = useMemo(
-    () => buildGridLayout(props.sessions, { ...(weekNumber !== undefined ? { week: weekNumber } : {}), maxPeriod: periods, conflictKeys: keys }),
-    [props.sessions, weekNumber, periods, keys],
+    () => buildGridLayout(gridSessions, { ...(weekNumber !== undefined ? { week: weekNumber } : {}), maxPeriod: periods, conflictKeys: keys }),
+    [gridSessions, weekNumber, periods, keys],
   );
-  const partners = useMemo(() => conflictPartners(props.conflicts, props.sessions, weekNumber), [props.conflicts, props.sessions, weekNumber]);
+  const partners = useMemo(() => conflictPartners(gridConflicts, gridSessions, weekNumber), [gridConflicts, gridSessions, weekNumber]);
+  const ghostShown = props.ghost ? layout.blocks.some((block) => props.ghost!.keys.has(block.session.key)) : false;
   const monday = weekNumber !== undefined ? weekRange(props.week1, weekNumber).start : undefined;
   const todayDay = isCurrentWeek ? (((new Date(`${now.date}T00:00:00Z`).getUTCDay() + 6) % 7) + 2) as DayNo : undefined;
   const nowOffset = isCurrentWeek && todayDay !== undefined && layout.days.includes(todayDay) ? nowLineOffset(props.frame, now.minutes, periods) : undefined;
@@ -172,9 +177,13 @@ export function WeekView(props: {
             {...(todayDay ? { todayDay } : {})}
             {...(nowOffset !== undefined ? { nowOffset } : {})}
             onOpenSession={(session) => setOpenKey(session.key)}
+            {...(props.ghost ? { ghostKeys: props.ghost.keys } : {})}
           />
         </div>
       )}
+      {props.ghost && !ghostShown ? (
+        <p className="ghost-note">{weekNumber !== undefined ? `Lớp ${props.ghost.sectionId} không học tuần ${weekNumber}.` : `Lớp ${props.ghost.sectionId} không có giờ cố định.`}</p>
+      ) : null}
       {props.empty}
       <NonFixedList sessions={nonFixedSessions(props.sessions)} colorOf={props.colors.colorOf} />
       <SessionSheet
