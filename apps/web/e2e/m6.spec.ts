@@ -131,6 +131,9 @@ for (const width of [360, 1280]) {
 }
 
 async function expectNoSeriousAxe(page: Page) {
+  // Colour contrast is measured on the settled page: a button that just became enabled is still in its 150 ms
+  // background-color transition, and axe would read the halfway colour.
+  await expect.poll(() => page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === "running").length)).toBe(0);
   const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   const serious = result.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical");
   expect(serious.map((violation) => `${violation.id}: ${violation.nodes.slice(0, 3).map((node) => node.target.join(" ")).join(", ")}`)).toEqual([]);
