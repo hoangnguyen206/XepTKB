@@ -27,7 +27,10 @@ export type WeekGridProps = {
   /** Current-time line, 0…1 of the grid height. */
   nowOffset?: number;
   onOpenSession?: (session: ScheduledSession) => void;
-  /** Sessions drawn as dashed previews (F4); never interactive. */
+  /**
+   * F4 §8: the previewed class. On screen these sessions are dashed ghosts (never interactive); in the compact
+   * mini-calendar they are the candidate, in its course colour, while every other session is grey.
+   */
   ghostKeys?: ReadonlySet<string>;
 };
 
@@ -41,7 +44,7 @@ export function WeekGrid(props: WeekGridProps) {
 
   return (
     <div className={`week-grid-wrap variant-${variant}`} {...region}>
-      {variant === "print" ? (
+      {variant !== "screen" ? (
         <div className="grid-head" style={gridStyle}>
           <span />
           {days.map((day) => <span key={day}>{dayLabel(day, "short")}{monday ? ` ${formatDate(addDays(monday, day - 2), false)}` : ""}</span>)}

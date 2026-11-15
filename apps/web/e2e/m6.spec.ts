@@ -7,8 +7,12 @@
  * F3: AC-M6-05 (T2–T7 at 360 px, no horizontal scroll, colour + code + room, conflict not by colour alone), AC-M6-06
  * (buttons, swipe, keys, "Tuần này"; today and the time line only in the current week; fixed clock), AC-M6-07 (session
  * sheet, course colour saved across reload), AC-M6-08 (day view in the same colours; sessions without fixed times).
+ * F4: AC-M6-09 (diacritic-free search, "Không trùng lịch" filter, class sheet whose mini-calendar marks the overlap, a
+ * conflicting class needs "Vẫn thêm lớp này"), AC-M6-10 (desktop 2 columns, Ctrl/⌘ K, hover/focus ghost preview);
+ * AC-M6-16 also covers the class sheet.
  */
 import { AxeBuilder } from "@axe-core/playwright";
+import type { Locator } from "@playwright/test";
 import { expect, test, type Page } from "./fixture.js";
 
 const ABOUT = "Giới thiệu, quyền riêng tư & báo lỗi";
@@ -30,6 +34,20 @@ async function chooseTheme(page: Page, label: "Hệ thống" | "Sáng" | "Tối"
 
 const NAV_ITEMS = ["Lịch", "Thêm lớp", "Phương án"] as const;
 const navButton = (page: Page, name: (typeof NAV_ITEMS)[number]) => page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("button", { name, exact: true });
+
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** F4: a course row of the search results (its name starts with the course code). */
+const courseRow = (page: Page, code: string) => page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${escapeRegExp(code)} `) });
+/** F4: a section chip in the open class sheet ("Lớp {id}", then "đã chọn" / "Trùng"). */
+const sectionChip = (page: Page, section: string) => page.getByRole("dialog").getByRole("radio", { name: new RegExp(`^Lớp ${escapeRegExp(section)}( |$)`) });
+
+/** Chip radios are visually hidden inputs under their label: a user (and this helper) clicks the chip itself. */
+async function checkChip(radio: Locator): Promise<void> {
+  if (await radio.isChecked()) return;
+  const id = await radio.getAttribute("id");
+  await radio.page().locator(`label[for="${id}"]`).click();
+  await expect(radio).toBeChecked();
+}
 
 const bodyBackground = (page: Page) => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
@@ -103,10 +121,19 @@ for (const width of [360, 1280]) {
     await startDraftPlan(page);
     if (width < 1200) await navButton(page, "Thêm lớp").click();
     await page.getByLabel("Mã hoặc tên môn").fill("SYN");
-    const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
-    const serious = result.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical");
-    expect(serious.map((violation) => `${violation.id}: ${violation.nodes.slice(0, 3).map((node) => node.target.join(" ")).join(", ")}`)).toEqual([]);
+    await expectNoSeriousAxe(page);
+    // F4: the class sheet, with its section and group chips and the mini-calendar.
+    await courseRow(page, "SYN1001").click();
+    await checkChip(page.getByRole("dialog").getByLabel("Nhóm 1"));
+    await expect(page.getByRole("dialog").locator(".mini-cal")).toBeVisible();
+    await expectNoSeriousAxe(page);
   });
+}
+
+async function expectNoSeriousAxe(page: Page) {
+  const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  const serious = result.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical");
+  expect(serious.map((violation) => `${violation.id}: ${violation.nodes.slice(0, 3).map((node) => node.target.join(" ")).join(", ")}`)).toEqual([]);
 }
 
 test("AC-M6-03 — at 360×780 the week grid starts within 200 px; the bottom navigation has 3 items ≥ 44 px with a current state", async ({ page }) => {
@@ -196,14 +223,19 @@ async function startAt(page: Page, width = 360) {
   await startDraftPlan(page);
 }
 
-async function addClass(page: Page, query: string, section: string, button: RegExp = /^(Chọn lớp này|Vẫn chọn)/) {
+/** Thêm lớp → search → course row → class sheet → section (+ group) → action; the sheet closes on success. */
+async function addClass(page: Page, query: string, section: string, options: { group?: string; button?: RegExp } = {}) {
   if ((page.viewportSize()?.width ?? 0) < 1200) await navButton(page, "Thêm lớp").click();
   await page.getByLabel("Mã hoặc tên môn").fill(query);
-  const toggle = page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${section.split(" ")[0]}`) });
-  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
-  const card = page.getByRole("article", { name: `Lớp ${section}` });
-  await card.getByRole("button", { name: button }).click();
-  await expect(card.getByText(/✓ Đã chọn/)).toBeVisible();
+  const code = section.split(" ")[0]!;
+  await courseRow(page, code).click();
+  const sheet = page.getByRole("dialog");
+  await checkChip(sectionChip(page, section));
+  const card = sheet.getByRole("article", { name: `Lớp ${section}` });
+  if (options.group) await checkChip(card.getByLabel(`Nhóm ${options.group}`));
+  await card.getByRole("button", { name: options.button ?? /^(Thêm vào lịch|Vẫn thêm lớp này)$/ }).click();
+  await expect(sheet).toBeHidden();
+  await expect(courseRow(page, code)).toHaveAccessibleName(new RegExp(`✓ đã chọn lớp ${escapeRegExp(section)}$`));
 }
 
 test("AC-M6-05 — at 360 px every day T2–T7 fits without horizontal scroll; blocks show code + room in the course colour; conflicts are not colour-only", async ({ page }) => {
@@ -318,4 +350,111 @@ test("AC-M6-08 — the day view uses the same colours; sessions without fixed ti
   await page.getByRole("button", { name: "Cả tuần" }).click();
   await navButton(page, "Phương án").click();
   await expect(page.getByText(/2 lớp · \d+ tín chỉ/)).toBeVisible();
+});
+
+test("AC-M6-09 — diacritic-free search; the filter hides exactly the conflicting classes; the mini-calendar marks the overlap; a conflicting class needs \"Vẫn thêm lớp này\"", async ({ page }) => {
+  await startAt(page);
+  await addClass(page, "giai tich", "SYN1001 1", { group: "1" });
+  await navButton(page, "Thêm lớp").click();
+  const search = page.getByLabel("Mã hoặc tên môn");
+  await search.fill("vat ly");
+  await expect(courseRow(page, "SYN1003")).toBeVisible();
+
+  // Filter on: SYN1003 1 (Thứ 2, tiết 1–3, tuần 9–15 against SYN1001 1) is hidden, SYN1003 2 stays and is selected.
+  const filter = page.getByRole("button", { name: "Không trùng lịch" });
+  await filter.click();
+  await expect(filter).toHaveAttribute("aria-pressed", "true");
+  await courseRow(page, "SYN1003").click();
+  await expect(sectionChip(page, "SYN1003 1")).toHaveCount(0);
+  await expect(sectionChip(page, "SYN1003 2")).toBeChecked();
+  await expect(page.getByRole("dialog").getByText("Ẩn 1 lớp trùng lịch.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+
+  // Over a broad search the filter hides only courses whose every class conflicts, and says how many in words.
+  await search.fill("SYN");
+  const rows = page.getByRole("region", { name: "Tìm môn" }).getByRole("list").getByRole("button");
+  const status = page.getByRole("region", { name: "Tìm môn" }).getByRole("status");
+  await expect(status).toHaveText(/^Tìm thấy \d+ môn\./);
+  const filtered = await rows.count();
+  await filter.click();
+  await expect(filter).toHaveAttribute("aria-pressed", "false");
+  await expect(status).toHaveText(/^Tìm thấy \d+ môn\.$/);
+  const all = await rows.count();
+  expect(filtered).toBeLessThanOrEqual(all);
+  await filter.click();
+  await expect(status).toHaveText(all > filtered ? `Tìm thấy ${filtered} môn. Ẩn ${all - filtered} môn trùng lịch.` : `Tìm thấy ${filtered} môn.`);
+  await filter.click();
+
+  // Filter off: the conflicting class is marked in text, the mini-calendar stripes the overlap, the button is "Vẫn thêm lớp này".
+  await search.fill("vat ly");
+  await courseRow(page, "SYN1003").click();
+  await expect(sectionChip(page, "SYN1003 1")).toHaveAccessibleName("Lớp SYN1003 1 Trùng");
+  await checkChip(sectionChip(page, "SYN1003 1"));
+  const card = page.getByRole("dialog").getByRole("article", { name: "Lớp SYN1003 1" });
+  await expect(card.getByText("⚠ Trùng lịch với SYN1001 1 (Giải tích 1): Thứ 2, tiết 1–3, tuần 9–15")).toBeVisible();
+  await expect(card.locator(".mini-cal .week-grid-wrap")).toHaveAttribute("aria-hidden", "true");
+  await expect(card.locator(".mini-cal .block.is-ghost.is-conflict")).not.toHaveCount(0);
+  await expect(card.locator(".mini-cal .block.is-conflict:not(.is-ghost)")).not.toHaveCount(0);
+  await expect(card.getByRole("button", { name: "Thêm vào lịch" })).toHaveCount(0);
+  await card.getByRole("button", { name: "Vẫn thêm lớp này" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(page.getByText("Đã thêm lớp SYN1003 1 vào lịch.")).toBeVisible();
+  await navButton(page, "Lịch").click();
+  await page.getByLabel("Chọn tuần").selectOption("9");
+  await expect(page.getByRole("region", { name: "Lưới thời khóa biểu tuần 9" }).locator(".block.is-conflict")).not.toHaveCount(0);
+});
+
+test("AC-M6-10 — Ctrl/⌘ K reaches the search box on a phone and on desktop, never under an open sheet", async ({ page }) => {
+  await startAt(page);
+  await expect(page.getByRole("region", { name: "Lịch" })).toBeVisible();
+  await page.keyboard.press("Control+k");
+  await expect(page.getByRole("region", { name: "Thêm lớp" })).toBeVisible();
+  await expect(page.getByLabel("Mã hoặc tên môn")).toBeFocused();
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const search = page.getByLabel("Mã hoặc tên môn");
+  await search.fill("giai tich");
+  await page.getByLabel("Chọn tuần").focus();
+  await page.keyboard.press("Meta+k");
+  await expect(search).toBeFocused();
+  expect(await search.evaluate((input: HTMLInputElement) => [input.selectionStart, input.selectionEnd])).toEqual([0, "giai tich".length]);
+  await courseRow(page, "SYN1001").click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Control+k");
+  await expect(search).not.toBeFocused();
+  await expect(page.getByRole("dialog")).toBeVisible();
+});
+
+test("AC-M6-10 — from 1200 px: two columns; hovering or focusing a class previews it on the grid as a dashed ghost", async ({ page }) => {
+  await startAt(page, 1280);
+  await addClass(page, "giai tich", "SYN1001 1", { group: "1" });
+  const left = (await page.getByRole("complementary", { name: "Tìm và chọn lớp" }).boundingBox())!;
+  const right = (await page.getByRole("region", { name: "Lịch" }).boundingBox())!;
+  expect(left.x + left.width).toBeLessThanOrEqual(right.x);
+
+  await page.getByLabel("Chọn tuần").selectOption("all");
+  const grid = page.getByRole("region", { name: "Lưới thời khóa biểu tất cả các tuần" });
+  const ghosts = grid.locator(".block.is-ghost");
+  await page.getByLabel("Mã hoặc tên môn").fill("vat ly");
+  await expect(ghosts).toHaveCount(0);
+  await courseRow(page, "SYN1003").hover();
+  await expect(ghosts).not.toHaveCount(0);
+  // The overlap with SYN1001 1 is outlined in red; a ghost is never a button.
+  await expect(grid.locator(".block.is-ghost.is-conflict")).not.toHaveCount(0);
+  await expect(grid.locator("button.block.is-ghost")).toHaveCount(0);
+  await page.mouse.move(5, 5);
+  await expect(ghosts).toHaveCount(0);
+
+  // Keyboard: focus previews, Esc clears.
+  await courseRow(page, "SYN1003").focus();
+  await expect(ghosts).not.toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(ghosts).toHaveCount(0);
+
+  // The picked class itself is not drawn twice.
+  await page.getByLabel("Mã hoặc tên môn").fill("giai tich");
+  await courseRow(page, "SYN1001").focus();
+  await page.waitForTimeout(200);
+  await expect(ghosts).toHaveCount(0);
 });

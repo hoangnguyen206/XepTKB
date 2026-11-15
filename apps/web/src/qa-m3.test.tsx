@@ -7,7 +7,8 @@ import { createPlan, type Course, type Plan, type Section, type Session } from "
 import type { LoadedDataset, TimetableArtifact } from "./data/contract.js";
 import { icsFile } from "./export/exporters.js";
 import { buildAppCatalog } from "./model/catalog.js";
-import { applyPick, previewPick } from "./model/picker.js";
+import { applyPick, previewPick, previewTargetFor, sectionFits } from "./model/picker.js";
+import { isSearchShortcut } from "./components/useSearchShortcut.js";
 import { buildPlanView } from "./model/plan-view.js";
 import { serveDataset, testMetadata, TERM, VERSION } from "./test/fixture.js";
 
@@ -123,5 +124,68 @@ describe("QA-M3 ICS dates (AC-06, AC-M3-09)", () => {
 
   it("manual week 1 override (2027-03-01) shifts every event by the same civil-date offset", async () => {
     expect(await icsStarts(withPicks(picks, { cohort: "K71", week1: "2027-03-01" }))).toEqual(expected("2027-03-01"));
+  });
+});
+
+describe("F4 \"Không trùng lịch\" filter (DESIGN-M6-001 §8, AC-M6-09)", () => {
+  const section = (id: string) => catalog.sectionById.get(id)!;
+  const fits = (plan: Plan, id: string) => sectionFits(plan, catalog, section(id));
+
+  it("an empty plan fits every section, with or without groups", () => {
+    for (const id of Object.keys(SESSIONS)) expect(fits(empty(), id), id).toBe(true);
+  });
+
+  it("hides exactly the sections that would create a hard conflict (day × period × overlapping weeks)", () => {
+    const planA1 = withPicks([{ sectionId: "QAA001 1", group: "1" }]);
+    expect(fits(planA1, "QAB001 1")).toBe(false);
+    expect(fits(planA1, "QAC001 2")).toBe(false);
+    for (const id of ["QAC001 1", "QAD001 1", "QAD001 2", "QAE001 1", "QAI001 1", "QAJ001 1"]) expect(fits(planA1, id), id).toBe(true);
+  });
+
+  it("one fitting group is enough; a conflicting CL session rules out every group", () => {
+    const withC1 = withPicks([{ sectionId: "QAC001 1" }]);
+    expect(fits(withC1, "QAA001 1")).toBe(true);
+    expect(previewTargetFor(withC1, catalog, section("QAA001 1"))).toEqual({ sectionId: "QAA001 1", group: "1" });
+    const withB = withPicks([{ sectionId: "QAB001 1" }]);
+    expect(fits(withB, "QAA001 1")).toBe(false);
+    expect(previewTargetFor(withB, catalog, section("QAA001 1"))).toEqual({ sectionId: "QAA001 1", group: "1" });
+  });
+
+  it("a picked section always fits; another section of the same course is judged without it", () => {
+    const conflicting = withPicks([{ sectionId: "QAA001 1", group: "1" }, { sectionId: "QAB001 1" }]);
+    expect(buildPlanView(conflicting, catalog).conflicts).toHaveLength(1);
+    expect(fits(conflicting, "QAB001 1")).toBe(true);
+    expect(previewTargetFor(conflicting, catalog, section("QAA001 1"))).toEqual({ sectionId: "QAA001 1", group: "1" });
+    const oddEven = withPicks([{ sectionId: "QAE001 1" }, { sectionId: "QAF001 1" }]);
+    expect(fits(oddEven, "QAF001 1")).toBe(true);
+    expect(fits(oddEven, "QAF001 2")).toBe(false);
+  });
+});
+
+describe("Ctrl/⌘ K (DESIGN-M6-001 §8, AC-M6-10)", () => {
+  const key = (init: KeyboardEventInit) => new KeyboardEvent("keydown", { key: "k", cancelable: true, ...init });
+
+  it("runs with Ctrl or Meta + K only", () => {
+    expect(isSearchShortcut(key({ ctrlKey: true }))).toBe(true);
+    expect(isSearchShortcut(key({ metaKey: true, key: "K" }))).toBe(true);
+    expect(isSearchShortcut(key({}))).toBe(false);
+    expect(isSearchShortcut(key({ ctrlKey: true, shiftKey: true }))).toBe(false);
+    expect(isSearchShortcut(key({ ctrlKey: true, altKey: true }))).toBe(false);
+    expect(isSearchShortcut(key({ ctrlKey: true, key: "j" }))).toBe(false);
+  });
+
+  it("never runs while an IME composes, after another handler, or with a dialog open", () => {
+    expect(isSearchShortcut(key({ ctrlKey: true, isComposing: true }))).toBe(false);
+    const handled = key({ ctrlKey: true });
+    handled.preventDefault();
+    expect(isSearchShortcut(handled)).toBe(false);
+    const dialog = document.createElement("dialog");
+    dialog.setAttribute("open", "");
+    document.body.append(dialog);
+    try {
+      expect(isSearchShortcut(key({ ctrlKey: true }))).toBe(false);
+    } finally {
+      dialog.remove();
+    }
   });
 });

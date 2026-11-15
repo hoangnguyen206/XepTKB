@@ -4,6 +4,7 @@
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import type { Locator } from "@playwright/test";
 import { expect, test, type Page } from "./fixture.js";
 
 type Json = Record<string, unknown>;
@@ -49,11 +50,33 @@ async function openView(page: Page, name: "Lịch" | "Thêm lớp" | "Phương �
   await expect(button).toHaveAttribute("aria-current", "page");
 }
 
-async function open(page: Page, code: string): Promise<void> {
+/** M6 F4: the class sheet of a course is a modal dialog named "{code} {name}". */
+const sheetOf = (page: Page, code: string) => page.getByRole("dialog", { name: new RegExp(`^${code} `) });
+
+/**
+ * Group chips are visually-hidden radios under their label chip, which intercepts pointer events, so
+ * `locator.check()` cannot click the input: the chip (its label) is clicked, as a user would.
+ */
+async function checkChip(radio: Locator): Promise<void> {
+  if (await radio.isChecked()) return;
+  const id = await radio.getAttribute("id");
+  await radio.page().locator(`label[for="${id}"]`).click();
+  await expect(radio).toBeChecked();
+}
+
+/** Opens the class sheet of a one-class course and returns that class's article "Lớp {code} 1". */
+async function open(page: Page, code: string) {
   await page.getByLabel("Mã hoặc tên môn").fill(code);
   // Scoped to the search list: from 1200 px the calendar blocks (also named by course code) are on screen too.
-  const toggle = page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${code}`) });
-  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${code} `) }).click();
+  await expect(sheetOf(page, code)).toBeVisible();
+  return sheetOf(page, code).getByRole("article", { name: `Lớp ${code} 1` });
+}
+
+/** A successful pick closes the sheet; Esc closes it without a change. */
+async function expectClosed(page: Page, code: string, how: "picked" | "escape" = "picked"): Promise<void> {
+  if (how === "escape") await page.keyboard.press("Escape");
+  await expect(sheetOf(page, code)).toBeHidden();
 }
 
 const course = (code: string, name: string) => ({ code, altCodes: [], name, normalizedName: name.toLowerCase(), credits: 3, school: "uet" });
@@ -71,22 +94,23 @@ test("QA-M3 — PRD AC-01 exact case, adjacency, week-scoped grid flags and a gr
     ],
   });
   await start(page);
-  await open(page, "QAA001");
-  const a = page.getByRole("article", { name: "Lớp QAA001 1" });
-  await a.getByLabel("Nhóm 1").check();
-  await a.getByRole("button", { name: "Chọn lớp này" }).click();
-  await open(page, "QAB001");
-  await expect(page.getByRole("article", { name: "Lớp QAB001 1" }).getByText("⚠ Trùng lịch với QAA001 1 (Môn A): Thứ 3, tiết 5–6, tuần 8–10")).toBeVisible();
-  await open(page, "QAD001");
-  await expect(page.getByRole("article", { name: "Lớp QAD001 1" }).locator(".preview-list")).toHaveCount(0);
-  await open(page, "QAC001");
-  const c = page.getByRole("article", { name: "Lớp QAC001 1" });
+  const a = await open(page, "QAA001");
+  await checkChip(a.getByLabel("Nhóm 1"));
+  await a.getByRole("button", { name: "Thêm vào lịch" }).click();
+  await expectClosed(page, "QAA001");
+  await expect((await open(page, "QAB001")).getByText("⚠ Trùng lịch với QAA001 1 (Môn A): Thứ 3, tiết 5–6, tuần 8–10")).toBeVisible();
+  await expectClosed(page, "QAB001", "escape");
+  await expect((await open(page, "QAD001")).locator(".preview-list")).toHaveCount(0);
+  await expectClosed(page, "QAD001", "escape");
+  const c = await open(page, "QAC001");
   await expect(c.locator(".preview-list")).toHaveCount(0);
-  await c.getByRole("button", { name: "Chọn lớp này" }).click();
+  await c.getByRole("button", { name: "Thêm vào lịch" }).click();
+  await expectClosed(page, "QAC001");
   await open(page, "QAA001");
-  await a.getByLabel("Nhóm 2").check();
+  await checkChip(a.getByLabel("Nhóm 2"));
   await expect(a.getByText("⚠ Trùng lịch với QAC001 1 (Môn C): Thứ 5, tiết 2, tuần 5")).toBeVisible();
-  await a.getByRole("button", { name: "Đổi nhóm" }).click();
+  await a.getByRole("button", { name: "Vẫn đổi nhóm", exact: true }).click();
+  await expectClosed(page, "QAA001");
   await openView(page, "Phương án");
   await expect(page.locator(".plan-bar")).toContainText("⚠ 1 chỗ trùng lịch");
   await openView(page, "Lịch");
@@ -108,8 +132,8 @@ test("QA-M3 — hostile manifest and dataset strings stay inert in the UI and th
   });
   await start(page);
   await openView(page, "Thêm lớp");
-  await open(page, "QAX001");
-  await page.getByRole("article", { name: "Lớp QAX001 1" }).getByRole("button", { name: "Chọn lớp này" }).click();
+  await (await open(page, "QAX001")).getByRole("button", { name: "Thêm vào lịch" }).click();
+  await expectClosed(page, "QAX001");
   await page.getByRole("button", { name: /^Nguồn dữ liệu: / }).click();
   const provenance = page.getByRole("dialog", { name: "Nguồn và phiên bản dữ liệu" });
   await expect(provenance.getByText("<script>window.__qaXss=2</script>")).toBeVisible();

@@ -47,6 +47,10 @@ async function openSearch(page: Page): Promise<void> {
   await expect(page.getByLabel("Mã hoặc tên môn")).toBeVisible();
 }
 
+/** M6 F4: the course row (scoped to the search list) opens the class sheet, a modal dialog named "{code} {name}". */
+const courseRow = (page: Page, code: string) => page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${code} `) });
+const classSheet = (page: Page, code: string) => page.getByRole("dialog", { name: new RegExp(`^${code} `) });
+
 test("AC-M5-01 — the (i) sheet shows the app version and short commit (and matches the build meta tag when present)", async ({ page }) => {
   // D-M6-11 / ADR-0015 point 7: the always-visible footer is gone; the version is in the (i) sheet, the error screen and the meta tag.
   await page.goto("/");
@@ -68,11 +72,15 @@ test("AC-M5-03/04 — report from a section card: PII-free text copied, zero req
     await navigator.serviceWorker.ready;
   });
   await page.getByLabel("Mã hoặc tên môn").fill("SYN2004");
-  await page.getByRole("button", { name: /^SYN2004/ }).click();
-  const card = page.getByRole("article", { name: "Lớp SYN2004 1" });
-  await card.getByRole("button", { name: "Chọn lớp này" }).click();
+  await courseRow(page, "SYN2004").click();
+  const card = classSheet(page, "SYN2004").getByRole("article", { name: "Lớp SYN2004 1" });
+  await card.getByRole("button", { name: "Thêm vào lịch" }).click();
+  await expect(classSheet(page, "SYN2004")).toBeHidden();
   await openView(page, "Phương án");
   await expect(page.getByRole("button", { name: "Phương án nháp (1)" })).toBeVisible();
+  // A successful pick closes the sheet: reopen it (the search pane stays visible at 1280 px) to reach the report form.
+  await courseRow(page, "SYN2004").click();
+  await expect(card.getByText(/✓ Đã chọn/)).toBeVisible();
 
   const reportRequests: { url: string; method: string }[] = [];
   context.on("request", (request) => reportRequests.push({ url: request.url(), method: request.method() }));
@@ -172,18 +180,20 @@ test("AC-M5-06/17 — About panel and report form: keyboard, no overflow, zero s
   await expect(toggle).toBeFocused();
 
   // Per-section report form (open, with the personal-data warning) at every width. At 1200 px the search pane moves
-  // into the side column and remounts, so the form is opened again there.
-  const card = page.getByRole("article", { name: "Lớp SYN2004 1" });
+  // into the side column and remounts (closing the class sheet), so the sheet and the form are opened again there.
+  const sheet = classSheet(page, "SYN2004");
+  const card = sheet.getByRole("article", { name: "Lớp SYN2004 1" });
   // The layout switch after setViewportSize is asynchronous (media query → re-render): a one-shot isVisible() could
   // see the old pane's card just before the remount and then wait forever on a button that no longer exists (flaky on
   // CI push runs #51/#53). toPass() retries the whole step until the form is open in the current layout.
   const openReport = async () => {
     const note = card.getByLabel("Mô tả (không bắt buộc)");
     await expect(async () => {
-      await openSearch(page);
-      if (!(await card.isVisible())) {
+      // The sheet is modal (the navigation behind it is inert), so the search is only reopened when it is closed.
+      if (!(await sheet.isVisible())) {
+        await openSearch(page);
         await page.getByLabel("Mã hoặc tên môn").fill("SYN2004");
-        await page.getByRole("button", { name: /^SYN2004/ }).click({ timeout: 3_000 });
+        await courseRow(page, "SYN2004").click({ timeout: 3_000 });
       }
       if (!(await note.isVisible())) await card.getByRole("button", { name: "Báo sai dữ liệu" }).click({ timeout: 3_000 });
       await expect(note).toBeVisible({ timeout: 3_000 });

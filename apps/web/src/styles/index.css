@@ -21,4 +21,5 @@
 @import "./components/course-color.css" layer(components);
 @import "./screens/app-shell.css" layer(screens);
 @import "./screens/calendar.css" layer(screens);
+@import "./screens/add-class.css" layer(screens);
 @import "./print.css" layer(print);

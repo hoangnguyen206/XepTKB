@@ -296,8 +296,11 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     // Pick SYN4001 1 in draft plan
     const searchInput = screen.getByLabelText("Mã hoặc tên môn");
     await user.type(searchInput, "seminar");
-    await user.click(await screen.findByRole("button", { name: /SYN4001/ }));
-    await user.click(within(screen.getByRole("article", { name: "Lớp SYN4001 1" })).getByRole("button", { name: "Chọn lớp này" }));
+    await user.click(await screen.findByRole("button", { name: /^SYN4001 / }));
+    // M6 F4: the course row opens the class sheet; a successful pick closes it.
+    const classSheet = await screen.findByRole("dialog", { name: /^SYN4001 / });
+    await user.click(within(within(classSheet).getByRole("article", { name: "Lớp SYN4001 1" })).getByRole("button", { name: "Thêm vào lịch" }));
+    expect(screen.queryByRole("dialog", { name: /^SYN4001 / })).toBeNull();
     await user.click(nav("Phương án"));
     expect(await screen.findByRole("button", { name: "Phương án nháp (1)" })).toBeTruthy();
 

@@ -1,9 +1,9 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import type { Plan } from "@ky-nay/domain";
+import { canonicalSectionId, normalizeGroup, type Plan, type PlanPick } from "@ky-nay/domain";
 import { buildGridLayout, conflictKeys, dayLabel, formatDate, formatPeriods, formatWeeks, kindText, nonFixedSessions, periodTimes } from "@ky-nay/export";
 import type { AppCatalog } from "../model/catalog.js";
 import { exportDisclaimer, provenanceLine } from "../model/labels.js";
-import { applyPick, unpick } from "../model/picker.js";
+import { applyPick, candidatePlan, isPicked, unpick } from "../model/picker.js";
 import { buildPlanView, rebasePlan, setPickedGroup, type PlanView } from "../model/plan-view.js";
 import { defaultWeek, todayInVietnam, weekLabel } from "../model/week.js";
 import type { TermRegistrationNotes } from "../storage/local-data.js";
@@ -19,7 +19,8 @@ import { WeekGrid } from "./WeekGrid.js";
 import { NonFixedList, WeekView } from "./WeekView.js";
 import type { CourseColorId } from "../model/palette.js";
 import { visiblePeriods } from "../model/grid-view.js";
-import { SearchPanel } from "./SearchPanel.js";
+import { AddClassView } from "./AddClassView.js";
+import { useSearchShortcut } from "./useSearchShortcut.js";
 import { prefetchExporters } from "../export/exporters-lazy.js";
 import { creditsLine } from "../export/files.js";
 
@@ -93,9 +94,11 @@ export function Workspace(props: {
   const view = useMemo(() => buildPlanView(plan, catalog), [plan, catalog]);
   const today = todayInVietnam();
   const [week, setWeek] = useState<WeekChoice>(() => (view.week1 ? defaultWeek(view.week1.date, catalog.term.teachingWeeks, today) : "all"));
-  const [pickError, setPickError] = useState<string | undefined>(undefined);
   const [importOpen, setImportOpen] = useState(false);
-  const searchPaneRef = useRef<HTMLElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const focusSearchOnShow = useRef(false);
+  // F4 §8: the class previewed on the desktop grid while a course row or class chip is hovered or focused.
+  const [previewTarget, setPreviewTarget] = useState<PlanPick | undefined>(undefined);
   // M5-F: the registration import chunk is loaded lazily; a retry after a failed load needs a fresh lazy component.
   const [RegistrationImportPanel, setRegistrationImportPanel] = useState(() => createLazyRegistrationPanel());
   useEffect(() => {
@@ -106,9 +109,36 @@ export function Workspace(props: {
   }, []);
   // Desktop keeps the search in the left column: "Thêm lớp" shows the calendar and moves focus to the search box.
   const shown: AppView = desktop && props.view === "add" ? "week" : props.view;
+  const focusSearch = () => {
+    searchRef.current?.focus();
+    searchRef.current?.select();
+  };
   useEffect(() => {
-    if (desktop && props.view === "add") searchPaneRef.current?.querySelector<HTMLInputElement>("input[type=search]")?.focus();
+    if ((desktop && props.view === "add") || (props.view === "add" && focusSearchOnShow.current)) focusSearch();
+    focusSearchOnShow.current = false;
   }, [desktop, props.view]);
+  // Ctrl/⌘ K: desktop focuses the search in the left column; phones and tablets open Thêm lớp with the box focused.
+  useSearchShortcut(() => {
+    if (desktop || props.view === "add") focusSearch();
+    else {
+      focusSearchOnShow.current = true;
+      props.onViewChange("add");
+    }
+  });
+  useEffect(() => {
+    if (!desktop) setPreviewTarget(undefined);
+  }, [desktop]);
+  const ghost = useMemo(() => {
+    if (!desktop || !previewTarget) return undefined;
+    const section = catalog.sectionById.get(canonicalSectionId(previewTarget.sectionId));
+    if (!section) return undefined;
+    const picked = isPicked(plan, section);
+    if (picked && normalizeGroup(picked.group) === normalizeGroup(previewTarget.group)) return undefined;
+    const candidate = buildPlanView(candidatePlan(plan, catalog, previewTarget), catalog);
+    const id = canonicalSectionId(section.id);
+    const keys = new Set(candidate.sessions.filter((session) => canonicalSectionId(session.sectionId) === id).map((session) => session.key));
+    return { sessions: candidate.sessions, conflicts: candidate.conflicts, keys, sectionId: section.id };
+  }, [desktop, previewTarget, plan, catalog]);
 
   const now = () => new Date().toISOString();
   const activeOverrideCount = useMemo(
@@ -116,18 +146,15 @@ export function Workspace(props: {
     [view.sessions],
   );
 
-  const onPick = (sectionId: string, group?: string) => {
+  const onPick = (sectionId: string, group?: string): string | undefined => {
     const result = applyPick(plan, catalog, group ? { sectionId, group } : { sectionId }, now());
-    if (result.plan) {
-      setPickError(undefined);
-      props.onPlanChange(result.plan);
-    } else {
-      setPickError(result.issues.map((issue) => ISSUE_TEXT[issue.code] ?? issue.message).join(" "));
-    }
+    if (!result.plan) return result.issues.map((issue) => ISSUE_TEXT[issue.code] ?? issue.message).join(" ");
+    setPreviewTarget(undefined);
+    props.onPlanChange(result.plan);
+    return undefined;
   };
   const onUnpick = (sectionId: string) => props.onPlanChange(unpick(plan, sectionId, now()));
   const onSelectGroup = (sectionId: string, group: string) => {
-    setPickError(undefined);
     props.onPlanChange(setPickedGroup(plan, sectionId, group, now()));
   };
   const onWeek1 = (choice: Week1Choice) => {
@@ -135,10 +162,16 @@ export function Workspace(props: {
     props.onPlanChange({ ...rest, ...(choice.cohort ? { cohort: choice.cohort } : {}), ...(choice.week1 ? { week1: choice.week1 } : {}), updatedAt: now() });
   };
   const search = (
-    <>
-      {pickError ? <Notice tone="error">{pickError}</Notice> : null}
-      <SearchPanel catalog={catalog} plan={plan} onPick={onPick} onUnpick={onUnpick} headingLevel={desktop ? "h2" : "h3"} />
-    </>
+    <AddClassView
+      catalog={catalog}
+      plan={plan}
+      colorOf={colors.colorOf}
+      onPick={onPick}
+      onUnpick={onUnpick}
+      headingLevel={desktop ? "h2" : "h3"}
+      searchRef={searchRef}
+      {...(desktop ? { onPreview: setPreviewTarget } : {})}
+    />
   );
   const planNotices = (
     <>
@@ -149,7 +182,7 @@ export function Workspace(props: {
 
   return (
     <div className={desktop ? "workspace two-col" : "workspace"}>
-      {desktop ? <aside ref={searchPaneRef} className="pane-left card" aria-label="Tìm và chọn lớp">{search}</aside> : null}
+      {desktop ? <aside className="pane-left card" aria-label="Tìm và chọn lớp">{search}</aside> : null}
       <div className="pane-main">
         {shown === "add" ? (
           <section className="view view-add" aria-labelledby="view-add-heading">
@@ -174,6 +207,7 @@ export function Workspace(props: {
                 colors={colors}
                 onCourseColor={props.onCourseColor}
                 onUnpick={onUnpick}
+                {...(ghost ? { ghost } : {})}
                 empty={view.sessions.length === 0 ? (
                   <p className="muted">
                     Chưa có lớp nào.{" "}
