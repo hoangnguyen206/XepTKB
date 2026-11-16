@@ -7,6 +7,9 @@ import { rebasePreview, type PlanView } from "../model/plan-view.js";
 import type { TermRegistrationNotes } from "../storage/local-data.js";
 import { Notice } from "./common.js";
 import { Week1Fields, type Week1Choice } from "./Onboarding.js";
+import { IconPlus } from "./icons.js";
+import { Button } from "./ui/Button.js";
+import { EmptyState } from "./ui/EmptyState.js";
 
 /** Per-pick explanation of an unresolved pick (REV-M3-001). */
 const PICK_ISSUE_TEXT: Record<string, string> = {
@@ -64,6 +67,8 @@ export function PlanSummary(props: {
   onSelectGroup?: (sectionId: string, group: string) => void;
   onWeek1: (choice: Week1Choice) => void;
   onDeleteFinalPlan?: () => void;
+  /** F5 §9: the empty state's one action. */
+  onAdd?: () => void;
 }) {
   const id = useId();
   const { plan, view, catalog } = props;
@@ -128,7 +133,9 @@ export function PlanSummary(props: {
       ) : null}
 
       <h3>Lớp đã chọn ({plan.picks.length})</h3>
-      {plan.picks.length === 0 ? <p className="muted">Chưa chọn lớp nào. Hãy tìm môn hoặc nhập kết quả ĐKMH để bắt đầu.</p> : (
+      {plan.picks.length === 0 ? (
+        props.onAdd ? <EmptyState icon={<IconPlus />} title="Chưa chọn lớp nào" action={<Button variant="primary" onClick={props.onAdd}>Thêm lớp</Button>} /> : <p className="muted">Chưa chọn lớp nào.</p>
+      ) : (
         <ul className="pick-list">
           {plan.picks.map((pick) => {
             const section = sectionOf(catalog, pick.sectionId);

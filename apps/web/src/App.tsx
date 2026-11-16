@@ -94,11 +94,7 @@ export function App() {
             </div>
           ) : null}
           {ready && !activePlan ? (
-            <>
-              <Onboarding key={ready.catalog.term.id} terms={ready.terms} term={ready.catalog.term} loadingTerm={false} onSwitchTerm={(term) => void controller.switchTerm(term)} onCreate={create} />
-              {/* A-M6-1: the independence sentence on the start screen (F5 moves it into Onboarding). */}
-              <p className="independence-note">{INDEPENDENCE_NOTE}</p>
-            </>
+            <Onboarding key={ready.catalog.term.id} terms={ready.terms} term={ready.catalog.term} loadingTerm={false} onSwitchTerm={(term) => void controller.switchTerm(term)} onCreate={create} />
           ) : null}
           {ready && activePlan && baseDraftPlan ? (
             <Workspace
@@ -117,6 +113,8 @@ export function App() {
               {...(finalPlan ? { onDeleteFinalPlan: () => void controller.removeFinalPlan(finalPlan.id, ready.catalog.term.id) } : {})}
               courseColors={ready.courseColors}
               onCourseColor={(code, color) => void controller.setCourseColor(code, color)}
+              seenHints={ready.seenHints}
+              onHintSeen={(id) => void controller.markHintSeen(id)}
             />
           ) : null}
         </main>

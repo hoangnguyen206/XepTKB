@@ -1,15 +1,17 @@
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { resolveWeek1, validateIsoDate, type Term } from "@ky-nay/domain";
 import { formatDate, weekRange } from "@ky-nay/export";
 import type { TermOption } from "../data/loader.js";
+import { INDEPENDENCE_NOTE } from "../model/labels.js";
 import { isMonday } from "../model/week.js";
-import { Notice } from "./common.js";
+import { Button } from "./ui/Button.js";
+import { ChipRadio } from "./ui/Chip.js";
 
 export type Week1Choice = { cohort?: string; week1?: string };
 
 type Mode = "cohort" | "manual";
 
-function cohortsOf(term: Term): string[] {
+export function cohortsOf(term: Term): string[] {
   return [...new Set(term.starts.flatMap((start) => start.cohorts))].sort((a, b) => a.localeCompare(b, "vi", { numeric: true }));
 }
 
@@ -74,32 +76,78 @@ export function Week1Fields(props: { term: Term; initial?: Week1Choice; onChange
   );
 }
 
+/** Decorative: a few course-coloured blocks on a grid (aria-hidden, colours from tokens). */
+function StartArt() {
+  return (
+    <svg className="start-art" viewBox="0 0 120 72" aria-hidden="true" focusable="false">
+      <rect className="a0" x="0" y="0" width="120" height="72" rx="12" />
+      <rect className="a1" x="12" y="10" width="20" height="30" rx="4" />
+      <rect className="a2" x="38" y="22" width="20" height="40" rx="4" />
+      <rect className="a3" x="64" y="10" width="20" height="22" rx="4" />
+      <rect className="a4" x="64" y="38" width="20" height="24" rx="4" />
+      <rect className="a5" x="90" y="16" width="20" height="34" rx="4" />
+    </svg>
+  );
+}
+
+/**
+ * The start screen (DESIGN-M6-001 §9, AC-M6-11): one screen, cohort chips from `Term.starts`, "Tự chọn ngày" opens
+ * a date field (checked by `previewWeek1`), "Bắt đầu" — two taps from a chip to the calendar. The term select shows
+ * only when there is more than one term. ≤ 25 visible words, plus the independence sentence at the end (A-M6-1).
+ */
 export function Onboarding(props: { terms: readonly TermOption[]; term: Term; loadingTerm: boolean; onSwitchTerm: (term: string) => void; onCreate: (choice: Week1Choice) => void }) {
   const id = useId();
-  const [choice, setChoice] = useState<Week1Choice | undefined>(() => (previewWeek1(props.term, "cohort", "", "").date ? {} : undefined));
+  const cohorts = cohortsOf(props.term);
+  const [mode, setMode] = useState<Mode>("cohort");
+  const [cohort, setCohort] = useState("");
+  const [manual, setManual] = useState("");
+  const dateRef = useRef<HTMLInputElement>(null);
+  const preview = previewWeek1(props.term, mode, cohort, manual);
+  useEffect(() => {
+    if (mode === "manual") dateRef.current?.focus();
+  }, [mode]);
+  // Errors only after the user acted: an ambiguous term simply waits for a chip.
+  const message = mode === "manual"
+    ? (manual ? (preview.date ? `Tuần 1: ${formatDate(preview.date)}` : preview.error) : undefined)
+    : (cohort && preview.error ? preview.error : undefined);
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (choice) props.onCreate(choice);
+    if (!preview.date) return;
+    props.onCreate(mode === "manual" ? { week1: manual, ...(cohort ? { cohort } : {}) } : cohort ? { cohort } : {});
   };
   return (
-    <form className="card onboarding" onSubmit={submit} aria-labelledby={`${id}-title`}>
-      <h2 id={`${id}-title`}>Bắt đầu xếp thời khóa biểu</h2>
-      <p>Chọn kỳ học và ngày bắt đầu tuần 1. Bạn có thể sửa lại sau trong mục Phương án.</p>
-      <div className="field">
-        <label htmlFor={`${id}-school`}>Trường</label>
-        <select id={`${id}-school`} value="uet" disabled>
-          <option value="uet">UET</option>
-        </select>
-      </div>
-      <div className="field">
-        <label htmlFor={`${id}-term`}>Học kỳ</label>
-        <select id={`${id}-term`} value={props.term.id} disabled={props.loadingTerm} onChange={(event) => props.onSwitchTerm(event.target.value)}>
-          {props.terms.map((term) => <option key={term.term} value={term.term}>{term.termName}</option>)}
-        </select>
-      </div>
-      <Week1Fields key={props.term.id} term={props.term} onChange={setChoice} />
-      {!choice ? <Notice tone="info">Hoàn tất lựa chọn tuần 1 để tiếp tục.</Notice> : null}
-      <button type="submit" className="button primary" disabled={!choice}>Tạo phương án</button>
-    </form>
+    <>
+      <form className="start" onSubmit={submit} aria-labelledby={`${id}-title`}>
+        <StartArt />
+        <h2 id={`${id}-title`} className="visually-hidden">Bắt đầu xếp thời khóa biểu</h2>
+        {props.terms.length > 1 ? (
+          <div className="start-term">
+            <label className="visually-hidden" htmlFor={`${id}-term`}>Học kỳ</label>
+            <select id={`${id}-term`} value={props.term.id} disabled={props.loadingTerm} onChange={(event) => props.onSwitchTerm(event.target.value)}>
+              {props.terms.map((term) => <option key={term.term} value={term.term}>{term.termName}</option>)}
+            </select>
+          </div>
+        ) : null}
+        <fieldset className="chip-group start-cohorts">
+          <legend>Bạn khóa mấy?</legend>
+          {cohorts.map((item) => (
+            <ChipRadio key={item} name={`${id}-cohort`} id={`${id}-c-${item}`} value={item} checked={mode === "cohort" && cohort === item} onChange={(value) => { setMode("cohort"); setCohort(value); }}>
+              {item}
+            </ChipRadio>
+          ))}
+        </fieldset>
+        {mode === "manual" ? (
+          <div className="field start-date">
+            <label htmlFor={`${id}-date`}>Ngày bắt đầu tuần 1</label>
+            <input ref={dateRef} id={`${id}-date`} type="date" value={manual} aria-describedby={`${id}-msg`} onChange={(event) => setManual(event.target.value)} />
+          </div>
+        ) : (
+          <Button variant="ghost" size="sm" className="start-manual" onClick={() => setMode("manual")}>Tự chọn ngày</Button>
+        )}
+        <p id={`${id}-msg`} className={preview.error && message === preview.error ? "field-error" : "field-hint"} aria-live="polite">{message}</p>
+        <Button type="submit" variant="primary" size="lg" disabled={!preview.date}>Bắt đầu</Button>
+      </form>
+      <p className="independence-note">{INDEPENDENCE_NOTE}</p>
+    </>
   );
 }

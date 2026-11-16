@@ -10,18 +10,25 @@
  * F4: AC-M6-09 (diacritic-free search, "Không trùng lịch" filter, class sheet whose mini-calendar marks the overlap, a
  * conflicting class needs "Vẫn thêm lớp này"), AC-M6-10 (desktop 2 columns, Ctrl/⌘ K, hover/focus ghost preview);
  * AC-M6-16 also covers the class sheet.
+ * F5: AC-M6-11 (one start screen, cohort chips from Term.starts, "Tự chọn ngày", ≤ 25 visible words without the
+ * independence sentence, 2 taps to the calendar), AC-M6-12 (one-time hints that can be dismissed; every empty state has
+ * exactly one action).
  */
 import { AxeBuilder } from "@axe-core/playwright";
 import type { Locator } from "@playwright/test";
 import { expect, test, type Page } from "./fixture.js";
+import { countVisibleWords } from "./word-count.js";
 
 const ABOUT = "Giới thiệu, quyền riêng tư & báo lỗi";
 
+const cohortGroup = (page: Page) => page.getByRole("group", { name: "Bạn khóa mấy?" });
+
+/** F5 start screen: one cohort chip, then "Bắt đầu" (2 taps). */
 async function startDraftPlan(page: Page) {
   await page.goto("./");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  await expect(cohortGroup(page)).toBeVisible();
+  await checkChip(cohortGroup(page).getByRole("radio", { name: "K69" }));
+  await page.getByRole("button", { name: "Bắt đầu", exact: true }).click();
   await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
 }
 
@@ -208,10 +215,9 @@ test("AC-M6-12 — the independence sentence is on the start screen and in the (
   const SENTENCE = "Công cụ độc lập của sinh viên, không phải sản phẩm của nhà trường.";
   await page.setViewportSize({ width: 360, height: 780 });
   await page.goto("./");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(cohortGroup(page)).toBeVisible();
   await expect(page.getByText(SENTENCE, { exact: true })).toHaveCount(1);
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  await page.getByRole("button", { name: "Bắt đầu", exact: true }).click();
   await expect(page.getByRole("region", { name: "Lịch" })).toBeVisible();
   // Visible text only: the hidden print sheet carries the export disclaimer.
   await expect(page.getByText(/không phải sản phẩm của nhà trường/).filter({ visible: true })).toHaveCount(0);
@@ -460,4 +466,118 @@ test("AC-M6-10 — from 1200 px: two columns; hovering or focusing a class previ
   await courseRow(page, "SYN1001").focus();
   await page.waitForTimeout(200);
   await expect(ghosts).toHaveCount(0);
+});
+
+const INDEPENDENCE = "Công cụ độc lập của sinh viên, không phải sản phẩm của nhà trường.";
+
+test("AC-M6-11 — one start screen: cohort chips from Term.starts, ≤ 25 visible words (without the independence sentence), 2 taps to the calendar", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.goto("./");
+  const group = cohortGroup(page);
+  await expect(group).toBeVisible();
+  // The synthetic HK II term starts K67–K71 on the same Monday (scripts/build-synthetic-dataset.mjs).
+  await expect(group.getByRole("radio")).toHaveCount(5);
+  for (const cohort of ["K67", "K68", "K69", "K70", "K71"]) await expect(group.getByText(cohort, { exact: true })).toBeVisible();
+  const words = await countVisibleWords(page, "main", [INDEPENDENCE]);
+  expect(words.count, words.words.join(" ")).toBeLessThanOrEqual(25);
+  await expect(page.getByText(INDEPENDENCE, { exact: true })).toHaveCount(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  // "Tự chọn ngày" opens the date field, checked like before (a Monday in the term frame).
+  const start = page.getByRole("button", { name: "Bắt đầu", exact: true });
+  await page.getByRole("button", { name: "Tự chọn ngày" }).click();
+  const date = page.getByLabel("Ngày bắt đầu tuần 1");
+  await expect(date).toBeFocused();
+  await date.fill("2027-02-16");
+  await expect(page.getByText("Ngày bắt đầu tuần 1 phải là Thứ Hai.")).toBeVisible();
+  await expect(start).toBeDisabled();
+  await date.fill("2027-02-15");
+  await expect(page.getByText("Tuần 1: 15/02/2027")).toBeVisible();
+  await expect(start).toBeEnabled();
+
+  // Two taps from a chip: the chip, then "Bắt đầu".
+  await checkChip(group.getByRole("radio", { name: "K69" }));
+  await start.click();
+  await expect(page.getByRole("region", { name: "Lịch" })).toBeVisible();
+});
+
+test("AC-M6-11 — a term whose cohorts start on different Mondays waits for a chip", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.goto("./");
+  await expect(cohortGroup(page)).toBeVisible();
+  await page.getByLabel("Học kỳ").selectOption("2026-2027-h1");
+  const start = page.getByRole("button", { name: "Bắt đầu", exact: true });
+  await expect(page.getByLabel("Học kỳ")).toHaveValue("2026-2027-h1");
+  await expect(start).toBeDisabled();
+  await checkChip(cohortGroup(page).getByRole("radio", { name: "K71" }));
+  await expect(start).toBeEnabled();
+  await start.click();
+  await page.getByLabel("Chọn tuần").selectOption("1");
+  await expect(page.getByRole("option", { name: /^Tuần 1\b.*12\/10/ })).toHaveCount(1);
+});
+
+test("AC-M6-12 — one-time hints can be dismissed and stay dismissed; every empty state has exactly one action", async ({ page }) => {
+  await startAt(page);
+  const notes = page.getByRole("note");
+  const empty = page.locator(".empty");
+
+  // Empty calendar → "Thêm lớp"; empty plan → "Thêm lớp" with the import hint beside it.
+  await expect(empty.getByText("Chưa có lớp nào")).toBeVisible();
+  await expect(empty.getByRole("button")).toHaveCount(1);
+  await navButton(page, "Phương án").click();
+  await expect(empty.getByText("Chưa chọn lớp nào")).toBeVisible();
+  await expect(empty.getByRole("button")).toHaveCount(1);
+  await expect(notes).toHaveCount(1);
+  await expect(notes).toContainText("nhập file kết quả ĐKMH");
+  await notes.getByRole("button", { name: "Đã hiểu" }).click();
+  await expect(notes).toHaveCount(0);
+  await empty.getByRole("button", { name: "Thêm lớp" }).click();
+  await expect(page.getByRole("region", { name: "Thêm lớp" })).toBeVisible();
+
+  // Thêm lớp: the filter hint; a search without result → "Xóa từ khóa"; using the filter marks the hint seen.
+  await expect(notes).toHaveCount(1);
+  await expect(notes).toContainText("Không trùng lịch");
+  const search = page.getByLabel("Mã hoặc tên môn");
+  await search.fill("zzzz khong co");
+  await expect(empty.getByText("Không có môn nào khớp")).toBeVisible();
+  await expect(empty.getByRole("button")).toHaveCount(1);
+  await empty.getByRole("button", { name: "Xóa từ khóa" }).click();
+  await expect(search).toHaveValue("");
+  await expect(search).toBeFocused();
+  await page.getByRole("button", { name: "Không trùng lịch" }).click();
+  await expect(notes).toHaveCount(0);
+  await page.getByRole("button", { name: "Không trùng lịch" }).click();
+
+  // SYN2003 1 meets in weeks 4, 7, 10 and 14 only: week 3 is empty and offers the nearest week with a class.
+  await addClass(page, "SYN2003", "SYN2003 1");
+  await navButton(page, "Lịch").click();
+  await expect(empty.getByText("Tuần 3 không có buổi học")).toBeVisible();
+  await expect(empty.getByRole("button")).toHaveCount(1);
+  await empty.getByRole("button", { name: "Tới tuần có lớp" }).click();
+  await expect(page.getByRole("region", { name: "Lưới thời khóa biểu tuần 4" })).toBeVisible();
+  await expect(empty).toHaveCount(0);
+
+  // The block hint (mouse device: no swipe hint) goes away when a block is opened, and stays away after a reload.
+  await expect(notes).toHaveCount(1);
+  await expect(notes).toContainText("Chạm vào một lớp");
+  await page.getByRole("region", { name: "Lưới thời khóa biểu tuần 4" }).getByRole("button", { name: /^SYN2003 / }).first().click();
+  await page.keyboard.press("Escape");
+  await expect(notes).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("region", { name: "Lịch" })).toBeVisible();
+  await navButton(page, "Thêm lớp").click();
+  await expect(page.getByRole("region", { name: "Thêm lớp" })).toBeVisible();
+  await navButton(page, "Phương án").click();
+  await expect(page.getByRole("region", { name: "Phương án", exact: true })).toBeVisible();
+  await expect(notes).toHaveCount(0);
+});
+
+test("AC-M6-12 — on desktop, where the calendar and the search share the screen, at most one hint shows", async ({ page }) => {
+  await startAt(page, 1280);
+  const notes = page.getByRole("note");
+  await expect(notes).toHaveCount(1);
+  await expect(notes).toContainText("Không trùng lịch");
+  await addClass(page, "SYN2002", "SYN2002 1");
+  await expect(notes).toHaveCount(1);
+  await expect(notes).toContainText("Chạm vào một lớp");
 });

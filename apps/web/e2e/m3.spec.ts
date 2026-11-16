@@ -17,11 +17,21 @@ const VIEWPORTS = [
   { name: "1280", width: 1280, height: 900 },
 ];
 
+/**
+ * M6 F5 start screen: its heading is visually hidden, so the screen is recognised by its "Bắt đầu" submit button;
+ * the cohort is a chip radio in the "Bạn khóa mấy?" group (clicked through its label, see `checkChip`).
+ */
+const startButton = (page: Page) => page.getByRole("button", { name: "Bắt đầu", exact: true });
+
+async function chooseCohort(page: Page, cohort: string): Promise<void> {
+  await checkChip(page.getByRole("group", { name: "Bạn khóa mấy?" }).getByRole("radio", { name: cohort, exact: true }));
+}
+
 async function startPlan(page: Page): Promise<void> {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  await expect(startButton(page)).toBeVisible();
+  await chooseCohort(page, "K69");
+  await startButton(page).click();
   await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
 }
 
@@ -146,15 +156,15 @@ test("AC-M3-01/02/03/04/06 — core flow on a 360 px phone, persisted across rel
 test("AC-M3-05 — no horizontal page scroll at 360/768/1200/1280 and no serious axe violations", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize(viewport);
     expect(await pageOverflow(page), `onboarding overflow at ${viewport.name}`).toBeLessThanOrEqual(0);
     expect(await axeSerious(page), `onboarding axe at ${viewport.name}`).toEqual([]);
   }
   await page.setViewportSize({ width: 360, height: 780 });
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  await chooseCohort(page, "K69");
+  await startButton(page).click();
   await pick(page, "lap trinh", "SYN2001 1", { group: "2" });
   await pick(page, "SYN1001", "SYN1001 2");
   await pick(page, "dai so", "SYN1002 2", { button: /^Vẫn thêm lớp này$/ });
@@ -186,7 +196,7 @@ test("AC-M3-05 — no horizontal page scroll at 360/768/1200/1280 and no serious
 test("AC-M3-05 — keyboard-only path from onboarding to a pick, with visible focus", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   const focusOn = async (matches: (element: { tag: string; text: string; label: string }) => boolean, max = 40) => {
     for (let index = 0; index < max; index += 1) {
       await page.keyboard.press("Tab");
@@ -201,9 +211,12 @@ test("AC-M3-05 — keyboard-only path from onboarding to a pick, with visible fo
     }
     throw new Error("element not reachable with Tab");
   };
-  await focusOn((element) => element.label === "Khóa");
-  await page.keyboard.press("ArrowDown");
-  await focusOn((element) => element.text === "Tạo phương án");
+  // F5: Tab enters the "Bạn khóa mấy?" chip radios on the first cohort; Space checks it (as ArrowDown picked the first
+  // cohort of the former select).
+  await focusOn((element) => element.tag === "INPUT" && /^K\d+$/.test(element.label));
+  await page.keyboard.press("Space");
+  await expect(page.locator("input[type=radio]:focus")).toBeChecked();
+  await focusOn((element) => element.text === "Bắt đầu");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
   await focusOn((element) => element.label === "Mã hoặc tên môn");
@@ -296,9 +309,9 @@ test("AC-M3-06 — 'Xóa dữ liệu trên máy' removes the Plan", async ({ pag
   await openLocalData(page);
   await page.getByRole("button", { name: "Xóa dữ liệu trên máy" }).click();
   await page.getByRole("button", { name: "Xác nhận xóa" }).click();
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
 });
 
 test("REV-M3-002 — after 'Xóa dữ liệu trên máy' the next online visit makes the app work offline again", async ({ page, context }) => {
@@ -310,12 +323,12 @@ test("REV-M3-002 — after 'Xóa dữ liệu trên máy' the next online visit m
   await openLocalData(page);
   await page.getByRole("button", { name: "Xóa dữ liệu trên máy" }).click();
   await page.getByRole("button", { name: "Xác nhận xóa" }).click();
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   await page.keyboard.press("Escape");
   await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
   // Creating a new Plan in the same tab (without reloading first) re-registers the worker and precaches the shell (QA-M3-102, QA-M3-104).
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  await chooseCohort(page, "K69");
+  await startButton(page).click();
   await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
   await pick(page, "mang may tinh", "SYN2004 1");
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
@@ -349,9 +362,9 @@ test("QA-M3-005 — two tabs never overwrite each other's Plan, and a wipe in on
   await openLocalData(second);
   await second.getByRole("button", { name: "Xóa dữ liệu trên máy" }).click();
   await second.getByRole("button", { name: "Xác nhận xóa" }).click();
-  await expect(first.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(first)).toBeVisible();
   await first.reload();
-  await expect(first.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(first)).toBeVisible();
 });
 
 test("AC-M3-07 — a tampered artifact is rejected before it reaches the UI", async ({ page }) => {

@@ -23,6 +23,11 @@ import { AddClassView } from "./AddClassView.js";
 import { useSearchShortcut } from "./useSearchShortcut.js";
 import { prefetchExporters } from "../export/exporters-lazy.js";
 import { creditsLine } from "../export/files.js";
+import type { HintId } from "../model/hints.js";
+import { IconCalendar } from "./icons.js";
+import { Button } from "./ui/Button.js";
+import { EmptyState } from "./ui/EmptyState.js";
+import { Hint } from "./ui/Hint.js";
 
 const ISSUE_TEXT: Record<string, string> = {
   GROUP_REQUIRED: "Lớp này có nhiều nhóm — hãy chọn nhóm trước.",
@@ -87,6 +92,9 @@ export function Workspace(props: {
   /** M6-E (F3): course colours chosen on this device and the setter (DESIGN-M6-001 §3/§7). */
   courseColors: Readonly<Record<string, CourseColorId>>;
   onCourseColor: (courseCode: string, color: CourseColorId | undefined) => void;
+  /** M6-G (F5): one-time hints already seen on this device, and the setter (DESIGN-M6-001 §9). */
+  seenHints?: Readonly<Partial<Record<HintId, true>>>;
+  onHintSeen?: (id: HintId) => void;
 }) {
   const { plan, draftPlan, finalPlan, activeSlot, catalog } = props;
   const colors = useCourseColors(draftPlan.planKind === "draft" ? draftPlan : undefined, finalPlan, catalog, props.courseColors);
@@ -140,6 +148,22 @@ export function Workspace(props: {
     return { sessions: candidate.sessions, conflicts: candidate.conflicts, keys, sectionId: section.id };
   }, [desktop, previewTarget, plan, catalog]);
 
+  // F5 §9: at most one hint at a time — the first unseen one that applies to what is on screen.
+  const coarse = useMediaQuery("(pointer: coarse)");
+  const seen = props.seenHints ?? {};
+  const hintSeen = (id: HintId) => {
+    if (!seen[id]) props.onHintSeen?.(id);
+  };
+  const hasSessions = view.sessions.some((session) => session.fixed);
+  const candidates: HintId[] = [
+    ...(shown === "week" && hasSessions && coarse ? ["week-swipe" as const] : []),
+    ...(shown === "week" && hasSessions ? ["block-tap" as const] : []),
+    ...(desktop || shown === "add" ? ["add-filter" as const] : []),
+    ...(shown === "plan" && !finalPlan ? ["plan-import" as const] : []),
+  ];
+  const activeHint = props.onHintSeen ? candidates.find((id) => !seen[id]) : undefined;
+  const hintFor = (id: HintId) => (activeHint === id ? <Hint id={id} onDismiss={hintSeen} /> : null);
+
   const now = () => new Date().toISOString();
   const activeOverrideCount = useMemo(
     () => view.sessions.reduce((sum, session) => sum + (session.overrides?.length ?? 0), 0),
@@ -170,6 +194,8 @@ export function Workspace(props: {
       onUnpick={onUnpick}
       headingLevel={desktop ? "h2" : "h3"}
       searchRef={searchRef}
+      hint={hintFor("add-filter")}
+      onFilterUsed={() => hintSeen("add-filter")}
       {...(desktop ? { onPreview: setPreviewTarget } : {})}
     />
   );
@@ -208,11 +234,10 @@ export function Workspace(props: {
                 onCourseColor={props.onCourseColor}
                 onUnpick={onUnpick}
                 {...(ghost ? { ghost } : {})}
+                hint={hintFor("week-swipe") ?? hintFor("block-tap")}
+                onAction={(action) => hintSeen(action === "swipe" ? "week-swipe" : "block-tap")}
                 empty={view.sessions.length === 0 ? (
-                  <p className="muted">
-                    Chưa có lớp nào.{" "}
-                    <button type="button" className="button link" onClick={() => props.onViewChange("add")}>Thêm lớp</button>
-                  </p>
+                  <EmptyState icon={<IconCalendar />} title="Chưa có lớp nào" action={<Button variant="primary" onClick={() => props.onViewChange("add")}>Thêm lớp</Button>} />
                 ) : null}
               />
             ) : null}
@@ -248,7 +273,10 @@ export function Workspace(props: {
                     type="button"
                     className="button secondary small"
                     aria-expanded={importOpen}
-                    onClick={() => setImportOpen((open) => !open)}
+                    onClick={() => {
+                      setImportOpen((open) => !open);
+                      hintSeen("plan-import");
+                    }}
                   >
                     {finalPlan ? "Cập nhật từ file ĐKMH" : "Nhập kết quả ĐKMH"}
                   </button>
@@ -263,6 +291,7 @@ export function Workspace(props: {
                 {view.unresolved.length > 0 ? <strong className="conflict-count"> · ⚠ {view.unresolved.length} lớp cần xử lý</strong> : null}
               </p>
             </div>
+            {hintFor("plan-import")}
             {importOpen ? (
               <LocalErrorBoundary
                 onRetry={() => {
@@ -298,6 +327,7 @@ export function Workspace(props: {
               onUnpick={onUnpick}
               onSelectGroup={onSelectGroup}
               onWeek1={onWeek1}
+              onAdd={() => props.onViewChange("add")}
               {...(props.onDeleteFinalPlan ? { onDeleteFinalPlan: props.onDeleteFinalPlan } : {})}
             />
             <ExportPanel plan={plan} view={view} catalog={catalog} week={week} />
