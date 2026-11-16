@@ -286,8 +286,8 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     const user = userEvent.setup();
     render(<App />);
     await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
-    await user.selectOptions(screen.getByLabelText("Khóa"), "K69");
-    await user.click(screen.getByRole("button", { name: "Tạo phương án" }));
+    await user.click(screen.getByLabelText("K69"));
+    await user.click(screen.getByRole("button", { name: "Bắt đầu" }));
     await screen.findByRole("navigation", { name: "Điều hướng chính" });
     // M6 F2: Lịch · Thêm lớp · Phương án are main-navigation buttons (formerly tabs).
     const nav = (name: "Lịch" | "Thêm lớp" | "Phương án") => within(screen.getByRole("navigation", { name: "Điều hướng chính" })).getByRole("button", { name });

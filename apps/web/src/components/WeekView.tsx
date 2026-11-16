@@ -14,9 +14,10 @@ import type { WeekChoice } from "./common.js";
 import { overrideBadges } from "./CourseBlock.js";
 import { DayStrip } from "./DayStrip.js";
 import { DayView } from "./DayView.js";
-import { IconChevronLeft, IconChevronRight } from "./icons.js";
+import { IconCalendar, IconChevronLeft, IconChevronRight } from "./icons.js";
 import { SessionSheet } from "./SessionSheet.js";
 import { Button } from "./ui/Button.js";
+import { EmptyState } from "./ui/EmptyState.js";
 import type { CourseColorLookup } from "./useCourseColors.js";
 import { useSwipe } from "./useSwipe.js";
 import { WeekGrid } from "./WeekGrid.js";
@@ -89,6 +90,9 @@ export function WeekView(props: {
   empty?: ReactNode;
   /** F4 §8 (desktop): the Plan with a previewed class; its sessions in `keys` are drawn as dashed ghosts. */
   ghost?: { sessions: readonly ScheduledSession[]; conflicts: readonly HardConflict[]; keys: ReadonlySet<string>; sectionId: string };
+  /** F5 §9: the one-time hint shown under the grid, and the hinted actions it listens for. */
+  hint?: ReactNode;
+  onAction?: (action: "swipe" | "open") => void;
 }) {
   const selectId = useId();
   const now = useNow();
@@ -123,7 +127,22 @@ export function WeekView(props: {
   const step = (delta: -1 | 1) => {
     if (weekNumber !== undefined) go(weekNumber + delta);
   };
-  const swipe = useSwipe((direction) => step(direction));
+  const swipe = useSwipe((direction) => {
+    step(direction);
+    props.onAction?.("swipe");
+  });
+  const openSession = (session: ScheduledSession) => {
+    setOpenKey(session.key);
+    props.onAction?.("open");
+  };
+  // F5 §9: a week without any session offers the nearest week that has one (later first).
+  const nearestWeek = useMemo(() => {
+    if (weekNumber === undefined) return undefined;
+    const weeks = new Set(props.sessions.filter((session) => session.fixed).flatMap((session) => session.weeks).filter((week) => week >= 1 && week <= props.teachingWeeks));
+    const sorted = [...weeks].sort((a, b) => a - b);
+    return sorted.find((week) => week > weekNumber) ?? sorted.reverse().find((week) => week < weekNumber);
+  }, [props.sessions, props.teachingWeeks, weekNumber]);
+  const emptyWeek = weekNumber !== undefined && !props.ghost && layout.blocks.length === 0 && nearestWeek !== undefined;
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
     if (event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) return;
@@ -161,7 +180,7 @@ export function WeekView(props: {
             <Button variant="ghost" size="sm" icon={<IconChevronLeft size={18} />} onClick={() => setDay(undefined)}>Cả tuần</Button>
           </div>
           <DayStrip days={layout.days} {...(monday ? { monday } : {})} {...(todayDay ? { todayDay } : {})} counts={counts} selected={day} onOpenDay={setDay} />
-          <DayView day={day} week={props.week} week1={props.week1} frame={props.frame} sessions={props.sessions} today={now.date} conflictKeys={keys} colorOf={props.colors.colorOf} onOpenSession={(session) => setOpenKey(session.key)} />
+          <DayView day={day} week={props.week} week1={props.week1} frame={props.frame} sessions={props.sessions} today={now.date} conflictKeys={keys} colorOf={props.colors.colorOf} onOpenSession={openSession} />
         </>
       ) : (
         <div className="week-swipe" {...swipe}>
@@ -176,7 +195,7 @@ export function WeekView(props: {
             partners={partners}
             {...(todayDay ? { todayDay } : {})}
             {...(nowOffset !== undefined ? { nowOffset } : {})}
-            onOpenSession={(session) => setOpenKey(session.key)}
+            onOpenSession={openSession}
             {...(props.ghost ? { ghostKeys: props.ghost.keys } : {})}
           />
         </div>
@@ -184,6 +203,10 @@ export function WeekView(props: {
       {props.ghost && !ghostShown ? (
         <p className="ghost-note">{weekNumber !== undefined ? `Lớp ${props.ghost.sectionId} không học tuần ${weekNumber}.` : `Lớp ${props.ghost.sectionId} không có giờ cố định.`}</p>
       ) : null}
+      {emptyWeek ? (
+        <EmptyState icon={<IconCalendar />} title={`Tuần ${weekNumber} không có buổi học`} action={<Button variant="secondary" onClick={() => go(nearestWeek!)}>Tới tuần có lớp</Button>} />
+      ) : null}
+      {props.hint}
       {props.empty}
       <NonFixedList sessions={nonFixedSessions(props.sessions)} colorOf={props.colors.colorOf} />
       <SessionSheet

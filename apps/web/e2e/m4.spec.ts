@@ -97,8 +97,8 @@ function buildPortalDocHtml(): string {
 async function startDraftPlan(page: Page): Promise<void> {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  await page.getByRole("group", { name: "Bạn khóa mấy?" }).getByText("K69", { exact: true }).click();
+  await page.getByRole("button", { name: "Bắt đầu", exact: true }).click();
   await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
 }
 

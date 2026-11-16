@@ -4,7 +4,7 @@
  * a device with hover — or focusing a course row or a class chip previews that class on the week grid after 80 ms;
  * leaving, blur or Esc clears it.
  */
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type Ref } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { Plan, PlanPick } from "@ky-nay/domain";
 import { searchCourses, type AppCatalog, type CourseResult } from "../model/catalog.js";
 import { courseColorStyle, type CourseColor } from "../model/palette.js";
@@ -61,7 +61,10 @@ export function AddClassView(props: {
   onPick: (sectionId: string, group?: string) => string | undefined;
   onUnpick: (sectionId: string) => void;
   headingLevel?: "h2" | "h3";
-  searchRef?: Ref<HTMLInputElement>;
+  searchRef?: RefObject<HTMLInputElement | null>;
+  /** F5 §9: the one-time hint beside the filter, and a callback when the filter is used (marks it seen). */
+  hint?: ReactNode;
+  onFilterUsed?: () => void;
   /** Desktop only: the class to preview on the week grid (undefined clears it). */
   onPreview?: (pick: PlanPick | undefined) => void;
 }) {
@@ -111,9 +114,13 @@ export function AddClassView(props: {
       <Heading id={`${id}-heading`}>Tìm môn</Heading>
       <SearchField id={`${id}-input`} value={query} onChange={setQuery} placeholder="VD: SYN1001 hoặc giai tich" {...(props.searchRef ? { ref: props.searchRef } : {})} />
       <div className="add-class-tools">
-        <Chip pressed={filter} onPressedChange={setFilter}>Không trùng lịch</Chip>
+        <Chip pressed={filter} onPressedChange={(pressed) => { setFilter(pressed); props.onFilterUsed?.(); }}>Không trùng lịch</Chip>
       </div>
+      {props.hint}
       <p className="muted" role="status" aria-live="polite">{status}</p>
+      {query.trim() && results.length === 0 ? (
+        <EmptyState icon={<IconSearch />} title="Không có môn nào khớp" action={<Button variant="secondary" onClick={() => { setQuery(""); props.searchRef?.current?.focus(); }}>Xóa từ khóa</Button>} />
+      ) : null}
       {filter && results.length > 0 && fitting.length === 0 ? (
         <EmptyState icon={<IconSearch />} title="Các môn tìm thấy đều trùng lịch" action={<Button variant="secondary" onClick={() => setFilter(false)}>Tắt lọc</Button>} />
       ) : null}

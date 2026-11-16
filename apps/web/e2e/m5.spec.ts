@@ -16,11 +16,23 @@ const REPORT_URL = process.env.VITE_REPORT_ISSUE_URL ?? "https://example.invalid
 const PII_MARKER = "PII-MARKER-24028888";
 const BUILD_LINE = /Phiên bản (\S+) · ([0-9a-f]{7}(?:-dirty)?|unknown)/;
 
+/**
+ * M6 F5 start screen: its heading is visually hidden, so the screen is recognised by its "Bắt đầu" submit button.
+ * The cohort chip is a visually-hidden radio under its label, which intercepts pointer events: the label is clicked.
+ */
+const startButton = (page: Page) => page.getByRole("button", { name: "Bắt đầu", exact: true });
+
+async function chooseCohort(page: Page, cohort: string): Promise<void> {
+  const group = page.getByRole("group", { name: "Bạn khóa mấy?" });
+  await group.getByText(cohort, { exact: true }).click();
+  await expect(group.getByRole("radio", { name: cohort, exact: true })).toBeChecked();
+}
+
 async function startDraftPlan(page: Page): Promise<void> {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  await expect(startButton(page)).toBeVisible();
+  await chooseCohort(page, "K69");
+  await startButton(page).click();
   await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
 }
 
@@ -54,7 +66,7 @@ const classSheet = (page: Page, code: string) => page.getByRole("dialog", { name
 test("AC-M5-01 — the (i) sheet shows the app version and short commit (and matches the build meta tag when present)", async ({ page }) => {
   // D-M6-11 / ADR-0015 point 7: the always-visible footer is gone; the version is in the (i) sheet, the error screen and the meta tag.
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   await page.getByRole("button", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }).click();
   const line = page.getByRole("dialog", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }).getByText(BUILD_LINE);
   await expect(line).toBeVisible();
@@ -120,14 +132,14 @@ test("AC-M5-10 — onboarding does not load the registration chunk; the workspac
     if (!request.serviceWorker()) pageRequests.push(request.url());
   });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
   expect(pageRequests.filter((url) => /\/assets\/RegistrationImport-[^/]+\.js$/.test(url))).toEqual([]);
 
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  await chooseCohort(page, "K69");
+  await startButton(page).click();
   await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
   await expect.poll(() => pageRequests.filter((url) => /\/assets\/RegistrationImport-[^/]+\.js$/.test(url)).length).toBe(1);
 });
@@ -293,5 +305,5 @@ test("AC-M5-09/17 — a render error shows the recovery screen (name only), no r
   await expect(page.getByRole("heading", { name: "Ứng dụng gặp lỗi" })).toBeVisible();
   await page.getByRole("button", { name: "Xóa dữ liệu trên máy rồi tải lại" }).click();
   await page.getByRole("button", { name: "Xác nhận xóa và tải lại" }).click();
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
 });

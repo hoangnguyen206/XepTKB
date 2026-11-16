@@ -22,8 +22,8 @@ const nav = (name: "Lịch" | "Thêm lớp" | "Phương án") => within(screen.g
 async function startPlan(user: ReturnType<typeof userEvent.setup>) {
   render(<App />);
   await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
-  await user.selectOptions(screen.getByLabelText("Khóa"), "K69");
-  await user.click(screen.getByRole("button", { name: "Tạo phương án" }));
+  await user.click(screen.getByLabelText("K69"));
+  await user.click(screen.getByRole("button", { name: "Bắt đầu" }));
   await screen.findByRole("navigation", { name: "Điều hướng chính" });
   await user.click(nav("Thêm lớp"));
 }

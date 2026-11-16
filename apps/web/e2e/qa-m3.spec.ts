@@ -39,7 +39,8 @@ async function serveCrafted(page: Page, options: { version: string; courses: Jso
 
 async function start(page: Page): Promise<void> {
   await page.goto("/");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  // M6 F5: the start screen's submit is "Bắt đầu"; every cohort of the HK II term shares week 1, so it is enabled at once.
+  await page.getByRole("button", { name: "Bắt đầu", exact: true }).click();
   await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
 }
 
@@ -150,7 +151,7 @@ test("QA-M3 — hostile manifest and dataset strings stay inert in the UI and th
 
 test("QA-M3 — the build's CSP blocks injected inline scripts and inline handlers", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Bắt đầu", exact: true })).toBeVisible();
   const result = await page.evaluate(async () => {
     const violations: string[] = [];
     document.addEventListener("securitypolicyviolation", (event) => violations.push(event.violatedDirective));
@@ -177,5 +178,5 @@ test("QA-M3 — first visit without a reachable manifest shows the offline-first
   await expect(page.getByText("Không kết nối được tới nguồn dữ liệu. Lần đầu sử dụng cần có kết nối mạng để tải dữ liệu.")).toBeVisible();
   reachable = true;
   await page.getByRole("button", { name: "Thử lại" }).click();
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Bắt đầu", exact: true })).toBeVisible();
 });

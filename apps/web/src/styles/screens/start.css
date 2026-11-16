@@ -1,0 +1,24 @@
+/*
+ * Bắt đầu (F5, DESIGN-M6-001 §9, AC-M6-11): illustration, optional term select, "Bạn khóa mấy?" with cohort chips,
+ * "Tự chọn ngày", "Bắt đầu"; the independence sentence is the small last line of main. Also the one-time Hint (§9).
+ */
+.start { display: flex; flex-direction: column; align-items: center; gap: var(--s-4); max-width: 480px; margin: var(--s-6) auto 0; text-align: center; }
+.start-art { width: 160px; height: auto; }
+.start-art .a0 { fill: var(--surface); stroke: var(--line); }
+.start-art .a1 { fill: var(--accent); }
+.start-art .a2 { fill: var(--success-weak); stroke: var(--success); }
+.start-art .a3 { fill: var(--warning-weak); stroke: var(--warning); }
+.start-art .a4 { fill: var(--accent-weak); stroke: var(--accent); }
+.start-art .a5 { fill: var(--danger-weak); stroke: var(--danger); }
+.start-term select { min-height: var(--tap); padding: 0 var(--s-3); border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--surface); color: var(--ink); font-weight: var(--fw-bold); }
+.start-cohorts { justify-content: center; }
+.start-cohorts legend { width: 100%; margin-bottom: var(--s-3); font-size: var(--fs-28); line-height: 1.2; text-align: center; }
+.start-date { display: flex; flex-direction: column; gap: var(--s-1); text-align: left; }
+.start .field-hint,
+.start .field-error { min-height: 1.4em; margin: 0; }
+.start .btn-lg { min-width: 200px; }
+
+/* Hint.tsx: one sentence beside what it explains, closed with "Đã hiểu". */
+.hint { display: flex; align-items: center; gap: var(--s-2); margin: var(--s-2) 0; padding: var(--s-2) var(--s-2) var(--s-2) var(--s-3); border-radius: var(--r-md); background: var(--accent-weak); color: var(--ink); font-size: var(--fs-14); }
+.hint .icon { flex: none; color: var(--accent-text); }
+.hint-text { flex: 1 1 auto; margin: 0; }
