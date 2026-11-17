@@ -56,12 +56,14 @@ export function WeekGrid(props: WeekGridProps) {
         </ol>
         {days.map((day) => {
           const blocks = props.layout.blocks.filter((block) => block.day === day);
+          // G3 REV-M6-003 (§8): previewed ghosts are decorative — hidden from assistive technology and not counted.
+          const real = blocks.filter((block) => !props.ghostKeys?.has(block.session.key)).length;
           const date = monday ? addDays(monday, day - 2) : undefined;
           return (
             <ul
               key={day}
               className={`day-body${props.todayDay === day ? " is-today" : ""}`}
-              aria-label={`${dayLabel(day)}${date ? ` ${formatDate(date)}` : ""}, ${blocks.length === 0 ? "không có buổi học" : `${blocks.length} buổi học`}`}
+              aria-label={`${dayLabel(day)}${date ? ` ${formatDate(date)}` : ""}, ${real === 0 ? "không có buổi học" : `${real} buổi học`}`}
             >
               {blocks.map((block) => {
                 const rows = block.endPeriod - block.startPeriod + 1;
@@ -73,7 +75,7 @@ export function WeekGrid(props: WeekGridProps) {
                 };
                 const partners = props.partners?.get(block.session.key) ?? [];
                 return (
-                  <li key={block.session.key} className="block-slot" style={position}>
+                  <li key={block.session.key} className="block-slot" style={position} {...(variant === "screen" && props.ghostKeys?.has(block.session.key) ? { "aria-hidden": true } : {})}>
                     <CourseBlock
                       session={block.session}
                       color={props.colorOf(block.session.courseCode)}

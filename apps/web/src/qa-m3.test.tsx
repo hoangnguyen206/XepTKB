@@ -2,13 +2,17 @@
  * G3a Tester regression cases for M3 (TEST-M3-001). Synthetic data only.
  * Independent oracles for conflict (day × period × weeks) and ICS dates; complements model.test.ts.
  */
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { createPlan, type Course, type Plan, type Section, type Session } from "@ky-nay/domain";
 import type { LoadedDataset, TimetableArtifact } from "./data/contract.js";
 import { icsFile } from "./export/exporters.js";
 import { buildAppCatalog } from "./model/catalog.js";
 import { applyPick, previewPick, previewTargetFor, sectionFits } from "./model/picker.js";
+import { AddClassView } from "./components/AddClassView.js";
 import { isSearchShortcut } from "./components/useSearchShortcut.js";
+import { COURSE_PALETTE } from "./model/palette.js";
 import { buildPlanView } from "./model/plan-view.js";
 import { serveDataset, testMetadata, TERM, VERSION } from "./test/fixture.js";
 
@@ -187,5 +191,24 @@ describe("Ctrl/⌘ K (DESIGN-M6-001 §8, AC-M6-10)", () => {
     } finally {
       dialog.remove();
     }
+  });
+});
+
+describe("\"Tắt lọc\" empty state (DESIGN-M6-001 §8/§9, AC-M6-09/12; G3 F-M6-QA-03)", () => {
+  it("when the filter hides every course found, one \"Tắt lọc\" action brings them back", async () => {
+    const user = userEvent.setup();
+    // QAB001 has one section, and it overlaps QAA001 1 (group 1) on Thứ 3, tiết 5–6, tuần 8–10.
+    const plan = withPicks([{ sectionId: "QAA001 1", group: "1" }]);
+    render(<AddClassView catalog={catalog} plan={plan} colorOf={() => COURSE_PALETTE[0]!} onPick={() => undefined} onUnpick={() => undefined} />);
+    await user.type(screen.getByLabelText("Mã hoặc tên môn"), "QAB001");
+    expect(screen.getByRole("button", { name: /^QAB001 / })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Không trùng lịch" }));
+    expect(screen.queryByRole("button", { name: /^QAB001 / })).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("Tìm thấy 0 môn. Ẩn 1 môn trùng lịch.");
+    const empty = screen.getByText("Các môn tìm thấy đều trùng lịch").closest(".empty") as HTMLElement;
+    expect(empty.querySelectorAll("button")).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "Tắt lọc" }));
+    expect(screen.getByRole("button", { name: "Không trùng lịch" }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: /^QAB001 / })).toBeTruthy();
   });
 });

@@ -2,7 +2,7 @@
 
 > **Status:** draft / release gate  
 > **Owner:** Tester  
-> **Last reviewed:** 2026-10-25
+> **Last reviewed:** 2026-11-17
 > **Related docs:** [PRD](PRD.md), [Parser spec](PARSER_SPEC.md), [Security](SECURITY_PRIVACY.md), [Implementation plan](IMPLEMENTATION_PLAN.md)
 
 ## 1. Mục tiêu
@@ -97,6 +97,15 @@ Số lượng nêu trong brief là sanity signal, không được hard-code làm
 - ICS import in at least one supported calendar; event dates/weeks correct;
 - PNG/Word(.doc HTML)/print-CSS output legible with source/version, no unneeded PII;
 - **browser matrix (Q-007):** Tier 1 = Chrome Android, Safari iOS (2 phiên bản gần nhất), Chrome/Edge desktop; Tier 2 = Firefox desktop, Samsung Internet, in-app browser Facebook/Messenger/Zalo — khi detect in-app browser, phải có banner “Mở bằng trình duyệt” cho upload/download.
+
+### M6 — giao diện "Lịch có màu" (SPEC-M6-001, DESIGN-M6-001 §12)
+
+- `apps/web/e2e/m6.spec.ts`: AC-M6-01…16 và 18 (theme lưu qua reload/offline, font cùng origin, khung app, lưới 360 px, vuốt/phím, sheet lớp, bộ lọc trùng, Ctrl/⌘ K, ô mờ desktop, màn Bắt đầu ≤ 25 chữ bằng `e2e/word-count.ts`, gợi ý một lần, trạng thái rỗng một nút, Phương án và 4 ô xuất, poster PNG 1080×1350, axe sáng/tối ở 360/768/1280, giảm chuyển động, focus không bị thanh điều hướng che).
+- `apps/web/e2e/visual.spec.ts` + `apps/web/e2e/gallery.spec.ts`: 30 + 4 mốc ảnh, chỉ so trên Linux CI (project `visual`); cập nhật mốc bằng `workflow_dispatch` với `update-snapshots`, duyệt rồi commit.
+- Vitest: `styles/contrast.test.ts` (tương phản token và bảng màu môn, hex chỉ trong file cho phép), `model/palette.test.ts`, `model/grid-view.test.ts`, `model/dataset-status.test.ts`, `storage/local-data.test.ts`, `export/poster.test.ts` (không PII), `app/motion.test.ts`.
+- `apps/web/e2e/m4.spec.ts` chỉ được đổi locator/bước điều hướng; mọi assertion request/PII/IndexedDB/console/nội dung file giữ nguyên.
+- Ngân sách: `scripts/bundle-budget.json` (JS ban đầu ≤ 119 808 B, CSS ≤ 12 288 B, font ≤ 90 000 B, đúng một file CSS, tổng JS ≤ 162 816 B).
+- Thủ công trước G4a của bản M6: Safari iOS, Chrome Android, Zalo/Messenger, TalkBack/VoiceOver, poster bằng mắt.
 
 ## 6. Performance budgets (initial proposals)
 

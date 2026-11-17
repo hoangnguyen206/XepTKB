@@ -66,8 +66,8 @@
 .in-bar .nav-count { position: static; }
 
 main.has-bottom-nav { padding-bottom: 112px; }
-.view-week .week-picker { margin-bottom: var(--s-2); }
-.day-section { margin-top: var(--s-6); }
+/* G3 F-M6-QA-01 (AC-M6-16, WCAG 2.4.11): focus scrolling keeps the focused control above the fixed bottom bar. */
+@media (max-width: 1199.98px) { html { scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom)); } }
 .independence-note { max-width: 640px; margin: var(--s-4) auto; color: var(--muted); font-size: var(--fs-14); text-align: center; }
 
 /* (i) sheet */

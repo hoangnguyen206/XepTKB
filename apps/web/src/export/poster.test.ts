@@ -21,6 +21,7 @@ import {
   POSTER_EMPTY_WEEK,
   POSTER_HEIGHT,
   POSTER_WIDTH,
+  posterCreditsLine,
   posterLayout,
   renderPoster,
   type PosterCommand,
@@ -95,7 +96,7 @@ function allowedTexts(input: PosterInput): { exact: string[]; disclaimer: string
     APP_NAME,
     input.termName,
     input.weekLabel,
-    `${input.credits} tín chỉ · ${input.courseCount} môn`,
+    posterCreditsLine(input),
     POSTER_CONFLICT_LABEL,
     POSTER_EMPTY_WEEK,
     provenanceLine(input.entry),
@@ -171,8 +172,9 @@ describe("share poster (AC-M6-15, DESIGN-M6-001 §10)", () => {
     expect(week.grid.periods).toBe(10);
     expect(week.weekLabel).toMatch(/^Tuần 9 · /);
     expect(week.credits).toBe(view.credits.knownTotal);
+    expect(week.unknownCredits).toBe(view.credits.unknownCourseCodes.length);
     expect(week.courseCount).toBe(3);
-    expect(textsOf(posterLayout(week))).toContain(`${view.credits.knownTotal} tín chỉ · 3 môn`);
+    expect(textsOf(posterLayout(week))).toContain(posterCreditsLine(week));
     const all = buildPosterInput(view, catalog, undefined, colorsFor(conflicting));
     expect(all.weekLabel).toBe(ALL_WEEKS_LABEL);
     // The online course has no fixed slot: it is in the legend but not in the grid.
@@ -291,3 +293,11 @@ function portalHtml(): string {
     <tr><td>3</td><td>INT9999</td><td>Môn ngoài TKB</td><td>3</td><td>Đăng ký lần đầu</td><td>1,500,000</td><td>INT9999 1</td><td>T6</td><td>1 - 3</td><td>101-G2</td></tr>
   </table></body></html>`;
 }
+
+describe("poster credits line (G3 REV-M6-001, AC-M3-11: unknown credits are never 0)", () => {
+  it("says \"chưa rõ\" instead of counting unknown credits as 0", () => {
+    expect(posterCreditsLine({ credits: 9, unknownCredits: 0, courseCount: 3 })).toBe("9 tín chỉ · 3 môn");
+    expect(posterCreditsLine({ credits: 0, unknownCredits: 1, courseCount: 1 })).toBe("chưa rõ tín chỉ · 1 môn");
+    expect(posterCreditsLine({ credits: 6, unknownCredits: 1, courseCount: 3 })).toBe("6 tín chỉ + 1 môn chưa rõ · 3 môn");
+  });
+});

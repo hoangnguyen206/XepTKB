@@ -32,7 +32,7 @@
 
 ## Decision
 
-1. **Token CSS tĩnh.** CSS thuần chia thành nhiều file trong **new** `apps/web/src/styles/`, gom bằng một entry **new** `styles/index.css` (cascade layer: tokens → base → legacy → components → screens → print; thứ tự sửa ở F1b, xem DESIGN-M6-001 §2) và chỉ import từ `main.tsx`. Module component không import CSS, nên build ra đúng một file CSS ban đầu và chunk lazy không có CSS. Mã màu chỉ được nằm trong **new** `styles/tokens.css`, **new** `styles/print.css` và **new** `model/palette.ts`.
+1. **Token CSS tĩnh.** CSS thuần chia thành nhiều file trong **new** `apps/web/src/styles/`, gom bằng một entry **new** `styles/index.css` (cascade layer: tokens → base → legacy → components → screens → print; thứ tự sửa ở F1b, xem DESIGN-M6-001 §2; **r3:** F7 xóa `styles/legacy.css` và layer `legacy`, thứ tự còn tokens → base → components → screens → print) và chỉ import từ `main.tsx`. Module component không import CSS, nên build ra đúng một file CSS ban đầu và chunk lazy không có CSS. Mã màu chỉ được nằm trong **new** `styles/tokens.css`, **new** `styles/print.css` và **new** `model/palette.ts`.
 2. **Theme.** Giá trị sáng đặt trên :root. Giá trị tối áp khi hệ điều hành ở chế độ tối và data-theme khác "light", hoặc khi data-theme là "dark". Thuộc tính **new** `data-theme` trên thẻ html do **new** `applyTheme` (**new** `app/theme.ts`) đặt sau khi đọc settings. Người dùng "Hệ thống" không bị nháy theme. Người chọn theme ngược với hệ điều hành thấy theme hệ điều hành trong lúc chờ đọc IndexedDB; rủi ro này được chấp nhận vì mọi cách tránh đều phải có script inline hoặc storage đồng bộ.
 3. **Bảng màu môn là TS và là nguồn duy nhất.**
    - **new** `COURSE_PALETTE` gồm 10 cặp sáng/tối (giá trị và tỉ lệ ở DESIGN §3).
@@ -159,5 +159,6 @@
 | Change ID | Date/actor | Reason | Supersedes |
 | --- | --- | --- | --- |
 | ADR-0015-r0 | 2026-11-12, Tech Lead (agent) | Đề xuất ban đầu cho G1 của M6 | — |
+| ADR-0015-r3 | 2026-11-17, Frontend (agent), theo G3c `REV-M6-005` | F7 xóa `styles/legacy.css` và layer `legacy` | điểm 1 (thứ tự layer) |
 | ADR-0015-r2 | 2026-11-13, Frontend (agent) | Thứ tự cascade layer: base nằm dưới legacy (F1b) | điểm 1 (thứ tự layer) |
 | ADR-0015-r1 | 2026-11-12, Platform (agent), quyết định của Owner `2026-11-12T15:35Z` | Font đo vượt ngân sách ở F1a; bỏ độ đậm 600 (D-M6-12) | điểm 4 (độ đậm) |

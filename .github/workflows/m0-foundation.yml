@@ -105,7 +105,7 @@ jobs:
             sleep 30
           done
           exit 1
-      - name: Visual comparison (baselines in apps/web/e2e/__screenshots__; no visual spec yet passes)
+      - name: Visual comparison (baselines in apps/web/e2e/__screenshots__: gallery + 30 screen shots of e2e/visual.spec.ts)
         env:
           KY_NAY_VISUAL: "1"
           UPDATE_SNAPSHOTS: ${{ github.event_name == 'workflow_dispatch' && inputs.update-snapshots && 'true' || 'false' }}
