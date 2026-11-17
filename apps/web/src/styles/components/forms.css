@@ -1,0 +1,19 @@
+/* Labelled fields, the week-1 radio fieldset (Onboarding.tsx Week1Fields) and the report form (ReportIssue.tsx). */
+.field { display: flex; flex-direction: column; gap: var(--s-1); margin-bottom: var(--s-3); }
+.field.indent { margin-left: var(--s-8); }
+.field label { font-weight: var(--fw-bold); }
+.field-hint { color: var(--muted); font-size: var(--fs-14); }
+.field-error { color: var(--danger); font-size: var(--fs-14); font-weight: var(--fw-bold); }
+
+.fieldset { min-width: 0; margin: 0 0 var(--s-3); padding: var(--s-2) var(--s-3) var(--s-1); border: 1px solid var(--line); border-radius: var(--r-md); }
+.fieldset legend { padding: 0 var(--s-1); font-weight: var(--fw-bold); }
+.radio-row { display: flex; align-items: center; gap: 10px; min-height: var(--tap); }
+.radio-row input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--accent); }
+
+.report-form { min-width: 0; margin-top: var(--s-2); padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg); }
+.report-form .report-title { margin-bottom: var(--s-1); }
+.report-form select,
+.report-form textarea { width: 100%; }
+.report-output { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.85rem; white-space: pre-wrap; }
+.report-status p { margin: var(--s-2) 0 0; font-weight: var(--fw-bold); }
+.report-link-notice { margin: var(--s-2) 0 0; color: var(--muted); font-size: 0.85rem; }

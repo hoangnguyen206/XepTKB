@@ -260,7 +260,9 @@ test("AC-M3-09/10 — ICS, PNG and Word exports carry the schedule and provenanc
   expect(unfolded).toContain("Dữ liệu mẫu tổng hợp");
   await expect(page.getByText(/gồm 33 buổi học/)).toBeVisible();
 
-  const [png] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Tải ảnh (.png)" }).click()]);
+  // M6 F7: the "Ảnh" tile opens a sheet (week image or poster).
+  await page.getByRole("button", { name: "Tải ảnh (.png)" }).click();
+  const [png] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Ảnh lịch tuần (.png)" }).click()]);
   const image = readFileSync(await png.path());
   expect(image.subarray(1, 4).toString("ascii")).toBe("PNG");
   expect(image.readUInt32BE(16)).toBe(3200);

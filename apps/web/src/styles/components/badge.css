@@ -1,0 +1,27 @@
+/* Badges (class sheet, plan list, session sheet, registration import) and the tone texts beside them. */
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--s-1); }
+.badge {
+  display: inline-block;
+  padding: 2px var(--s-2);
+  border: 1px solid currentColor;
+  border-radius: var(--r-pill);
+  font-size: 0.8rem;
+  font-weight: var(--fw-bold);
+}
+.badge-picked { background: var(--success-weak); color: var(--success); }
+.badge-online { background: var(--accent-weak); color: var(--accent-text); }
+.badge-conflict { background: var(--danger-weak); color: var(--danger); }
+.badge-override { margin-left: var(--s-1); background: var(--warning-weak); color: var(--warning); }
+.badge-today { margin-left: var(--s-2); background: var(--accent-weak); color: var(--accent-text); }
+
+.conflict-text,
+.conflict-count { color: var(--danger); }
+.conflict-text,
+.ok-text,
+.override-detail { font-weight: var(--fw-bold); }
+.campus-text { color: var(--warning); }
+.ok-text { color: var(--success); }
+.override-count,
+.override-detail { color: var(--warning); }
+.override-detail { font-size: var(--fs-14); }
+.override-list { margin: var(--s-1) 0 0; padding: 0; list-style: none; }

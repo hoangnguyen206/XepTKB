@@ -85,9 +85,9 @@ export function App() {
               <h2>Chưa xem được thời khóa biểu</h2>
               <Notice tone="error">{ERROR_TEXT[state.error.code]}{state.error.code === "MANIFEST_UNAVAILABLE" ? " Lần đầu sử dụng cần có kết nối mạng để tải dữ liệu." : ""}</Notice>
               <div className="actions">
-                <button type="button" className="button primary" onClick={() => void controller.retry()}>Thử lại</button>
+                <button type="button" className="btn btn-primary" onClick={() => void controller.retry()}>Thử lại</button>
                 {state.terms.map((term) => (
-                  <button key={term.term} type="button" className="button secondary" onClick={() => void controller.switchTerm(term.term)}>Xem {term.termName}</button>
+                  <button key={term.term} type="button" className="btn btn-secondary" onClick={() => void controller.switchTerm(term.term)}>Xem {term.termName}</button>
                 ))}
               </div>
               <p className="independence-note">{INDEPENDENCE_NOTE}</p>

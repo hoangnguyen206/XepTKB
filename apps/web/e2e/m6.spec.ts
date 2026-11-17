@@ -15,7 +15,9 @@
  * F5: AC-M6-11 (one start screen, cohort chips from Term.starts, "Tự chọn ngày", ≤ 25 visible words without the
  * independence sentence, 2 taps to the calendar), AC-M6-12 (one-time hints that can be dismissed; every empty state has
  * exactly one action).
+ * F7: AC-M6-16 also covers Phương án, the (i) sheet, the data-source sheet and the import sheet with a preview (dark).
  */
+import { readFileSync } from "node:fs";
 import { AxeBuilder } from "@axe-core/playwright";
 import type { Locator } from "@playwright/test";
 import { expect, test, type Page } from "./fixture.js";
@@ -424,7 +426,9 @@ test("AC-M6-10 — Ctrl/⌘ K reaches the search box on a phone and on desktop, 
   await expect(page.getByLabel("Mã hoặc tên môn")).toBeFocused();
 
   await page.setViewportSize({ width: 1280, height: 900 });
-  const search = page.getByLabel("Mã hoặc tên môn");
+  // From 1200 px the search moves into the left column (a new input): wait for it before typing.
+  await expect(page.getByRole("complementary", { name: "Tìm và chọn lớp" })).toBeVisible();
+  const search = page.getByRole("complementary", { name: "Tìm và chọn lớp" }).getByLabel("Mã hoặc tên môn");
   await search.fill("giai tich");
   await page.getByLabel("Chọn tuần").focus();
   await page.keyboard.press("Meta+k");
@@ -627,8 +631,17 @@ test("AC-M6-13 — Phương án: the colour bar adds up to the credits; a confli
   for (const name of ["Điện thoại Tải lịch (.ics)", "Ảnh Tải ảnh (.png)", "Word Tải Word (.doc)", "In In / Lưu PDF"]) await expect(plan.getByRole("button", { name, exact: true })).toBeEnabled();
   const [ics] = await Promise.all([page.waitForEvent("download"), plan.getByRole("button", { name: /^Điện thoại/ }).click()]);
   expect(ics.suggestedFilename()).toBe("ky-nay-2026-2027-h2.ics");
-  const [png] = await Promise.all([page.waitForEvent("download"), plan.getByRole("button", { name: /^Ảnh/ }).click()]);
+  // F7: "Ảnh" opens a sheet with the week image and the share poster (AC-M6-15: a real 1080×1350 PNG).
+  const imageTile = plan.getByRole("button", { name: "Ảnh Tải ảnh (.png)", exact: true });
+  await imageTile.click();
+  const [png] = await Promise.all([page.waitForEvent("download"), page.getByRole("dialog", { name: "Tải ảnh" }).getByRole("button", { name: "Ảnh lịch tuần (.png)" }).click()]);
   expect(png.suggestedFilename()).toBe("ky-nay-2026-2027-h2-tuan-3.png");
+  await imageTile.click();
+  const [poster] = await Promise.all([page.waitForEvent("download"), page.getByRole("dialog", { name: "Tải ảnh" }).getByRole("button", { name: "Poster chia sẻ (.png)" }).click()]);
+  expect(poster.suggestedFilename()).toBe("ky-nay-2026-2027-h2-tuan-3-poster.png");
+  const posterBytes = readFileSync(await poster.path());
+  expect(posterBytes.subarray(1, 4).toString("ascii")).toBe("PNG");
+  expect([posterBytes.readUInt32BE(16), posterBytes.readUInt32BE(20)]).toEqual([1080, 1350]);
   const [doc] = await Promise.all([page.waitForEvent("download"), plan.getByRole("button", { name: /^Word/ }).click()]);
   expect(doc.suggestedFilename()).toBe("ky-nay-2026-2027-h2.doc");
   await page.evaluate(() => {
@@ -650,4 +663,72 @@ test("AC-M6-14 — the registration import opens as a sheet from Phương án; E
   await expect(sheet).toBeHidden();
   await expect(page.getByRole("button", { name: "Nhập kết quả ĐKMH" })).toBeFocused();
   await expect(page.getByRole("button", { name: "Phương án nháp (0)" })).toBeVisible();
+});
+
+/** Synthetic ĐKMH export without personal data: one class as published, one with another room and periods, one not in the timetable. */
+const SYNTHETIC_REGISTRATION_DOC = `<!DOCTYPE html><html><body><table>
+<tr><th>STT</th><th>Mã môn học</th><th>Môn học</th><th>Số tín chỉ</th><th>Trạng thái</th><th>Học phí</th><th>Lớp môn học</th><th>Thứ</th><th>Tiết</th><th>Giảng đường</th></tr>
+<tr><td>1</td><td>SYN1001</td><td>Giải tích 1</td><td>4</td><td>Đăng ký lần đầu</td><td>0</td><td>SYN1001 1</td><td>T2,T5</td><td>1 - 3,7 - 9</td><td>301-G2402-G2</td></tr>
+<tr><td>2</td><td>SYN1002</td><td>Đại số tuyến tính</td><td>3</td><td>Đăng ký lần đầu</td><td>0</td><td>SYN1002 1</td><td>T2</td><td>7 - 9</td><td>505-G2</td></tr>
+<tr><td>3</td><td>UNMATCHED999</td><td>Môn ngoài TKB</td><td>2</td><td>Đăng ký lần đầu</td><td>0</td><td>UNMATCHED999 1</td><td>T4</td><td>1 - 3</td><td>101-G2</td></tr>
+</table></body></html>`;
+
+test("AC-M6-16 — dark theme on Phương án, the (i) sheet, the data-source sheet and the import sheet: zero serious/critical axe violations", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await startAt(page);
+  await addClass(page, "giai tich", "SYN1001 1", { group: "1" });
+  await addClass(page, "vat ly", "SYN1003 1", { button: /^Vẫn thêm lớp này$/ });
+  for (const width of [360, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    // Phương án: plan bar, credits card, conflict chips, class list with badges and group chips, export tiles.
+    await navButton(page, "Phương án").click();
+    await expect(page.getByRole("region", { name: "Phương án", exact: true }).getByRole("button", { name: /trùng lịch với/ }).first()).toBeVisible();
+    await expectNoSeriousAxe(page);
+
+    // The (i) sheet with "Dữ liệu trên máy" open and the report form.
+    await page.getByRole("button", { name: ABOUT }).click();
+    const about = page.getByRole("dialog", { name: ABOUT });
+    await about.getByRole("button", { name: "Đến mục “Dữ liệu trên máy”" }).click();
+    await expect(about.getByRole("button", { name: "Xóa dữ liệu trên máy" })).toBeVisible();
+    await expectNoSeriousAxe(page);
+    await page.keyboard.press("Escape");
+    await expect(about).toBeHidden();
+
+    // The data-source sheet: status notices and the facts list.
+    await page.getByRole("button", { name: /^Nguồn dữ liệu: / }).click();
+    const source = page.getByRole("dialog", { name: "Nguồn và phiên bản dữ liệu" });
+    await expect(source.getByText("synthetic-uet-2026-2027-h2.1")).toBeVisible();
+    await expectNoSeriousAxe(page);
+    await page.keyboard.press("Escape");
+    await expect(source).toBeHidden();
+
+    // The import sheet with a preview: override badges, matched list, the unmatched notice and the actions.
+    await page.getByRole("button", { name: "Nhập kết quả ĐKMH" }).click();
+    const sheet = page.getByRole("dialog", { name: "Nhập kết quả đăng ký môn học (ĐKMH)" });
+    await sheet.getByLabel("Chọn file Kết quả đăng ký môn học (.doc, .htm, .html)").setInputFiles({ name: "dkmh-tong-hop.doc", mimeType: "application/msword", buffer: Buffer.from(SYNTHETIC_REGISTRATION_DOC, "utf8") });
+    await expect(sheet.getByRole("heading", { name: /^Xem trước trước khi lưu: 2 lớp khớp TKB/ })).toBeVisible();
+    await expectNoSeriousAxe(page);
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+  }
+});
+
+test("AC-M6-16 — a week change slides with View Transitions, and prefers-reduced-motion turns the motion off", async ({ page }) => {
+  await startAt(page);
+  await addClass(page, "SYN2002", "SYN2002 1");
+  await navButton(page, "Lịch").click();
+  const root = page.locator("html");
+  await page.getByRole("button", { name: "Tuần sau" }).click();
+  await expect(page.getByRole("region", { name: "Lưới thời khóa biểu tuần 4" })).toBeVisible();
+  await expect(root).toHaveAttribute("data-nav-dir", "next");
+  await page.getByRole("button", { name: "Tuần trước" }).click();
+  await expect(page.getByRole("region", { name: "Lưới thời khóa biểu tuần 3" })).toBeVisible();
+  await expect(root).toHaveAttribute("data-nav-dir", "prev");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate(() => delete document.documentElement.dataset.navDir);
+  await page.getByRole("button", { name: "Tuần sau" }).click();
+  await expect(page.getByRole("region", { name: "Lưới thời khóa biểu tuần 4" })).toBeVisible();
+  await expect(root).not.toHaveAttribute("data-nav-dir", /.*/);
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
 });

@@ -1,4 +1,12 @@
-/* EmptyState.tsx, StatCard.tsx, ListRow.tsx, SearchField.tsx. */
+/* EmptyState.tsx, StatCard.tsx, ListRow.tsx, SearchField.tsx; .card (desktop search pane, error screens); .facts (dl). */
+.card { margin-bottom: var(--s-4); padding: var(--s-4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+
+.facts { display: grid; gap: var(--s-1) var(--s-4); margin: 0 0 var(--s-3); }
+.facts > div { display: flex; flex-wrap: wrap; gap: 0 var(--s-2); }
+.facts dt { min-width: 9em; font-weight: var(--fw-bold); }
+.facts dd { margin: 0; }
+@media (min-width: 768px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
 .empty { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); padding: var(--s-8) var(--s-4); color: var(--muted); text-align: center; }
 .empty-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: var(--r-md); background: var(--accent-weak); color: var(--accent-text); }
 .empty-title { margin: 0; color: var(--ink); font-size: var(--fs-16); font-weight: var(--fw-bold); }

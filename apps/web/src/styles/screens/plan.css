@@ -2,7 +2,10 @@
  * Phương án (F6, DESIGN-M6-001 §6/§10, AC-M6-13): plan bar, credits StatCard with its colour bar, conflict chips, the
  * compact class list with group chips, and the 2×2 export tiles.
  */
-.plan-bar-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.plan-bar { margin-bottom: var(--s-2); }
+.plan-bar-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); margin-bottom: var(--s-1); }
+.final-plan-actions { padding-top: var(--s-2); border-top: 1px dashed var(--line); }
+.export-panel { margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--line); }
 .plan-bar h2 { margin: 0; }
 .plan-slot-controls { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .slot-switcher { display: inline-flex; flex-wrap: wrap; gap: var(--s-1); }
@@ -60,3 +63,8 @@
 .export-tile-title { font-size: var(--fs-16); font-weight: var(--fw-bold); }
 .export-tile-format { color: var(--muted); font-size: var(--fs-14); }
 @media (min-width: 768px) { .export-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* "Ảnh" export sheet (DESIGN-M6-001 §10): week PNG or share poster, one full-width choice each with a short note. */
+.export-choice { display: flex; flex-direction: column; gap: var(--s-2); }
+.export-choice .btn { justify-content: flex-start; width: 100%; }
+.export-choice .muted { margin: 0 0 var(--s-2); font-size: var(--fs-14); }
