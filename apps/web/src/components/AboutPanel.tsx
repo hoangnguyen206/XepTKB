@@ -65,8 +65,8 @@ function BackupList(props: { db: IDBDatabase }) {
         {backups.map((backup, index) => (
           <li key={String(backup.key)}>
             {backup.value.reason} — {formatInstant(backup.value.movedAt)}{" "}
-            <button type="button" className="button secondary small" onClick={() => downloadBlob(new Blob([JSON.stringify(backup.value.record, null, 2)], { type: "application/json" }), `ky-nay-sao-luu-${index + 1}.json`)}>Tải về</button>{" "}
-            <button type="button" className="button secondary small" onClick={() => void deleteBackup(props.db, backup.key).then(() => setBackups((current) => current.filter((item) => item.key !== backup.key)))}>Xóa</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => downloadBlob(new Blob([JSON.stringify(backup.value.record, null, 2)], { type: "application/json" }), `ky-nay-sao-luu-${index + 1}.json`)}>Tải về</button>{" "}
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void deleteBackup(props.db, backup.key).then(() => setBackups((current) => current.filter((item) => item.key !== backup.key)))}>Xóa</button>
           </li>
         ))}
       </ul>
@@ -86,11 +86,11 @@ function LocalData(props: { db?: IDBDatabase; wipeGeneration: number; onWipe: ()
       {confirming ? (
         <div className="actions">
           <p>Xóa phương án, dữ liệu thời khóa biểu đã lưu và bộ nhớ đệm của ứng dụng trên thiết bị này? Không thể hoàn tác.</p>
-          <button type="button" className="button danger" disabled={busy} onClick={() => { setBusy(true); void props.onWipe().finally(() => { setBusy(false); setConfirming(false); setGeneration((value) => value + 1); }); }}>Xác nhận xóa</button>
-          <button type="button" className="button secondary" onClick={() => setConfirming(false)}>Hủy</button>
+          <button type="button" className="btn btn-danger" disabled={busy} onClick={() => { setBusy(true); void props.onWipe().finally(() => { setBusy(false); setConfirming(false); setGeneration((value) => value + 1); }); }}>Xác nhận xóa</button>
+          <button type="button" className="btn btn-secondary" onClick={() => setConfirming(false)}>Hủy</button>
         </div>
       ) : (
-        <button type="button" className="button secondary" onClick={() => setConfirming(true)}>Xóa dữ liệu trên máy</button>
+        <button type="button" className="btn btn-secondary" onClick={() => setConfirming(true)}>Xóa dữ liệu trên máy</button>
       )}
     </details>
   );
@@ -121,7 +121,7 @@ export function AboutSheet(props: AboutSheetProps) {
           <h3 id={`about-${section.id}`}>{section.heading}</h3>
           {section.blocks.map((block, index) => <Block key={index} block={block} />)}
           {section.id === "privacy" ? (
-            <button type="button" className="button secondary" onClick={goToLocalData}>Đến mục “Dữ liệu trên máy”</button>
+            <button type="button" className="btn btn-secondary" onClick={goToLocalData}>Đến mục “Dữ liệu trên máy”</button>
           ) : null}
         </section>
       ))}

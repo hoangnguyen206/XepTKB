@@ -138,13 +138,13 @@ export function ReportIssueForm(props: { section?: ReportSection; onClose?: () =
         <textarea id={`${id}-output`} ref={outputRef} className="report-output" readOnly rows={6} value={text} />
       </div>
       <div className="actions">
-        <button type="button" className="button primary" onClick={() => void onCopy()}>Sao chép</button>
+        <button type="button" className="btn btn-primary" onClick={() => void onCopy()}>Sao chép</button>
         {context.reportUrl ? (
-          <a className="button secondary" href={context.reportUrl} target="_blank" rel="noopener noreferrer">
+          <a className="btn btn-secondary" href={context.reportUrl} target="_blank" rel="noopener noreferrer">
             Mở trang báo lỗi<span className="visually-hidden"> (mở thẻ mới)</span>
           </a>
         ) : null}
-        {props.onClose ? <button type="button" className="button secondary" onClick={props.onClose}>Đóng</button> : null}
+        {props.onClose ? <button type="button" className="btn btn-secondary" onClick={props.onClose}>Đóng</button> : null}
       </div>
       {context.reportUrl ? <p className="report-link-notice">{reportLinkNotice(context.reportUrl)}</p> : null}
       <div role="status" className="report-status">

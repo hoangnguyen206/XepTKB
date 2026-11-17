@@ -45,7 +45,7 @@ export function StalePlanNotice(props: { plan: Plan; catalog: AppCatalog; onReba
     <Notice
       tone="warning"
       title="Dữ liệu thời khóa biểu đã có phiên bản khác"
-      action={confirming ? null : <button type="button" className="button secondary" onClick={() => setConfirming(true)}>Cập nhật phương án</button>}
+      action={confirming ? null : <button type="button" className="btn btn-secondary" onClick={() => setConfirming(true)}>Cập nhật phương án</button>}
     >
       <p>Phương án được tạo với dữ liệu {props.plan.datasetVersion}; dữ liệu đang dùng là {props.catalog.entry.datasetVersion}. Hãy kiểm tra lại phòng/giờ các lớp đã chọn.</p>
       {preview ? (
@@ -60,8 +60,8 @@ export function StalePlanNotice(props: { plan: Plan; catalog: AppCatalog; onReba
             </p>
           ) : null}
           <div className="actions">
-            <button type="button" className="button primary" onClick={props.onRebase}>Xác nhận cập nhật</button>
-            <button type="button" className="button secondary" onClick={() => setConfirming(false)}>Hủy</button>
+            <button type="button" className="btn btn-primary" onClick={props.onRebase}>Xác nhận cập nhật</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setConfirming(false)}>Hủy</button>
           </div>
         </div>
       ) : null}
@@ -296,7 +296,7 @@ export function PlanView(props: {
           </div>
         ) : null}
       </section>
-      <ExportPanel plan={plan} view={view} catalog={catalog} week={props.week} />
+      <ExportPanel plan={plan} view={view} catalog={catalog} week={props.week} colorOf={props.colors.colorOf} />
     </>
   );
 }

@@ -4,11 +4,14 @@ import { buildGridLayout, conflictKeys, formatDate, nonFixedSessions } from "@ky
 import { loadExporters, resetExporters } from "../export/exporters-lazy.js";
 import { downloadBlob, creditsLine } from "../export/files.js";
 import type { AppCatalog } from "../model/catalog.js";
+import type { CourseColor } from "../model/palette.js";
 import { exportDisclaimer, fileStem, provenanceLine, VERIFY_NOTE } from "../model/labels.js";
 import type { PlanView } from "../model/plan-view.js";
 import { weekLabel } from "../model/week.js";
 import { Notice, type WeekChoice } from "./common.js";
 import { IconFile, IconImage, IconPrinter, IconSmartphone } from "./icons.js";
+import { Button } from "./ui/Button.js";
+import { Sheet } from "./ui/Sheet.js";
 
 const IN_APP_BROWSER = /FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|Zalo|Line\//i;
 
@@ -17,17 +20,18 @@ export function isInAppBrowser(userAgent: string = typeof navigator === "undefin
 }
 
 /** One export tile: icon, a short title and the format; the accessible name holds both ("Điện thoại Tải lịch (.ics)"). */
-function ExportTile(props: { icon: ReactNode; title: string; format: string; disabled: boolean; onClick: () => void }) {
+function ExportTile(props: { icon: ReactNode; title: string; format: string; disabled: boolean; onClick: () => void; opensDialog?: boolean }) {
   return (
-    <button type="button" className="export-tile" disabled={props.disabled} onClick={props.onClick}>
+    <button type="button" className="export-tile" disabled={props.disabled} onClick={props.onClick} {...(props.opensDialog ? { "aria-haspopup": "dialog" as const } : {})}>
       {props.icon}
       <span className="export-tile-title">{props.title}</span> <span className="export-tile-format">{props.format}</span>
     </button>
   );
 }
 
-export function ExportPanel(props: { plan: Plan; view: PlanView; catalog: AppCatalog; week: WeekChoice }) {
+export function ExportPanel(props: { plan: Plan; view: PlanView; catalog: AppCatalog; week: WeekChoice; colorOf: (courseCode: string) => CourseColor }) {
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | undefined>(undefined);
+  const [imageSheetOpen, setImageSheetOpen] = useState(false);
   const { plan, view, catalog } = props;
   const empty = view.sessions.length === 0;
   const week1 = view.week1?.date;
@@ -63,11 +67,25 @@ export function ExportPanel(props: { plan: Plan; view: PlanView; catalog: AppCat
       frame: catalog.frame,
       nonFixed: nonFixedSessions(view.sessions),
       footerLines: [provenanceLine(catalog.entry), exportDisclaimer(catalog.entry)],
+      colorOf: props.colorOf,
     });
     const fileName = `${fileStem(catalog.term.id)}${week !== undefined ? `-tuan-${week}` : ""}.png`;
     downloadBlob(blob, fileName);
     return `Đã tạo ${fileName}.`;
   });
+  // DESIGN-M6-001 §10 (AC-M6-15): the poster input carries only public fields (export/poster.ts), never registration notes.
+  const exportPoster = () => run(async () => {
+    const { buildPosterInput, renderPoster } = await loadExporters();
+    const week = props.week === "all" ? undefined : props.week;
+    const blob = await renderPoster(buildPosterInput(view, catalog, week, props.colorOf));
+    const fileName = `${fileStem(catalog.term.id)}${week !== undefined ? `-tuan-${week}` : ""}-poster.png`;
+    downloadBlob(blob, fileName);
+    return `Đã tạo ${fileName}.`;
+  });
+  const chooseImage = (task: () => Promise<void>) => {
+    setImageSheetOpen(false);
+    void task();
+  };
   return (
     <section className="export-panel" aria-labelledby="export-heading">
       <h3 id="export-heading">Xuất lịch</h3>
@@ -85,7 +103,7 @@ export function ExportPanel(props: { plan: Plan; view: PlanView; catalog: AppCat
       {/* DESIGN-M6-001 §10 (AC-M6-13): 4 tiles; file names and contents are unchanged. F7 turns "Ảnh" into the PNG/poster choice. */}
       <div className="export-tiles">
         <ExportTile icon={<IconSmartphone />} title="Điện thoại" format="Tải lịch (.ics)" disabled={empty || !view.week1} onClick={() => void exportIcs()} />
-        <ExportTile icon={<IconImage />} title="Ảnh" format="Tải ảnh (.png)" disabled={empty} onClick={() => void exportPng()} />
+        <ExportTile icon={<IconImage />} title="Ảnh" format="Tải ảnh (.png)" disabled={empty} opensDialog onClick={() => setImageSheetOpen(true)} />
         <ExportTile icon={<IconFile />} title="Word" format="Tải Word (.doc)" disabled={empty} onClick={() => void exportWord()} />
         <ExportTile icon={<IconPrinter />} title="In" format="In / Lưu PDF" disabled={empty} onClick={() => window.print()} />
       </div>
@@ -93,6 +111,14 @@ export function ExportPanel(props: { plan: Plan; view: PlanView; catalog: AppCat
         Ảnh và bản in theo tuần đang xem ({props.week === "all" ? "tất cả các tuần" : `tuần ${props.week}`}); file .ics có mọi tuần. {VERIFY_NOTE}
       </p>
       {empty ? <p className="muted">Hãy chọn ít nhất một lớp để xuất lịch.</p> : null}
+      <Sheet open={imageSheetOpen && !empty} onClose={() => setImageSheetOpen(false)} title="Tải ảnh">
+        <div className="export-choice">
+          <Button variant="secondary" icon={<IconImage />} onClick={() => chooseImage(exportPng)}>Ảnh lịch tuần (.png)</Button>
+          <p className="muted">Lưới chi tiết của {props.week === "all" ? "tất cả các tuần" : `tuần ${props.week}`}, kèm tên môn, loại buổi, nhóm và phòng.</p>
+          <Button variant="secondary" icon={<IconImage />} onClick={() => chooseImage(exportPoster)}>Poster chia sẻ (.png)</Button>
+          <p className="muted">Ảnh dọc 1080×1350 để chia sẻ: mã môn, phòng, màu môn và phiên bản dữ liệu.</p>
+        </div>
+      </Sheet>
       <div role="status" aria-live="polite">{message ? <Notice tone={message.tone}>{message.text}</Notice> : null}</div>
     </section>
   );

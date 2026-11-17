@@ -153,7 +153,7 @@ export function SectionDetail(props: {
           <button
             ref={reportToggleRef}
             type="button"
-            className="button link small"
+            className="btn btn-ghost btn-sm"
             aria-expanded={reportOpen}
             aria-controls={reportOpen ? `${id}-report` : undefined}
             aria-describedby={`${id}-title`}

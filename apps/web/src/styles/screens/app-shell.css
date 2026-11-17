@@ -78,6 +78,17 @@ main.has-bottom-nav { padding-bottom: 112px; }
 .about-list li { margin-bottom: var(--s-1); }
 .local-data > summary { min-height: var(--tap); display: flex; align-items: center; font-weight: var(--fw-bold); cursor: pointer; }
 
+/* Error screen (ErrorBoundary.tsx AppErrorFallback): a card under a bare app bar. */
+.error-screen { max-width: 720px; }
+.error-screen h1 { font-size: 1.4rem; }
+.error-screen h1:focus { outline: 3px solid var(--focus); outline-offset: 2px; }
+.error-screen code { overflow-wrap: anywhere; }
+.confirm-box { margin-top: var(--s-3); padding-top: var(--s-2); border-top: 1px dashed var(--line); }
+
 @media (min-width: 1200px) {
   .app-bar { padding: var(--s-3) var(--s-6); }
+
+  /* Desktop: the search pane stays beside the calendar or plan. */
+  .workspace.two-col { display: grid; grid-template-columns: minmax(360px, 420px) minmax(0, 1fr); align-items: start; gap: var(--s-5); }
+  .pane-left { position: sticky; top: var(--s-3); max-height: calc(100vh - 24px); overflow-y: auto; }
 }

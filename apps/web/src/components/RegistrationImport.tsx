@@ -202,12 +202,12 @@ export function RegistrationImportPanel(props: {
           <div className="actions">
             <button
               type="button"
-              className="button primary"
+              className="btn btn-primary"
               onClick={() => props.onConfirm(preview.plan!, { unmatched: preview.unmatched, warnings: preview.warnings })}
             >
               {preview.isUpdate ? "Xác nhận cập nhật Phương án chính thức" : "Áp dụng vào Phương án chính thức"}
             </button>
-            <button type="button" className="button secondary" onClick={props.onClose}>
+            <button type="button" className="btn btn-secondary" onClick={props.onClose}>
               Hủy
             </button>
           </div>

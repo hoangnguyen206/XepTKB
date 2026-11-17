@@ -31,6 +31,11 @@ h5 {
   font-weight: var(--fw-bold);
 }
 
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.1rem; }
+h4 { font-size: var(--fs-16); }
+h5 { font-size: 0.95rem; }
+
 p {
   margin: 0 0 var(--s-2);
 }
@@ -40,6 +45,23 @@ a {
   text-underline-offset: 3px;
 }
 
+/* The page frame; main.has-bottom-nav (app-shell.css) adds room for the bottom bar. */
+main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--s-3) var(--s-4) var(--s-6);
+}
+
+main:focus { outline: none; }
+
+details > summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+}
+
 button,
 input,
 select,
@@ -47,6 +69,31 @@ textarea {
   font: inherit;
   color: inherit;
 }
+
+/* Native fields keep a 44 px target; components (search, week select, term select) restyle them in higher layers. */
+input[type="search"],
+input[type="date"],
+input[type="file"],
+select,
+textarea {
+  max-width: 100%;
+  min-height: var(--tap);
+  padding: var(--s-2) 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+input[type="search"],
+input[type="file"] { width: 100%; }
+
+textarea { resize: vertical; }
+
+.muted { color: var(--muted); }
+.loading { padding: var(--s-6) 0; font-weight: var(--fw-bold); }
+/* Shown only by print.css. */
+.print-only { display: none; }
 
 :focus-visible {
   outline: 3px solid var(--focus);
@@ -73,6 +120,10 @@ textarea {
 /* Sheets lock page scroll while open (Sheet.tsx uses the native dialog). */
 html:has(dialog[open]) {
   overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  main { padding: var(--s-4) var(--s-6) var(--s-8); }
 }
 
 @media (prefers-reduced-motion: reduce) {

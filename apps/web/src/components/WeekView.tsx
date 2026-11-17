@@ -9,6 +9,7 @@ import type { DayNo, HardConflict, TimeFrame } from "@ky-nay/domain";
 import { buildGridLayout, conflictKeys, formatWeeks, kindText, nonFixedSessions, weekOfDate, weekRange, type ScheduledSession } from "@ky-nay/export";
 import { conflictPartners, nowLineOffset, visiblePeriods } from "../model/grid-view.js";
 import { courseColorStyle, type CourseColorId } from "../model/palette.js";
+import { withViewTransition } from "../app/motion.js";
 import { nowInVietnam, weekLabel } from "../model/week.js";
 import type { WeekChoice } from "./common.js";
 import { overrideBadges } from "./CourseBlock.js";
@@ -124,8 +125,10 @@ export function WeekView(props: {
     return map;
   }, [layout]);
 
+  // §11: a week change slides the grid (View Transitions; skipped with reduced motion).
   const go = (week: number) => {
-    if (week >= 1 && week <= props.teachingWeeks) props.onWeekChange(week);
+    if (week < 1 || week > props.teachingWeeks || week === weekNumber) return;
+    withViewTransition(() => props.onWeekChange(week), weekNumber !== undefined && week < weekNumber ? "prev" : "next");
   };
   const step = (delta: -1 | 1) => {
     if (weekNumber !== undefined) go(weekNumber + delta);

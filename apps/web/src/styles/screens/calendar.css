@@ -147,3 +147,17 @@ button.block:hover { filter: brightness(0.97); }
 .color-picker legend { margin-bottom: var(--s-2); padding: 0; font-weight: var(--fw-bold); }
 .swatches { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .swatch { color: var(--course-ink); font-weight: var(--fw-bold); }
+
+/*
+ * §11 motion: a week change slides the grid 200 ms in the direction written on <html data-nav-dir> (app/motion.ts).
+ * base.css turns every animation and view-transition pseudo-element off under prefers-reduced-motion.
+ */
+.week-grid-wrap.variant-screen { view-transition-name: week-grid; }
+::view-transition-old(week-grid) { animation: 200ms ease-in both wg-out-next; }
+::view-transition-new(week-grid) { animation: 200ms ease-out both wg-in-next; }
+:root[data-nav-dir="prev"]::view-transition-old(week-grid) { animation-name: wg-out-prev; }
+:root[data-nav-dir="prev"]::view-transition-new(week-grid) { animation-name: wg-in-prev; }
+@keyframes wg-out-next { to { opacity: 0; transform: translateX(-24px); } }
+@keyframes wg-in-next { from { opacity: 0; transform: translateX(24px); } }
+@keyframes wg-out-prev { to { opacity: 0; transform: translateX(24px); } }
+@keyframes wg-in-prev { from { opacity: 0; transform: translateX(-24px); } }

@@ -1,0 +1,20 @@
+/* Notice (components/common.tsx): an inline message with a tone stripe, a title and an optional action. */
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-3);
+  margin: 0 0 var(--s-3);
+  padding: 10px var(--s-3);
+  border: 1px solid var(--line);
+  border-left-width: 5px;
+  border-radius: var(--r-md);
+  color: var(--ink);
+}
+.notice-info { background: var(--accent-weak); border-color: var(--accent); }
+.notice-warning { background: var(--warning-weak); border-color: var(--warning); }
+.notice-error { background: var(--danger-weak); border-color: var(--danger); }
+.notice-success { background: var(--success-weak); border-color: var(--success); }
+.notice-title { display: block; margin-bottom: 2px; }
+.notice p:last-child { margin-bottom: 0; }

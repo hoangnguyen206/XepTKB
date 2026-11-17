@@ -2,6 +2,7 @@
  * Export file builders, loaded lazily as the `exporters-` chunk (DESIGN-M6-001 §14: the initial JS passed 112 KiB
  * after F3). `Workspace` prefetches the chunk when it mounts (`export/exporters-lazy.ts`), so pressing an export
  * button makes no request and works offline (the service worker precaches every chunk). File formats are unchanged.
+ * F7 adds the 1080×1350 share poster (`poster.ts`) to the same chunk instead of a separate lazy module.
  */
 import type { Plan } from "@ky-nay/domain";
 import { allOccurrences, buildIcs, buildWordDoc, describeConflict, formatDate } from "@ky-nay/export";
@@ -11,6 +12,8 @@ import type { PlanView } from "../model/plan-view.js";
 import { creditsLine } from "./files.js";
 
 export { renderPng, type PngInput } from "./png.js";
+// The share poster (DESIGN-M6-001 §10) rides in this chunk too: it is already lazy and prefetched on Workspace mount.
+export { buildPosterInput, renderPoster, type PosterInput } from "./poster.js";
 
 export function icsFile(plan: Plan, view: PlanView, catalog: AppCatalog, now: Date = new Date()): { blob: Blob; fileName: string; events: number } {
   if (!view.week1) throw new Error("week1 is not resolved");
