@@ -339,6 +339,18 @@ test("AC-M6-07 — a block opens its details; the chosen course colour survives 
   await page.keyboard.press("Escape");
   const slate = "rgb(226, 232, 240)";
   await expect(block).toHaveCSS("background-color", slate);
+  // The colour is written to IndexedDB after the screen updates (and after the block-tap hint's own settings write):
+  // reload only once it is stored, as a user would not reload within the same few milliseconds.
+  await expect.poll(() => page.evaluate(() => new Promise<string>((resolve) => {
+    const open = indexedDB.open("ky-nay");
+    open.onsuccess = () => {
+      const request = open.result.transaction("settings").objectStore("settings").getAll();
+      request.onsuccess = () => {
+        resolve(JSON.stringify(request.result));
+        open.result.close();
+      };
+    };
+  }))).toContain("\"slate\"");
   await page.reload();
   await expect(page.getByRole("button", { name: /^SYN2002 / })).toHaveCSS("background-color", slate);
   // "Tự động" removes the choice.
