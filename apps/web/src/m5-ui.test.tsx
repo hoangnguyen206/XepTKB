@@ -249,7 +249,8 @@ describe("per-section report in the app (AC-M5-02)", () => {
     await user.click(within(card).getByRole("button", { name: "Đóng" }));
     expect(within(card).queryByLabelText("Nội dung báo cáo")).toBeNull();
     expect(document.activeElement).toBe(reportButton);
-  });
+    // G3 REV-M6-002 / F-M6-QA-02: a long UI flow (~4.3 s alone); the default 5 s timed out on a busy machine (as PR #13).
+  }, 20_000);
 });
 
 describe("stale and offline data status (M5-D; chips + data-source sheet since ADR-0015 point 7)", () => {

@@ -44,13 +44,17 @@ describe("Sheet", () => {
     expect(screen.queryByRole("button", { name: "Bỏ lớp này" })).toBeNull();
   });
 
-  it("a click on the backdrop (the dialog itself) closes; a click inside does not", async () => {
+  it("a click on the backdrop closes; a click inside — on a control or on empty space of the sheet — does not", async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole("button", { name: "Mở chi tiết" }));
     await user.click(screen.getByRole("button", { name: "Bỏ lớp này" }));
     expect(dialog().open).toBe(true);
-    fireEvent.click(dialog());
+    // jsdom has no layout: give the dialog a box. The backdrop is the dialog element outside that box (G3 REV-M6-004).
+    dialog().getBoundingClientRect = () => ({ left: 10, top: 100, right: 350, bottom: 780, width: 340, height: 680, x: 10, y: 100, toJSON: () => ({}) });
+    fireEvent.click(dialog(), { clientX: 180, clientY: 700 });
+    expect(dialog().open).toBe(true);
+    fireEvent.click(dialog(), { clientX: 180, clientY: 40 });
     expect(dialog().open).toBe(false);
   });
 });

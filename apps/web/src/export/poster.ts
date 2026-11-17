@@ -45,7 +45,9 @@ export type PosterInput = {
   termName: string;
   /** "Tuần 3 · 01/03–07/03" or "Tất cả các tuần". */
   weekLabel: string;
+  /** Known credits; `unknownCredits` counts courses whose credits are not known (AC-M3-11: "chưa rõ" is never 0). */
   credits: number;
+  unknownCredits: number;
   courseCount: number;
   /** `buildGridLayout` of the chosen week, stripped to what the poster draws; `periods` comes from `visiblePeriods`. */
   grid: { days: readonly DayNo[]; periods: number; blocks: readonly PosterBlock[] };
@@ -98,6 +100,14 @@ const DISCLAIMER_TOP = 1276;
 const DISCLAIMER_LINE = 19;
 const DISCLAIMER_MAX_LINES = 3;
 
+/** "N tín chỉ · M môn", or with unknown credits "chưa rõ tín chỉ" / "N tín chỉ + K môn chưa rõ" (same rule as Phương án). */
+export function posterCreditsLine(input: Pick<PosterInput, "credits" | "unknownCredits" | "courseCount">): string {
+  const credits = input.unknownCredits === 0 ? `${input.credits} tín chỉ`
+    : input.credits === 0 ? "chưa rõ tín chỉ"
+      : `${input.credits} tín chỉ + ${input.unknownCredits} môn chưa rõ`;
+  return `${credits} · ${input.courseCount} môn`;
+}
+
 /** Largest size in [min, max] at which `text` fits `maxWidth` (the caller still ellipsizes at `min`). */
 function fitSize(measure: PosterMeasure, text: string, weight: CanvasWeight, max: number, min: number, maxWidth: number): number {
   let size = max;
@@ -118,7 +128,7 @@ export function posterLayout(input: PosterInput, measure: PosterMeasure = estima
   text(APP_NAME, PAD, 40, 20, 800, COLOR.accent, INNER);
   text(input.termName, PAD, 72, fitSize(measure, input.termName, 800, 56, 40, INNER), 800, COLOR.ink, INNER);
   text(input.weekLabel, PAD, 140, 28, 800, COLOR.ink, INNER);
-  text(`${input.credits} tín chỉ · ${input.courseCount} môn`, PAD, 180, 24, 400, COLOR.muted, INNER);
+  text(posterCreditsLine(input), PAD, 180, 24, 400, COLOR.muted, INNER);
 
   // 240–1080: the week grid.
   const days = input.grid.days;
@@ -217,6 +227,7 @@ export function buildPosterInput(view: PlanView, catalog: AppCatalog, week: numb
     termName: catalog.term.name,
     weekLabel: week === undefined ? ALL_WEEKS_LABEL : view.week1 ? weekLabel(view.week1.date, week) : `Tuần ${week}`,
     credits: view.credits.knownTotal,
+    unknownCredits: view.credits.unknownCourseCodes.length,
     courseCount: legend.length,
     grid: {
       days: layout.days,

@@ -53,7 +53,12 @@ export function Sheet(props: SheetProps) {
         props.onClose();
       }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) props.onClose();
+        // Only a click on the backdrop closes (G3 REV-M6-004): empty space inside a full-height sheet is the dialog
+        // element itself too, so the point must be outside the dialog's box.
+        if (event.target !== event.currentTarget) return;
+        const box = event.currentTarget.getBoundingClientRect();
+        const outside = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+        if (outside) props.onClose();
       }}
     >
       {props.open ? (

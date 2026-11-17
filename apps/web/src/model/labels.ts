@@ -4,7 +4,6 @@ import type { DatasetEntry, DatasetStatus, SourceType } from "../data/contract.j
 export const APP_NAME = "Kỳ Này";
 export const INDEPENDENCE_NOTE = "Công cụ độc lập của sinh viên, không phải sản phẩm của nhà trường.";
 export const VERIFY_NOTE = "Dữ liệu chỉ để tham khảo — luôn đối chiếu với cổng đăng ký của trường.";
-export const PRIVACY_NOTE = "Phương án của bạn chỉ lưu trên thiết bị này, không gửi đi đâu. Ứng dụng không dùng công cụ theo dõi hay thống kê người dùng.";
 export const SYNTHETIC_NOTE = "Dữ liệu mẫu tổng hợp để thử nghiệm — không phải thời khóa biểu thật của trường.";
 
 const SOURCE_LABEL: Record<SourceType, string> = {

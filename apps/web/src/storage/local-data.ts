@@ -75,10 +75,6 @@ export async function loadSettings(db: IDBDatabase): Promise<Settings> {
   return sanitizeSettings(await idbGet<unknown>(db, "settings", "app"));
 }
 
-export async function saveSettings(db: IDBDatabase, settings: Settings): Promise<void> {
-  await idbPut(db, "settings", settings, "app");
-}
-
 /** Read-modify-write of the settings record in one transaction (ADR-0015 point 6). */
 export function mutateSettings(db: IDBDatabase, mutate: (current: Settings) => Settings): Promise<Settings> {
   return idbUpdate<Settings>(db, "settings", "app", (current) => mutate(sanitizeSettings(current)));

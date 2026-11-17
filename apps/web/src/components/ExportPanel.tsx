@@ -100,7 +100,7 @@ export function ExportPanel(props: { plan: Plan; view: PlanView; catalog: AppCat
           {view.unresolved.length} lớp chưa xác định đủ buổi học ({view.unresolved.map((entry) => entry.sectionId).join(", ")}): file chỉ gồm các buổi đã xác định. Hãy xử lý các lớp này ở mục Phương án trước khi xuất.
         </Notice>
       ) : null}
-      {/* DESIGN-M6-001 §10 (AC-M6-13): 4 tiles; file names and contents are unchanged. F7 turns "Ảnh" into the PNG/poster choice. */}
+      {/* DESIGN-M6-001 §10 (AC-M6-13): 4 tiles; file names and contents are unchanged. "Ảnh" opens the week-image / poster sheet. */}
       <div className="export-tiles">
         <ExportTile icon={<IconSmartphone />} title="Điện thoại" format="Tải lịch (.ics)" disabled={empty || !view.week1} onClick={() => void exportIcs()} />
         <ExportTile icon={<IconImage />} title="Ảnh" format="Tải ảnh (.png)" disabled={empty} opensDialog onClick={() => setImageSheetOpen(true)} />

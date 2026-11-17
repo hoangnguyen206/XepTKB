@@ -10,6 +10,7 @@
   :root:not([data-theme="light"]) .course-color { --course-bg: var(--c-bg-dark); --course-edge: var(--c-edge-dark); --course-ink: var(--c-ink-dark); }
 }
 :root[data-theme="dark"] .course-color { --course-bg: var(--c-bg-dark); --course-edge: var(--c-edge-dark); --course-ink: var(--c-ink-dark); }
+/* .course-chip: palette swatches of the component gallery (e2e build only); kept here because there is one CSS entry. */
 .course-chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--s-3); border-left: 4px solid var(--course-edge); border-radius: var(--r-sm); background: var(--course-bg); color: var(--course-ink); font-weight: var(--fw-bold); }
 .swatch { display: inline-grid; place-items: center; width: var(--tap); height: var(--tap); border: 3px solid transparent; border-radius: var(--r-pill); background: var(--course-bg); box-shadow: inset 0 0 0 2px var(--course-edge); cursor: pointer; }
 .swatch[aria-pressed="true"] { border-color: var(--ink); }

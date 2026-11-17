@@ -16,6 +16,9 @@
  * independence sentence, 2 taps to the calendar), AC-M6-12 (one-time hints that can be dismissed; every empty state has
  * exactly one action).
  * F7: AC-M6-16 also covers Phương án, the (i) sheet, the data-source sheet and the import sheet with a preview (dark).
+ * G3 follow-up (F-M6-QA-01, F-M6-QA-03): focus never under the bottom navigation at 360×780/640, dark axe on Bắt đầu +
+ * Lịch at 360/768/1280 and every screen at 768, keyboard-only path at 360, course colour after an offline reload
+ * (AC-M6-18), axe on the day view (light + dark), conflict stripes/border/icon on the main grid (AC-M6-05).
  */
 import { readFileSync } from "node:fs";
 import { AxeBuilder } from "@axe-core/playwright";
@@ -465,11 +468,16 @@ test("AC-M6-10 — from 1200 px: two columns; hovering or focusing a class previ
   const ghosts = grid.locator(".block.is-ghost");
   await page.getByLabel("Mã hoặc tên môn").fill("vat ly");
   await expect(ghosts).toHaveCount(0);
+  const dayLabels = () => grid.locator("ul.day-body").evaluateAll((lists) => lists.map((list) => list.getAttribute("aria-label")));
+  const labelsBefore = await dayLabels();
   await courseRow(page, "SYN1003").hover();
   await expect(ghosts).not.toHaveCount(0);
   // The overlap with SYN1001 1 is outlined in red; a ghost is never a button.
   await expect(grid.locator(".block.is-ghost.is-conflict")).not.toHaveCount(0);
   await expect(grid.locator("button.block.is-ghost")).toHaveCount(0);
+  // G3 REV-M6-003 / F-RV-M6-02: ghosts are hidden from assistive technology and do not change the day labels.
+  await expect(grid.locator("li.block-slot:not([aria-hidden='true']) .block.is-ghost")).toHaveCount(0);
+  expect(await dayLabels()).toEqual(labelsBefore);
   await page.mouse.move(5, 5);
   await expect(ghosts).toHaveCount(0);
 
@@ -743,4 +751,271 @@ test("AC-M6-16 — a week change slides with View Transitions, and prefers-reduc
   await expect(page.getByRole("region", { name: "Lưới thời khóa biểu tuần 4" })).toBeVisible();
   await expect(root).not.toHaveAttribute("data-nav-dir", /.*/);
   expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+});
+
+/** Light-theme value of `--conflict-edge` (src/styles/tokens.css). */
+const CONFLICT_EDGE_LIGHT = "rgb(220, 38, 38)";
+
+/**
+ * The focused element (its label for a visually hidden chip radio) measured after the focus scroll has settled, with
+ * the top of the main navigation (`Infinity` where there is none, e.g. on the start screen).
+ */
+async function focusedBox(page: Page) {
+  return page.evaluate(() => new Promise<{ name: string; inNav: boolean; inBody: boolean; top: number; bottom: number; navTop: number; viewport: number; ring: boolean }>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const navElement = document.querySelector('nav[aria-label="Điều hướng chính"]');
+      const active = document.activeElement as HTMLElement | null;
+      const label = active instanceof HTMLInputElement && active.id ? document.querySelector<HTMLElement>(`label[for="${CSS.escape(active.id)}"]`) : null;
+      const target = label ?? active;
+      const rect = target?.getBoundingClientRect();
+      const hasRing = (element: HTMLElement | null) => {
+        if (!element) return false;
+        const style = getComputedStyle(element);
+        return style.outlineStyle !== "none" || style.boxShadow !== "none";
+      };
+      resolve({
+        name: (active?.getAttribute("aria-label") ?? active?.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 60) || (label?.textContent ?? "").trim(),
+        inNav: Boolean(active && navElement?.contains(active)),
+        inBody: !active || active === document.body,
+        top: rect?.top ?? 0,
+        bottom: rect?.bottom ?? 0,
+        navTop: navElement ? navElement.getBoundingClientRect().top : Number.POSITIVE_INFINITY,
+        viewport: window.innerHeight,
+        ring: hasRing(active) || hasRing(label),
+      });
+    }));
+  }));
+}
+
+for (const height of [780, 640]) {
+  test(`AC-M6-16 (F-M6-QA-01) — at 360×${height} a keyboard-focused control is never hidden under the bottom navigation`, async ({ page }) => {
+    await startAt(page);
+    await addClass(page, "SYN2002", "SYN2002 1");
+    await addClass(page, "SYN2004", "SYN2004 1");
+    await addClass(page, "SYN1004", "SYN1004 1");
+    await page.setViewportSize({ width: 360, height });
+    await navButton(page, "Phương án").click();
+    await expect(page.getByRole("region", { name: "Phương án", exact: true }).getByRole("button", { name: "Bỏ lớp SYN1004 1" })).toBeVisible();
+    const hidden = new Set<string>();
+    const removeButtons = new Set<string>();
+    for (let stop = 0; stop < 60; stop += 1) {
+      await page.keyboard.press("Tab");
+      const focused = await focusedBox(page);
+      if (focused.inBody || focused.inNav) continue;
+      expect(focused.navTop, "the bottom navigation is on screen").toBeLessThan(height);
+      if (focused.name.startsWith("Bỏ lớp ")) removeButtons.add(focused.name);
+      const inViewport = focused.bottom > 0 && focused.top < focused.viewport;
+      if (inViewport && focused.bottom > focused.navTop + 1) hidden.add(`${focused.name}:${Math.round(focused.top)}–${Math.round(focused.bottom)} vs nav top ${Math.round(focused.navTop)}`);
+    }
+    // The walk reached the plan rows at the end of the page, where the bar used to cover the focus.
+    expect([...removeButtons].sort()).toEqual(["Bỏ lớp SYN1004 1", "Bỏ lớp SYN2002 1", "Bỏ lớp SYN2004 1"]);
+    expect([...hidden], "focused controls under the bottom navigation").toEqual([]);
+  });
+}
+
+for (const size of [{ width: 360, height: 780 }, { width: 360, height: 640 }, { width: 1280, height: 560 }]) {
+  test(`AC-M6-16 (F-RV-M6-01) — at ${size.width}×${size.height}, Shift+Tab never leaves the focused control under the sticky app bar`, async ({ page }) => {
+    await startAt(page, size.width);
+    await addClass(page, "SYN2002", "SYN2002 1");
+    await addClass(page, "SYN2004", "SYN2004 1");
+    await addClass(page, "SYN1004", "SYN1004 1");
+    await page.setViewportSize(size);
+    await navButton(page, "Phương án").click();
+    const plan = page.getByRole("region", { name: "Phương án", exact: true });
+    // Start from the end of the page, then walk back up.
+    await plan.getByRole("button", { name: /^In / }).focus();
+    const covered = new Set<string>();
+    const removeButtons = new Set<string>();
+    for (let stop = 0; stop < 40; stop += 1) {
+      await page.keyboard.press("Shift+Tab");
+      const focused = await focusedBox(page);
+      if (focused.inBody) continue;
+      const barBottom = await page.evaluate(() => document.querySelector(".app-bar")!.getBoundingClientRect().bottom);
+      // The skip link sits over the app bar on purpose while it has focus.
+      const insideBar = await page.evaluate(() => Boolean(document.activeElement?.closest(".app-bar, .skip-link")));
+      if (insideBar || focused.inNav) continue;
+      if (focused.name.startsWith("Bỏ lớp ")) removeButtons.add(focused.name);
+      const inViewport = focused.bottom > 0 && focused.top < focused.viewport;
+      if (inViewport && focused.top < barBottom - 1) covered.add(`${focused.name}:${Math.round(focused.top)}–${Math.round(focused.bottom)} vs app bar bottom ${Math.round(barBottom)}`);
+    }
+    expect([...removeButtons].sort()).toEqual(["Bỏ lớp SYN1004 1", "Bỏ lớp SYN2002 1", "Bỏ lớp SYN2004 1"]);
+    expect([...covered], "focused controls under the sticky app bar").toEqual([]);
+  });
+}
+
+for (const width of [360, 768, 1280]) {
+  // Light at 360/768/1200/1280 is in e2e/m3.spec.ts (AC-M3-05); dark Thêm lớp + class sheet and Phương án at 360/1280 are
+  // above. This adds dark Bắt đầu and Lịch (a week with a conflict) at every width, and the other screens at 768.
+  test(`AC-M6-16 (F-M6-QA-03) — dark theme at ${width}px: Bắt đầu and Lịch${width === 768 ? ", Thêm lớp, the class sheet and Phương án" : ""} have zero serious/critical axe violations`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.clock.setFixedTime(new Date("2027-03-03T09:30:00+07:00"));
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("./");
+    await expect(cohortGroup(page)).toBeVisible();
+    await expectNoSeriousAxe(page);
+    await checkChip(cohortGroup(page).getByRole("radio", { name: "K69" }));
+    await page.getByRole("button", { name: "Bắt đầu", exact: true }).click();
+    await addClass(page, "giai tich", "SYN1001 1", { group: "1" });
+    await addClass(page, "vat ly", "SYN1003 1", { button: /^Vẫn thêm lớp này$/ });
+    await navButton(page, "Lịch").click();
+    await page.getByLabel("Chọn tuần").selectOption("9");
+    await expect(page.getByRole("region", { name: "Lưới thời khóa biểu tuần 9" }).locator(".block.is-conflict")).toHaveCount(2);
+    await expectNoSeriousAxe(page);
+    if (width !== 768) return;
+    await navButton(page, "Thêm lớp").click();
+    await page.getByLabel("Mã hoặc tên môn").fill("SYN");
+    await expect(courseRow(page, "SYN1003")).toBeVisible();
+    await expectNoSeriousAxe(page);
+    await courseRow(page, "SYN1003").click();
+    await expect(page.getByRole("dialog").locator(".mini-cal")).toBeVisible();
+    await expectNoSeriousAxe(page);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeHidden();
+    await navButton(page, "Phương án").click();
+    await expect(page.getByRole("region", { name: "Phương án", exact: true }).getByRole("button", { name: /trùng lịch với/ }).first()).toBeVisible();
+    await expectNoSeriousAxe(page);
+  });
+}
+
+test("AC-M6-16 (F-M6-QA-03) — keyboard only at 360×780: cohort, start, Thêm lớp, search, class sheet, add, Phương án, with a visible focus ring at every stop", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2027-03-03T09:30:00+07:00"));
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.goto("./");
+  await expect(cohortGroup(page)).toBeVisible();
+  const tabTo = async (matches: (focused: Awaited<ReturnType<typeof focusedBox>>) => boolean, max = 60) => {
+    for (let stop = 0; stop < max; stop += 1) {
+      await page.keyboard.press("Tab");
+      const focused = await focusedBox(page);
+      if (focused.inBody) continue;
+      expect(focused.ring, `focus ring on "${focused.name}"`).toBe(true);
+      if (matches(focused)) return;
+    }
+    throw new Error("element not reachable with Tab");
+  };
+  const cohort = (name: string) => cohortGroup(page).getByRole("radio", { name });
+
+  // Tab enters the chip radios; Space checks the first cohort, arrow keys move the choice.
+  await tabTo((focused) => /^K\d+$/.test(focused.name));
+  await page.keyboard.press("Space");
+  await expect(page.locator("input[type=radio]:focus")).toBeChecked();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await expect(cohort("K69")).toBeChecked();
+  await expect(cohort("K69")).toBeFocused();
+  await tabTo((focused) => focused.name === "Bắt đầu");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
+
+  await tabTo((focused) => focused.inNav && focused.name === "Thêm lớp");
+  await page.keyboard.press("Enter");
+  await expect(navButton(page, "Thêm lớp")).toHaveAttribute("aria-current", "page");
+  // The search box: focused by the navigation already, or reached with Tab.
+  const search = page.getByLabel("Mã hoặc tên môn");
+  const searchFocused = () => search.evaluate((input) => input === document.activeElement);
+  for (let stop = 0; stop < 60 && !(await searchFocused()); stop += 1) {
+    await page.keyboard.press("Tab");
+    const focused = await focusedBox(page);
+    if (!focused.inBody) expect(focused.ring, `focus ring on "${focused.name}" on the way to the search box`).toBe(true);
+  }
+  await expect(search).toBeFocused();
+  await page.keyboard.type("SYN2002");
+  await expect(courseRow(page, "SYN2002")).toBeVisible();
+  await tabTo((focused) => focused.name.startsWith("SYN2002"));
+  await page.keyboard.press("Enter");
+  const sheet = page.getByRole("dialog");
+  await expect(sheet).toBeVisible();
+  await tabTo((focused) => focused.name === "Thêm vào lịch");
+  await page.keyboard.press("Enter");
+  await expect(sheet).toBeHidden();
+  await expect(courseRow(page, "SYN2002")).toHaveAccessibleName(/✓ đã chọn lớp SYN2002 1$/);
+
+  // The plan item's text ends with its count badge (aria-hidden): "Phương án1".
+  await tabTo((focused) => focused.inNav && focused.name.startsWith("Phương án"));
+  await page.keyboard.press("Enter");
+  await expect(navButton(page, "Phương án")).toHaveAttribute("aria-current", "page");
+  const plan = page.getByRole("region", { name: "Phương án", exact: true });
+  await expect(plan.locator(".pick-row").filter({ hasText: "SYN2002 1" })).toBeVisible();
+  await expect(plan.getByText(/1 lớp · 4 tín chỉ/).first()).toBeVisible();
+});
+
+test("AC-M6-18 (F-M6-QA-03) — the chosen course colour survives an offline reload", async ({ page, context }) => {
+  await startAt(page);
+  await addClass(page, "SYN2002", "SYN2002 1");
+  await navButton(page, "Lịch").click();
+  await page.getByRole("button", { name: /^SYN2002 / }).click();
+  const sheet = page.getByRole("dialog", { name: /^SYN2002 · / });
+  await sheet.getByRole("button", { name: "Xám" }).click();
+  await expect(sheet.getByRole("button", { name: "Xám" })).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
+  const slate = "rgb(226, 232, 240)";
+  await expect(page.getByRole("button", { name: /^SYN2002 / })).toHaveCSS("background-color", slate);
+  // As in AC-M6-07: reload only once the colour is stored in IndexedDB.
+  await expect.poll(() => page.evaluate(() => new Promise<string>((resolve) => {
+    const open = indexedDB.open("ky-nay");
+    open.onsuccess = () => {
+      const request = open.result.transaction("settings").objectStore("settings").getAll();
+      request.onsuccess = () => {
+        resolve(JSON.stringify(request.result));
+        open.result.close();
+      };
+    };
+  }))).toContain("\"slate\"");
+
+  // As in AC-M6-01: the service worker controls the page before going offline.
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^SYN2002 / })).toHaveCSS("background-color", slate);
+  await context.setOffline(false);
+});
+
+test("AC-M6-16 (F-M6-QA-03) — the day view opened from the day strip has zero serious/critical axe violations, light and dark", async ({ page }) => {
+  await startAt(page);
+  await addClass(page, "giai tich", "SYN1001 1", { group: "1" });
+  await addClass(page, "vat ly", "SYN1003 1", { button: /^Vẫn thêm lớp này$/ });
+  await addClass(page, "ky nang so", "SYN3001 1");
+  await navButton(page, "Lịch").click();
+  await page.getByLabel("Chọn tuần").selectOption("9");
+  // Week 9 (Monday 12/04/2027): SYN1001 1 and SYN1003 1 overlap on Thứ 2, so the day list has a conflicting row.
+  await page.getByRole("button", { name: /^Xem Thứ 2 12\/04\/2027/ }).click();
+  await expect(page.getByRole("heading", { name: /^Thứ 2, 12\/04\/2027/ })).toBeVisible();
+  await expect(page.locator(".day-row.is-conflict")).not.toHaveCount(0);
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    await expect.poll(() => bodyBackground(page)).toBe(colorScheme === "light" ? "rgb(245, 246, 250)" : "rgb(14, 16, 32)");
+    await expectNoSeriousAxe(page);
+  }
+});
+
+test("AC-M6-05 (F-M6-QA-03) — on the main week grid a conflicting block has the red border, the stripes, the icon and \"Trùng\"", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await startAt(page);
+  await addClass(page, "giai tich", "SYN1001 1", { group: "1" });
+  await addClass(page, "vat ly", "SYN1003 1", { button: /^Vẫn thêm lớp này$/ });
+  await navButton(page, "Lịch").click();
+  // SYN1003 1 meets in weeks 9–15 only, on Thứ 2 tiết 1–3 like SYN1001 1.
+  await page.getByLabel("Chọn tuần").selectOption("9");
+  const grid = page.getByRole("region", { name: "Lưới thời khóa biểu tuần 9" });
+  const conflicting = grid.locator(".block.is-conflict");
+  await expect(conflicting).toHaveCount(2);
+  for (const block of await conflicting.all()) {
+    const style = await block.evaluate((element) => {
+      const computed = getComputedStyle(element);
+      return { image: computed.backgroundImage, color: computed.borderTopColor, width: computed.borderTopWidth };
+    });
+    expect(style.image).toContain("repeating-linear-gradient");
+    expect(style.color).toBe(CONFLICT_EDGE_LIGHT);
+    expect(style.width).toBe("3px");
+    await expect(block.locator(".block-flag svg")).toHaveCount(1);
+    await expect(block).toContainText("Trùng");
+  }
+  // A block without a conflict has neither.
+  await page.getByLabel("Chọn tuần").selectOption("3");
+  const plain = page.getByRole("region", { name: "Lưới thời khóa biểu tuần 3" }).getByRole("button", { name: /^SYN1001 / }).first();
+  expect(await plain.evaluate((element) => getComputedStyle(element).backgroundImage)).not.toContain("repeating-linear-gradient");
 });
