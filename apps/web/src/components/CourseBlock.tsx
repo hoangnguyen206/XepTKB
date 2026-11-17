@@ -49,7 +49,7 @@ export function CourseBlock(props: {
     </>
   );
   if (props.onOpen) {
-    return <button type="button" className={className} style={style} onClick={props.onOpen}>{content}</button>;
+    return <button type="button" className={className} style={style} data-session-key={session.key} onClick={props.onOpen}>{content}</button>;
   }
   return <div className={className} style={style}>{content}</div>;
 }

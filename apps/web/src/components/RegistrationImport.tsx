@@ -83,11 +83,9 @@ export function RegistrationImportPanel(props: {
   };
 
   return (
-    <section className="card registration-import" aria-labelledby={`${id}-heading`}>
-      <div className="section-head">
-        <h3 id={`${id}-heading`}>Nhập kết quả đăng ký môn học (ĐKMH)</h3>
-        <button type="button" className="button secondary small" onClick={props.onClose}>Đóng</button>
-      </div>
+    // F6 (DESIGN-M6-001 §6): rendered inside the "Nhập kết quả đăng ký môn học (ĐKMH)" sheet, which carries the title
+    // and the close button; the steps (choose file → preview → confirm) and every privacy rule are unchanged.
+    <div className="registration-import">
       {isInAppBrowser() ? (
         <Notice tone="warning" title="Bạn đang mở trong ứng dụng (Facebook/Messenger/Zalo…)">
           Trình duyệt trong ứng dụng có thể chặn chọn file từ máy. Hãy chọn “Mở bằng trình duyệt” trong menu rồi thử lại.
@@ -117,11 +115,11 @@ export function RegistrationImportPanel(props: {
 
       {preview && preview.ok && preview.plan ? (
         <div className="registration-preview" role="region" aria-labelledby={`${id}-preview-heading`}>
-          <h4 id={`${id}-preview-heading`}>
+          <h3 id={`${id}-preview-heading`}>
             Xem trước trước khi lưu: {preview.matched.length} lớp khớp TKB
             {preview.overrides.length > 0 ? ` · ${preview.overrides.length} thay đổi phòng/giờ/tuần` : ""}
             {preview.unmatched.length > 0 ? ` · ${preview.unmatched.length} lớp không khớp` : ""}
-          </h4>
+          </h3>
 
           {preview.matched.length === 0 ? (
             <Notice tone="warning" title="Không có lớp nào khớp với thời khóa biểu đang dùng">
@@ -131,7 +129,7 @@ export function RegistrationImportPanel(props: {
 
           {preview.overrides.length > 0 ? (
             <div className="preview-block">
-              <h5>Thay đổi phát hiện từ kết quả ĐKMH ({preview.overrides.length})</h5>
+              <h4>Thay đổi phát hiện từ kết quả ĐKMH ({preview.overrides.length})</h4>
               <ul className="override-preview-list">
                 {preview.overrides.map((item) => (
                   <li key={`${item.sectionId}|${item.sessionId}|${item.field}`}>
@@ -147,7 +145,7 @@ export function RegistrationImportPanel(props: {
 
           {preview.matched.length > 0 ? (
             <div className="preview-block">
-              <h5>Lớp học phần sẽ đưa vào Phương án chính thức ({preview.matched.length})</h5>
+              <h4>Lớp học phần sẽ đưa vào Phương án chính thức ({preview.matched.length})</h4>
               <ul className="matched-preview-list">
                 {preview.matched.map((item) => {
                   const uniqueBadges = [...new Set(item.overrides.map((ov) => ov.badge))];
@@ -215,6 +213,6 @@ export function RegistrationImportPanel(props: {
           </div>
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }

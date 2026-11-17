@@ -4,14 +4,14 @@ import { buildGridLayout, conflictKeys, dayLabel, formatDate, formatPeriods, for
 import type { AppCatalog } from "../model/catalog.js";
 import { exportDisclaimer, provenanceLine } from "../model/labels.js";
 import { applyPick, candidatePlan, isPicked, unpick } from "../model/picker.js";
-import { buildPlanView, rebasePlan, setPickedGroup, type PlanView } from "../model/plan-view.js";
+import { buildPlanView, rebasePlan, setPickedGroup, type PlanView as PlanViewModel } from "../model/plan-view.js";
 import { defaultWeek, todayInVietnam, weekLabel } from "../model/week.js";
 import type { TermRegistrationNotes } from "../storage/local-data.js";
 import type { AppView } from "./BottomNav.js";
 import { Notice, useMediaQuery, type WeekChoice } from "./common.js";
-import { ExportPanel } from "./ExportPanel.js";
 import type { Week1Choice } from "./Onboarding.js";
-import { PlanSummary, StalePlanNotice } from "./PlanSummary.js";
+import { PlanView, StalePlanNotice } from "./PlanView.js";
+import { Sheet } from "./ui/Sheet.js";
 import { LocalErrorBoundary } from "./ErrorBoundary.js";
 import { createLazyRegistrationPanel, prefetchRegistrationImport, resetRegistrationImport } from "./registration-lazy.js";
 import { useCourseColors, type CourseColorLookup } from "./useCourseColors.js";
@@ -38,7 +38,7 @@ const ISSUE_TEXT: Record<string, string> = {
 };
 
 /** Print-only sheet (A4 landscape via print CSS): grid of the selected week plus the session table. */
-function PrintSheet(props: { plan: Plan; view: PlanView; catalog: AppCatalog; week: WeekChoice; colors: CourseColorLookup }) {
+function PrintSheet(props: { plan: Plan; view: PlanViewModel; catalog: AppCatalog; week: WeekChoice; colors: CourseColorLookup }) {
   const { plan, view, catalog } = props;
   const week = props.week === "all" ? undefined : props.week;
   const layout = buildGridLayout(view.sessions, { ...(week !== undefined ? { week } : {}), maxPeriod: visiblePeriods(view.sessions, catalog.maxPeriod), conflictKeys: conflictKeys(view.conflicts, week) });
@@ -103,6 +103,8 @@ export function Workspace(props: {
   const today = todayInVietnam();
   const [week, setWeek] = useState<WeekChoice>(() => (view.week1 ? defaultWeek(view.week1.date, catalog.term.teachingWeeks, today) : "all"));
   const [importOpen, setImportOpen] = useState(false);
+  // AC-M6-13: a conflict chip on Phương án opens the calendar with that cell focused.
+  const [focusKey, setFocusKey] = useState<string | undefined>(undefined);
   const searchRef = useRef<HTMLInputElement>(null);
   const focusSearchOnShow = useRef(false);
   // F4 §8: the class previewed on the desktop grid while a course row or class chip is hovered or focused.
@@ -165,10 +167,6 @@ export function Workspace(props: {
   const hintFor = (id: HintId) => (activeHint === id ? <Hint id={id} onDismiss={hintSeen} /> : null);
 
   const now = () => new Date().toISOString();
-  const activeOverrideCount = useMemo(
-    () => view.sessions.reduce((sum, session) => sum + (session.overrides?.length ?? 0), 0),
-    [view.sessions],
-  );
 
   const onPick = (sectionId: string, group?: string): string | undefined => {
     const result = applyPick(plan, catalog, group ? { sectionId, group } : { sectionId }, now());
@@ -202,7 +200,7 @@ export function Workspace(props: {
   const planNotices = (
     <>
       {view.stale ? <StalePlanNotice plan={plan} catalog={catalog} onRebase={() => props.onPlanChange(rebasePlan(plan, catalog, now()))} /> : null}
-      {view.week1Issue ? <Notice tone="warning">Chưa xác định được tuần 1 cho phương án này. Hãy mở Phương án → Thiết lập tuần 1.</Notice> : null}
+      {view.week1Issue ? <Notice tone="warning">Chưa xác định được tuần 1 cho phương án này. Hãy mở Phương án → Tuần 1.</Notice> : null}
     </>
   );
 
@@ -234,6 +232,7 @@ export function Workspace(props: {
                 onCourseColor={props.onCourseColor}
                 onUnpick={onUnpick}
                 {...(ghost ? { ghost } : {})}
+                {...(focusKey ? { focusKey, onFocused: () => setFocusKey(undefined) } : {})}
                 hint={hintFor("week-swipe") ?? hintFor("block-tap")}
                 onAction={(action) => hintSeen(action === "swipe" ? "week-swipe" : "block-tap")}
                 empty={view.sessions.length === 0 ? (
@@ -245,95 +244,64 @@ export function Workspace(props: {
         ) : null}
         {shown === "plan" ? (
           <section className="view view-plan" aria-label="Phương án">
-            <div className="plan-bar">
-              <div className="plan-bar-top">
-                <h2 id="view-plan-heading">{plan.name}</h2>
-                <div className="plan-slot-controls">
-                  <div className="slot-switcher" role="group" aria-label="Chọn phương án">
-                    <button
-                      type="button"
-                      className={`button small ${activeSlot === "draft" ? "primary" : "secondary"}`}
-                      aria-pressed={activeSlot === "draft"}
-                      onClick={() => props.onSelectSlot("draft")}
-                    >
-                      Phương án nháp ({draftPlan.picks.length})
-                    </button>
-                    {finalPlan ? (
-                      <button
-                        type="button"
-                        className={`button small ${activeSlot === "final" ? "primary" : "secondary"}`}
-                        aria-pressed={activeSlot === "final"}
-                        onClick={() => props.onSelectSlot("final")}
-                      >
-                        Phương án chính thức ({finalPlan.picks.length})
-                      </button>
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    className="button secondary small"
-                    aria-expanded={importOpen}
-                    onClick={() => {
-                      setImportOpen((open) => !open);
-                      hintSeen("plan-import");
-                    }}
-                  >
-                    {finalPlan ? "Cập nhật từ file ĐKMH" : "Nhập kết quả ĐKMH"}
-                  </button>
-                </div>
-              </div>
-              <p className="muted">
-                {/* AC-M3-11: unknown credits are "chưa rõ", never counted as 0 (QA-M3-008). */}
-                {catalog.term.name} · {plan.picks.length} lớp · {view.credits.knownTotal === 0 && view.credits.unknownCourseCodes.length > 0 ? "chưa rõ" : view.credits.knownTotal} tín chỉ
-                {view.credits.unknownCourseCodes.length > 0 && view.credits.knownTotal > 0 ? ` + ${view.credits.unknownCourseCodes.length} môn chưa rõ tín chỉ` : ""}
-                {activeOverrideCount > 0 ? <strong className="override-count"> · ★ {activeOverrideCount} thay đổi từ ĐKMH</strong> : null}
-                {view.conflicts.length > 0 ? <strong className="conflict-count"> · ⚠ {view.conflicts.length} chỗ trùng lịch</strong> : null}
-                {view.unresolved.length > 0 ? <strong className="conflict-count"> · ⚠ {view.unresolved.length} lớp cần xử lý</strong> : null}
-              </p>
-            </div>
-            {hintFor("plan-import")}
-            {importOpen ? (
-              <LocalErrorBoundary
-                onRetry={() => {
-                  resetRegistrationImport();
-                  setRegistrationImportPanel(() => createLazyRegistrationPanel());
-                }}
-                fallback={(retry) => (
-                  <Notice tone="error" title="Chưa tải được phần nhập ĐKMH" action={<button type="button" className="button secondary small" onClick={retry}>Thử lại</button>}>
-                    Hãy kết nối mạng rồi thử lại. Phương án của bạn không bị ảnh hưởng.
-                  </Notice>
-                )}
-              >
-                <Suspense fallback={<p className="loading" role="status">Đang mở phần nhập kết quả ĐKMH…</p>}>
-                  <RegistrationImportPanel
-                    catalog={catalog}
-                    draftPlan={draftPlan}
-                    {...(finalPlan ? { existingFinalPlan: finalPlan } : {})}
-                    onConfirm={(nextFinalPlan, notes) => {
-                      setImportOpen(false);
-                      props.onConfirmRegistration(nextFinalPlan, notes);
-                    }}
-                    onClose={() => setImportOpen(false)}
-                  />
-                </Suspense>
-              </LocalErrorBoundary>
-            ) : null}
-            {planNotices}
-            <PlanSummary
+            <PlanView
               plan={plan}
+              draftPlan={draftPlan}
+              {...(finalPlan ? { finalPlan } : {})}
+              activeSlot={activeSlot}
               view={view}
               catalog={catalog}
+              week={week}
+              colors={colors}
               {...(props.registrationNotes ? { registrationNotes: props.registrationNotes } : {})}
+              importOpen={importOpen}
+              onOpenImport={() => {
+                setImportOpen(true);
+                hintSeen("plan-import");
+              }}
+              onSelectSlot={props.onSelectSlot}
               onUnpick={onUnpick}
               onSelectGroup={onSelectGroup}
               onWeek1={onWeek1}
               onAdd={() => props.onViewChange("add")}
+              onJumpToConflict={(key, conflictWeek) => {
+                setWeek(conflictWeek);
+                setFocusKey(key);
+                props.onViewChange("week");
+              }}
               {...(props.onDeleteFinalPlan ? { onDeleteFinalPlan: props.onDeleteFinalPlan } : {})}
+              notices={<>{hintFor("plan-import")}{planNotices}</>}
             />
-            <ExportPanel plan={plan} view={view} catalog={catalog} week={week} />
           </section>
         ) : null}
       </div>
+      {/* F6 (DESIGN-M6-001 §6): the registration import is a sheet; its chunk is prefetched on mount (AC-M4-02). */}
+      <Sheet open={importOpen} onClose={() => setImportOpen(false)} title="Nhập kết quả đăng ký môn học (ĐKMH)" size="full">
+        <LocalErrorBoundary
+          onRetry={() => {
+            resetRegistrationImport();
+            setRegistrationImportPanel(() => createLazyRegistrationPanel());
+          }}
+          fallback={(retry) => (
+            <Notice tone="error" title="Chưa tải được phần nhập ĐKMH" action={<Button variant="secondary" size="sm" onClick={retry}>Thử lại</Button>}>
+              Hãy kết nối mạng rồi thử lại. Phương án của bạn không bị ảnh hưởng.
+            </Notice>
+          )}
+        >
+          <Suspense fallback={<p className="loading" role="status">Đang mở phần nhập kết quả ĐKMH…</p>}>
+            <RegistrationImportPanel
+              catalog={catalog}
+              draftPlan={draftPlan}
+              {...(finalPlan ? { existingFinalPlan: finalPlan } : {})}
+              onConfirm={(nextFinalPlan, notes) => {
+                setImportOpen(false);
+                props.onConfirmRegistration(nextFinalPlan, notes);
+              }}
+              onClose={() => setImportOpen(false)}
+            />
+          </Suspense>
+        </LocalErrorBoundary>
+      </Sheet>
       <PrintSheet plan={plan} view={view} catalog={catalog} week={week} colors={colors} />
     </div>
   );
