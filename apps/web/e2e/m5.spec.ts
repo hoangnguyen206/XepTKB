@@ -163,6 +163,8 @@ test("AC-M5-10 — offline after the service worker is ready, the registration i
   await openView(page, "Phương án");
   await page.getByRole("button", { name: "Nhập kết quả ĐKMH" }).click();
   await expect(page.getByRole("heading", { name: "Nhập kết quả đăng ký môn học (ĐKMH)" })).toBeVisible();
+  // F6: the sheet title renders before the lazy panel, so the panel's own file input proves the chunk loaded offline.
+  await expect(page.getByLabel("Chọn file Kết quả đăng ký môn học (.doc, .htm, .html)")).toBeVisible();
   await expect(page.getByText("Chưa tải được phần nhập ĐKMH")).toHaveCount(0);
   await context.setOffline(false);
 });

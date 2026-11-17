@@ -10,6 +10,8 @@
  * F4: AC-M6-09 (diacritic-free search, "Không trùng lịch" filter, class sheet whose mini-calendar marks the overlap, a
  * conflicting class needs "Vẫn thêm lớp này"), AC-M6-10 (desktop 2 columns, Ctrl/⌘ K, hover/focus ghost preview);
  * AC-M6-16 also covers the class sheet.
+ * F6: AC-M6-13 (credits bar adds up, conflict chip → cell, group chips, 4 export tiles with the same files), AC-M6-14 (the
+ * registration import is a sheet; the privacy assertions stay in e2e/m4.spec.ts).
  * F5: AC-M6-11 (one start screen, cohort chips from Term.starts, "Tự chọn ngày", ≤ 25 visible words without the
  * independence sentence, 2 taps to the calendar), AC-M6-12 (one-time hints that can be dismissed; every empty state has
  * exactly one action).
@@ -580,4 +582,72 @@ test("AC-M6-12 — on desktop, where the calendar and the search share the scree
   await addClass(page, "SYN2002", "SYN2002 1");
   await expect(notes).toHaveCount(1);
   await expect(notes).toContainText("Chạm vào một lớp");
+});
+
+test("AC-M6-13 — Phương án: the colour bar adds up to the credits; a conflict chip leads to the cell; group chips; 4 export tiles give the same files", async ({ page }) => {
+  await startAt(page);
+  await addClass(page, "giai tich", "SYN1001 1", { group: "1" });
+  await addClass(page, "vat ly", "SYN1003 1", { button: /^Vẫn thêm lớp này$/ });
+  await addClass(page, "kien truc", "SYN2003 1");
+  await navButton(page, "Phương án").click();
+  const plan = page.getByRole("region", { name: "Phương án", exact: true });
+
+  // Credits: the StatCard total equals the plan line, and the bar has one segment per course summing to it.
+  const line = await plan.getByText(/· \d+ lớp · \d+ tín chỉ/).first().textContent();
+  const total = Number(/(\d+) tín chỉ/.exec(line ?? "")![1]);
+  await expect(plan.locator(".stat-value")).toHaveText(String(total));
+  const segments = plan.locator(".credit-bar .credit-seg");
+  await expect(segments).toHaveCount(3);
+  const sum = (await segments.evaluateAll((elements) => elements.map((element) => Number((element as HTMLElement).dataset.credits)))).reduce((a, b) => a + b, 0);
+  expect(sum).toBe(total);
+  await expect(plan.locator(".credit-bar")).toHaveAttribute("aria-hidden", "true");
+
+  // Group chips: switching SYN1001 1 to group 2 updates the row.
+  const row = plan.locator(".pick-row").filter({ hasText: "SYN1001 1" });
+  await expect(row.getByRole("group", { name: "Nhóm thực hành" })).toBeVisible();
+  await row.getByText("Nhóm 2", { exact: true }).click();
+  await expect(row.getByRole("radio", { name: "Nhóm 2" })).toBeChecked();
+  await expect(row.locator(".list-row-meta")).toContainText("nhóm 2");
+
+  // A conflict chip opens the calendar on the first overlapping week with the conflicting cell focused.
+  const chip = plan.getByRole("button", { name: /trùng lịch với/ }).first();
+  const firstWeek = Number(/tuần (\d+)/.exec((await chip.textContent()) ?? "")![1]);
+  await chip.click();
+  await expect(page.getByRole("region", { name: `Lưới thời khóa biểu tuần ${firstWeek}` })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const active = document.activeElement as HTMLElement | null;
+    return active?.classList.contains("is-conflict") && active.dataset.sessionKey ? active.closest("[role=region]")?.getAttribute("aria-label") : null;
+  })).toBe(`Lưới thời khóa biểu tuần ${firstWeek}`);
+
+  // Export tiles: 4 tiles, same file names as before (contents are checked in e2e/m3.spec.ts).
+  await page.getByLabel("Chọn tuần").selectOption("3");
+  await navButton(page, "Phương án").click();
+  const tiles = plan.locator(".export-tiles").getByRole("button");
+  await expect(tiles).toHaveCount(4);
+  for (const name of ["Điện thoại Tải lịch (.ics)", "Ảnh Tải ảnh (.png)", "Word Tải Word (.doc)", "In In / Lưu PDF"]) await expect(plan.getByRole("button", { name, exact: true })).toBeEnabled();
+  const [ics] = await Promise.all([page.waitForEvent("download"), plan.getByRole("button", { name: /^Điện thoại/ }).click()]);
+  expect(ics.suggestedFilename()).toBe("ky-nay-2026-2027-h2.ics");
+  const [png] = await Promise.all([page.waitForEvent("download"), plan.getByRole("button", { name: /^Ảnh/ }).click()]);
+  expect(png.suggestedFilename()).toBe("ky-nay-2026-2027-h2-tuan-3.png");
+  const [doc] = await Promise.all([page.waitForEvent("download"), plan.getByRole("button", { name: /^Word/ }).click()]);
+  expect(doc.suggestedFilename()).toBe("ky-nay-2026-2027-h2.doc");
+  await page.evaluate(() => {
+    (window as unknown as { printed: number }).printed = 0;
+    window.print = () => { (window as unknown as { printed: number }).printed += 1; };
+  });
+  await plan.getByRole("button", { name: /^In / }).click();
+  expect(await page.evaluate(() => (window as unknown as { printed: number }).printed)).toBe(1);
+});
+
+test("AC-M6-14 — the registration import opens as a sheet from Phương án; Esc closes it and the plan is untouched", async ({ page }) => {
+  await startAt(page);
+  await navButton(page, "Phương án").click();
+  await page.getByRole("button", { name: "Nhập kết quả ĐKMH" }).click();
+  const sheet = page.getByRole("dialog", { name: "Nhập kết quả đăng ký môn học (ĐKMH)" });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByLabel("Chọn file Kết quả đăng ký môn học (.doc, .htm, .html)")).toBeAttached();
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole("button", { name: "Nhập kết quả ĐKMH" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Phương án nháp (0)" })).toBeVisible();
 });

@@ -23,4 +23,5 @@
 @import "./screens/calendar.css" layer(screens);
 @import "./screens/add-class.css" layer(screens);
 @import "./screens/start.css" layer(screens);
+@import "./screens/plan.css" layer(screens);
 @import "./print.css" layer(print);

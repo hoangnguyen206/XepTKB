@@ -4,7 +4,7 @@
  * and the session sheet. Weeks change with the buttons, a touch swipe on the grid, or ←/→ and T while focus is inside
  * the calendar (not in a form field). Today's column and the current-time line appear only in the current week.
  */
-import { useEffect, useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { DayNo, HardConflict, TimeFrame } from "@ky-nay/domain";
 import { buildGridLayout, conflictKeys, formatWeeks, kindText, nonFixedSessions, weekOfDate, weekRange, type ScheduledSession } from "@ky-nay/export";
 import { conflictPartners, nowLineOffset, visiblePeriods } from "../model/grid-view.js";
@@ -93,6 +93,9 @@ export function WeekView(props: {
   /** F5 §9: the one-time hint shown under the grid, and the hinted actions it listens for. */
   hint?: ReactNode;
   onAction?: (action: "swipe" | "open") => void;
+  /** F6 (AC-M6-13): focus this session's cell once it is on the grid (from a conflict chip), then report it. */
+  focusKey?: string;
+  onFocused?: () => void;
 }) {
   const selectId = useId();
   const now = useNow();
@@ -160,8 +163,18 @@ export function WeekView(props: {
   const openCode = open ? props.colors.canonical(open.courseCode) : undefined;
   const allPartners = useMemo(() => conflictPartners(props.conflicts, props.sessions), [props.conflicts, props.sessions]);
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!props.focusKey) return;
+    const target = [...(rootRef.current?.querySelectorAll<HTMLElement>("[data-session-key]") ?? [])].find((element) => element.dataset.sessionKey === props.focusKey);
+    if (!target) return;
+    target.focus();
+    target.scrollIntoView({ block: "center" });
+    props.onFocused?.();
+  }, [props.focusKey, layout, props.onFocused]);
+
   return (
-    <div className="week-view" onKeyDown={onKeyDown}>
+    <div className="week-view" ref={rootRef} onKeyDown={onKeyDown}>
       <div className="week-head">
         <Button variant="ghost" label="Tuần trước" icon={<IconChevronLeft />} disabled={weekNumber === undefined || weekNumber <= 1} onClick={() => step(-1)} />
         <label htmlFor={selectId} className="visually-hidden">Chọn tuần</label>

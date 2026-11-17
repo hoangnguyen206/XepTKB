@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { Plan } from "@ky-nay/domain";
 import { buildGridLayout, conflictKeys, formatDate, nonFixedSessions } from "@ky-nay/export";
 import { loadExporters, resetExporters } from "../export/exporters-lazy.js";
@@ -8,11 +8,22 @@ import { exportDisclaimer, fileStem, provenanceLine, VERIFY_NOTE } from "../mode
 import type { PlanView } from "../model/plan-view.js";
 import { weekLabel } from "../model/week.js";
 import { Notice, type WeekChoice } from "./common.js";
+import { IconFile, IconImage, IconPrinter, IconSmartphone } from "./icons.js";
 
 const IN_APP_BROWSER = /FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|Zalo|Line\//i;
 
 export function isInAppBrowser(userAgent: string = typeof navigator === "undefined" ? "" : navigator.userAgent): boolean {
   return IN_APP_BROWSER.test(userAgent);
+}
+
+/** One export tile: icon, a short title and the format; the accessible name holds both ("Điện thoại Tải lịch (.ics)"). */
+function ExportTile(props: { icon: ReactNode; title: string; format: string; disabled: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className="export-tile" disabled={props.disabled} onClick={props.onClick}>
+      {props.icon}
+      <span className="export-tile-title">{props.title}</span> <span className="export-tile-format">{props.format}</span>
+    </button>
+  );
 }
 
 export function ExportPanel(props: { plan: Plan; view: PlanView; catalog: AppCatalog; week: WeekChoice }) {
@@ -65,20 +76,21 @@ export function ExportPanel(props: { plan: Plan; view: PlanView; catalog: AppCat
           Trình duyệt trong ứng dụng thường không tải được file. Hãy chọn “Mở bằng trình duyệt” trong menu rồi xuất lại.
         </Notice>
       ) : null}
-      {!view.week1 ? <Notice tone="warning">Chưa xác định được tuần 1 nên chưa xuất được file lịch (.ics). Hãy sửa tuần 1 ở mục Thiết lập.</Notice> : null}
+      {!view.week1 ? <Notice tone="warning">Chưa xác định được tuần 1 nên chưa xuất được file lịch (.ics). Hãy sửa ở mục Tuần 1 phía trên.</Notice> : null}
       {view.unresolved.length > 0 ? (
         <Notice tone="warning" title="File xuất sẽ thiếu buổi học">
           {view.unresolved.length} lớp chưa xác định đủ buổi học ({view.unresolved.map((entry) => entry.sectionId).join(", ")}): file chỉ gồm các buổi đã xác định. Hãy xử lý các lớp này ở mục Phương án trước khi xuất.
         </Notice>
       ) : null}
-      <div className="export-buttons">
-        <button type="button" className="button primary" disabled={empty || !view.week1} onClick={() => void exportIcs()}>Tải lịch (.ics)</button>
-        <button type="button" className="button secondary" disabled={empty} onClick={() => void exportPng()}>Tải ảnh (.png)</button>
-        <button type="button" className="button secondary" disabled={empty} onClick={() => void exportWord()}>Tải Word (.doc)</button>
-        <button type="button" className="button secondary" disabled={empty} onClick={() => window.print()}>In / Lưu PDF</button>
+      {/* DESIGN-M6-001 §10 (AC-M6-13): 4 tiles; file names and contents are unchanged. F7 turns "Ảnh" into the PNG/poster choice. */}
+      <div className="export-tiles">
+        <ExportTile icon={<IconSmartphone />} title="Điện thoại" format="Tải lịch (.ics)" disabled={empty || !view.week1} onClick={() => void exportIcs()} />
+        <ExportTile icon={<IconImage />} title="Ảnh" format="Tải ảnh (.png)" disabled={empty} onClick={() => void exportPng()} />
+        <ExportTile icon={<IconFile />} title="Word" format="Tải Word (.doc)" disabled={empty} onClick={() => void exportWord()} />
+        <ExportTile icon={<IconPrinter />} title="In" format="In / Lưu PDF" disabled={empty} onClick={() => window.print()} />
       </div>
       <p className="muted">
-        Ảnh và bản in dùng tuần đang chọn ở Lịch tuần ({props.week === "all" ? "tất cả các tuần" : `tuần ${props.week}`}). File .ics chứa mọi tuần học. {VERIFY_NOTE}
+        Ảnh và bản in theo tuần đang xem ({props.week === "all" ? "tất cả các tuần" : `tuần ${props.week}`}); file .ics có mọi tuần. {VERIFY_NOTE}
       </p>
       {empty ? <p className="muted">Hãy chọn ít nhất một lớp để xuất lịch.</p> : null}
       <div role="status" aria-live="polite">{message ? <Notice tone={message.tone}>{message.text}</Notice> : null}</div>

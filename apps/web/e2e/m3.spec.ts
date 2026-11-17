@@ -233,7 +233,8 @@ test("AC-M3-05 — keyboard-only path from onboarding to a pick, with visible fo
   await page.keyboard.press("Enter");
   await expect(planNav).toHaveAttribute("aria-current", "page");
   await expect(page.getByText(/1 lớp · 3 tín chỉ/)).toBeVisible();
-  await focusOn((element) => element.text === "Tải lịch (.ics)");
+  // F6: the export tile's text is "Điện thoại Tải lịch (.ics)" (title + format).
+  await focusOn((element) => element.tag === "BUTTON" && element.text.replace(/\s+/g, " ") === "Điện thoại Tải lịch (.ics)");
   const [ics] = await Promise.all([page.waitForEvent("download"), page.keyboard.press("Enter")]);
   expect(ics.suggestedFilename()).toBe("ky-nay-2026-2027-h2.ics");
 });

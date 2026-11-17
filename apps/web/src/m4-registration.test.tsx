@@ -320,18 +320,21 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     const makeFile = () => new File([html], "23029876_secret_ketqua.doc", { type: "application/msword" });
 
     // 1. Upload and click Hủy -> nothing saved to final slot
-    await user.upload(screen.getByLabelText(/Chọn file Kết quả đăng ký môn học/), makeFile());
+    // M6 F6: the import is a sheet whose title renders before the lazily loaded panel, so wait for the file input.
+    await user.upload(await screen.findByLabelText(/Chọn file Kết quả đăng ký môn học/), makeFile());
     expect(await screen.findByRole("heading", { name: /Xem trước trước khi lưu: 2 lớp khớp TKB/ })).toBeTruthy();
     expect(screen.getByText(/Có 1 lớp trong file ĐKMH không khớp dữ liệu TKB/)).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Hủy" }));
+    expect(screen.queryByRole("heading", { name: "Nhập kết quả đăng ký môn học (ĐKMH)" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Phương án chính thức/ })).toBeNull();
 
     // 2. Re-open, upload and click Confirm -> switches to Phương án chính thức
     await user.click(screen.getByRole("button", { name: "Nhập kết quả ĐKMH" }));
-    await user.upload(screen.getByLabelText(/Chọn file Kết quả đăng ký môn học/), makeFile());
+    await user.upload(await screen.findByLabelText(/Chọn file Kết quả đăng ký môn học/), makeFile());
     await user.click(await screen.findByRole("button", { name: "Áp dụng vào Phương án chính thức" }));
 
     expect(await screen.findByRole("heading", { name: "Phương án chính thức" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Nhập kết quả đăng ký môn học (ĐKMH)" })).toBeNull();
     expect(screen.getByRole("button", { name: "Phương án nháp (1)" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Phương án chính thức (2)" })).toBeTruthy();
 
@@ -342,9 +345,11 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     expect(within(planPanel).getByText(/Phòng học: Hòa Lạc A101 → 305-G2 \(theo ĐKMH\)/)).toBeTruthy();
     expect(within(planPanel).getByText(/Có 1 lớp trong file ĐKMH chưa khớp dữ liệu TKB/)).toBeTruthy();
 
-    // Select group 2 for SYN1001 1 inline in PlanSummary
-    const groupSelect = within(planPanel).getByLabelText("Nhóm thực hành");
-    await user.selectOptions(groupSelect, "2");
+    // Select group 2 for SYN1001 1 inline in the plan list (M6 F6: "Nhóm thực hành" is a fieldset of chip radios)
+    const groupRow = within(planPanel).getByText("SYN1001 1").closest("li")!;
+    expect(within(groupRow).getByRole("group", { name: "Nhóm thực hành" })).toBeTruthy();
+    await user.click(within(groupRow).getByLabelText("Nhóm 2"));
+    expect((within(groupRow).getByLabelText("Nhóm 2") as HTMLInputElement).checked).toBe(true);
     await waitFor(() => expect(screen.queryByText(/1 lớp cần xử lý/)).toBeNull());
     // Overrides remain intact after selecting group
     expect(within(planPanel).getByText(/Phòng học: Hòa Lạc A101 → 305-G2 \(theo ĐKMH\)/)).toBeTruthy();
@@ -355,7 +360,7 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
       { courseCode: "SYN1003", courseName: "Vật lý đại cương", credits: "3", sectionId: "SYN1003 1", day: "T2", periods: "1 - 3", room: "409-G2" },
     ]);
     await user.upload(
-      screen.getByLabelText(/Chọn file Kết quả đăng ký môn học/),
+      await screen.findByLabelText(/Chọn file Kết quả đăng ký môn học/),
       new File([htmlUpdated], "23029876_secret_ketqua.doc", { type: "application/msword" }),
     );
     await user.click(await screen.findByRole("button", { name: "Xác nhận cập nhật Phương án chính thức" }));

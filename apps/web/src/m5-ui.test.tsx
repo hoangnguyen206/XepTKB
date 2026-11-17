@@ -224,7 +224,8 @@ describe("per-section report in the app (AC-M5-02)", () => {
 
     await user.click(screen.getByRole("button", { name: "Nhập kết quả ĐKMH" }));
     await screen.findByRole("heading", { name: "Nhập kết quả đăng ký môn học (ĐKMH)" });
-    await user.upload(screen.getByLabelText(/Chọn file Kết quả đăng ký môn học/), new File([portalHtml()], "23029876_secret_ketqua.doc", { type: "application/msword" }));
+    // M6 F6: the sheet title renders before the lazily loaded import panel, so wait for the file input itself.
+    await user.upload(await screen.findByLabelText(/Chọn file Kết quả đăng ký môn học/), new File([portalHtml()], "23029876_secret_ketqua.doc", { type: "application/msword" }));
     await user.click(await screen.findByRole("button", { name: "Áp dụng vào Phương án chính thức" }));
     expect(await screen.findByRole("heading", { name: "Phương án chính thức" })).toBeTruthy();
     expect(screen.getByText(/thay đổi từ ĐKMH/)).toBeTruthy();
