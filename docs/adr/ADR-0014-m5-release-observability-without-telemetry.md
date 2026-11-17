@@ -49,7 +49,7 @@
 
 | Option | Pros | Cons | Why not/why chosen |
 | --- | --- | --- | --- |
-| A. No telemetry; deploy status + manual smoke + user reports (chosen) | No new boundary, no consent/legal dependency, nothing to secure server-side | Blind to client errors nobody reports, and no usage numbers | Fits `D-M5-2`, the privacy promise in `PRIVACY_NOTE` and the time left before the HK II window |
+| A. No telemetry; deploy status + manual smoke + user reports (chosen) | No new boundary, no consent/legal dependency, nothing to secure server-side | Blind to client errors nobody reports, and no usage numbers | Fits `D-M5-2`, the privacy promise in `PRIVACY_NOTE` (M6 note: that unused constant was removed in the M6 G3 follow-up; the same promise is shown by the (i) sheet from `apps/web/src/model/about-content.ts`) and the time left before the HK II window |
 | B. Cookieless aggregate counters (PRD §9) | Usage trends for the registration season | Needs an endpoint, privacy notice, opt-out and legal review, and widens `connect-src` | Deferred to P1 until legal review |
 | C. Client error reporting (Sentry or similar) | Finds crashes quickly | Third-party vendor, needs a data-region review (D-004 open), and risks leaking PII in breadcrumbs | Rejected for the first release |
 | D. Report link with a prefilled query (`?body=`) | One click for the user | The user's free text, which may hold PII, ends up in third-party URLs and logs | Rejected; copy, then paste |

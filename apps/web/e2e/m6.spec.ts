@@ -468,11 +468,16 @@ test("AC-M6-10 — from 1200 px: two columns; hovering or focusing a class previ
   const ghosts = grid.locator(".block.is-ghost");
   await page.getByLabel("Mã hoặc tên môn").fill("vat ly");
   await expect(ghosts).toHaveCount(0);
+  const dayLabels = () => grid.locator("ul.day-body").evaluateAll((lists) => lists.map((list) => list.getAttribute("aria-label")));
+  const labelsBefore = await dayLabels();
   await courseRow(page, "SYN1003").hover();
   await expect(ghosts).not.toHaveCount(0);
   // The overlap with SYN1001 1 is outlined in red; a ghost is never a button.
   await expect(grid.locator(".block.is-ghost.is-conflict")).not.toHaveCount(0);
   await expect(grid.locator("button.block.is-ghost")).toHaveCount(0);
+  // G3 REV-M6-003 / F-RV-M6-02: ghosts are hidden from assistive technology and do not change the day labels.
+  await expect(grid.locator("li.block-slot:not([aria-hidden='true']) .block.is-ghost")).toHaveCount(0);
+  expect(await dayLabels()).toEqual(labelsBefore);
   await page.mouse.move(5, 5);
   await expect(ghosts).toHaveCount(0);
 
@@ -805,6 +810,36 @@ for (const height of [780, 640]) {
     // The walk reached the plan rows at the end of the page, where the bar used to cover the focus.
     expect([...removeButtons].sort()).toEqual(["Bỏ lớp SYN1004 1", "Bỏ lớp SYN2002 1", "Bỏ lớp SYN2004 1"]);
     expect([...hidden], "focused controls under the bottom navigation").toEqual([]);
+  });
+}
+
+for (const size of [{ width: 360, height: 780 }, { width: 360, height: 640 }, { width: 1280, height: 560 }]) {
+  test(`AC-M6-16 (F-RV-M6-01) — at ${size.width}×${size.height}, Shift+Tab never leaves the focused control under the sticky app bar`, async ({ page }) => {
+    await startAt(page, size.width);
+    await addClass(page, "SYN2002", "SYN2002 1");
+    await addClass(page, "SYN2004", "SYN2004 1");
+    await addClass(page, "SYN1004", "SYN1004 1");
+    await page.setViewportSize(size);
+    await navButton(page, "Phương án").click();
+    const plan = page.getByRole("region", { name: "Phương án", exact: true });
+    // Start from the end of the page, then walk back up.
+    await plan.getByRole("button", { name: /^In / }).focus();
+    const covered = new Set<string>();
+    const removeButtons = new Set<string>();
+    for (let stop = 0; stop < 40; stop += 1) {
+      await page.keyboard.press("Shift+Tab");
+      const focused = await focusedBox(page);
+      if (focused.inBody) continue;
+      const barBottom = await page.evaluate(() => document.querySelector(".app-bar")!.getBoundingClientRect().bottom);
+      // The skip link sits over the app bar on purpose while it has focus.
+      const insideBar = await page.evaluate(() => Boolean(document.activeElement?.closest(".app-bar, .skip-link")));
+      if (insideBar || focused.inNav) continue;
+      if (focused.name.startsWith("Bỏ lớp ")) removeButtons.add(focused.name);
+      const inViewport = focused.bottom > 0 && focused.top < focused.viewport;
+      if (inViewport && focused.top < barBottom - 1) covered.add(`${focused.name}:${Math.round(focused.top)}–${Math.round(focused.bottom)} vs app bar bottom ${Math.round(barBottom)}`);
+    }
+    expect([...removeButtons].sort()).toEqual(["Bỏ lớp SYN1004 1", "Bỏ lớp SYN2002 1", "Bỏ lớp SYN2004 1"]);
+    expect([...covered], "focused controls under the sticky app bar").toEqual([]);
   });
 }
 

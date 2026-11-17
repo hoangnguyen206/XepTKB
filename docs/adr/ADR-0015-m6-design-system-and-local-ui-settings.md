@@ -6,7 +6,7 @@
 > **Date:** 2026-11-12  
 > **Owner:** Tech Lead + Frontend  
 > **Decision owner:** Owner (Product + Tech Lead); Security Reviewer được tham vấn  
-> **Last reviewed:** 2026-11-12  
+> **Last reviewed:** 2026-11-17  
 > **Related docs:** [DESIGN-M6-001](../evidence/M6-DESIGN-HANDOFF.md), [SPEC-M6-001](../evidence/M6-SPEC.md), [PLAN-M6-001](../evidence/M6-FRONTEND-REFRESH-PLAN.md), [ADR-0010](ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0013](ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [ADR-0014](ADR-0014-m5-release-observability-without-telemetry.md), [Architecture](../ARCHITECTURE.md), [Security & privacy](../SECURITY_PRIVACY.md)  
 > **Evidence envelope:** `EVID-M6-001` — `N/A — docs-only` (chưa chạy code cho ADR này)  
 > **Supersedes:** none. Đề xuất sửa câu chữ của ADR-0014 điểm 3 và ADR-0010 §2 quy tắc 4 (mục Decision, điểm 7)
@@ -159,6 +159,6 @@
 | Change ID | Date/actor | Reason | Supersedes |
 | --- | --- | --- | --- |
 | ADR-0015-r0 | 2026-11-12, Tech Lead (agent) | Đề xuất ban đầu cho G1 của M6 | — |
-| ADR-0015-r3 | 2026-11-17, Frontend (agent), theo G3c `REV-M6-005` | F7 xóa `styles/legacy.css` và layer `legacy` | điểm 1 (thứ tự layer) |
-| ADR-0015-r2 | 2026-11-13, Frontend (agent) | Thứ tự cascade layer: base nằm dưới legacy (F1b) | điểm 1 (thứ tự layer) |
 | ADR-0015-r1 | 2026-11-12, Platform (agent), quyết định của Owner `2026-11-12T15:35Z` | Font đo vượt ngân sách ở F1a; bỏ độ đậm 600 (D-M6-12) | điểm 4 (độ đậm) |
+| ADR-0015-r2 | 2026-11-13, Frontend (agent) | Thứ tự cascade layer: base nằm dưới legacy (F1b) | điểm 1 (thứ tự layer) |
+| ADR-0015-r3 | 2026-11-17, Frontend (agent), theo G3c `REV-M6-005` | F7 xóa `styles/legacy.css` và layer `legacy` | điểm 1 (thứ tự layer) |
