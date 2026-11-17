@@ -98,8 +98,11 @@ for (const size of SIZES) {
       await courseRow(page, "SYN1003").click();
       await expect(page.getByRole("dialog").locator(".mini-cal")).toBeVisible();
       await shot(page, `class-sheet-${id}`);
-      await page.keyboard.press("Escape");
+      // Close with the button: Esc can also reach the type=search box (Chromium clears it), which made the left
+      // column differ between runs. Then put the search in a known state for the desktop shot.
+      await page.getByRole("dialog").getByRole("button", { name: "Đóng", exact: true }).click();
       await expect(page.getByRole("dialog")).toBeHidden();
+      if (size.width >= 1200) await page.getByLabel("Mã hoặc tên môn").fill("");
 
       // 5. Phương án
       await navButton(page, "Phương án").click();
