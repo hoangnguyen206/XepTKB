@@ -121,6 +121,9 @@
 | `821fc6b` | sửa F-M6-QA-01, REV-M6-001..005/007, F-M6-QA-02..04; thêm 9 e2e + 1 Vitest | local: `npm run check` 0 (Vitest 190/190), `verify:bundle` 0, `test:e2e` 0 (63 passed, 4 skipped); tái kiểm định vòng 1 → tìm thêm F-RV-M6-01 (S2), F-RV-M6-02/03 (S3) |
 | **`bd0d087`** | sửa F-RV-M6-01..03 | local: `npm run check` 0 (190/190), `verify:bundle` 0 (JS ban đầu 118 088 B, CSS 7 128 B, tổng JS 162 588 B), `test:e2e` 0 (66 passed, 4 skipped); tái kiểm định vòng 2 độc lập: `check` 0, `verify:bundle` 0, `test:e2e` 0 (66 passed, 4 skipped), mỗi test mới đỏ khi tạm bỏ bản sửa |
 
+| `aa79b3c` | sửa tên step `visual` trong workflow (`: ` trong scalar YAML làm workflow không chạy được — lỗi do chính PR này gây ra ở `821fc6b`) | YAML hợp lệ; CI chạy lại |
+| `9daa10c` | 2 mốc `gallery-360-*` mới vì gallery liệt kê mọi icon (bỏ `IconPalette`/`IconUpload`) | sinh bởi run `44129870962` (`update-snapshots`), chỉ 2 mốc đổi, đã xem diff (chỉ vùng "Biểu tượng"); CI của PR trên `9daa10c`: `check`, `e2e`, `visual`, `Cloudflare Pages` đều success |
+
 `e2e/m4.spec.ts` không đổi trong PR #23. Đề xuất cho phần thay đổi `51da517..bd0d087` (gate mở lại theo AGENT_WORKFLOW): G3a `qa-pass`, G3c `review-pass-with-follow-up` (chỉ còn REV-M6-006); G3b không mở lại vì không đổi boundary (CSS, test, tài liệu, nhãn poster).
 
 ## Decision and next step
