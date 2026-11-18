@@ -1,13 +1,13 @@
 # Review — M6 "Lịch có màu" (làm mới frontend), toàn bộ diff `origin/main..51da517`
 
 > **Artifact ID:** `REVIEW-M6-001`  
-> **Artifact status:** `needs_review`  
+> **Artifact status:** `approved`  
 > **Canonical gate:** `G3c`  
 > **Owner:** Independent Reviewer  
-> **Last reviewed:** 2026-11-17  
+> **Last reviewed:** 2026-11-18  
 > **Related docs:** [SPEC-M6-001](M6-SPEC.md), [DESIGN-M6-001](M6-DESIGN-HANDOFF.md), [ADR-0015](../adr/ADR-0015-m6-design-system-and-local-ui-settings.md), [PLAN-M6-001](M6-FRONTEND-REFRESH-PLAN.md), [CHANGELOG](../../CHANGELOG.md), [docs/README.md › Trạng thái hiện tại](../README.md#trạng-thái-hiện-tại), [Review template](../../.claude/templates/REVIEW_REPORT_TEMPLATE.md), [Agent workflow](../../.claude/AGENT_WORKFLOW.md)  
 > **Evidence envelope:** `EVID-M6-001` (G2 của M6; không có trong checkout này — báo cáo chỉ dựa trên lệnh reviewer tự chạy, ghi ở §1.2)  
-> **Independent reviewer / approval UTC timestamp:** Independent Reviewer (agent), đề xuất kỹ thuật `2026-11-17`. **Chưa có chữ ký Owner** — gate G3c chỉ đóng khi human Owner phê duyệt.
+> **Independent reviewer / approval UTC timestamp:** Independent Reviewer (agent), đề xuất kỹ thuật `2026-11-17`. **G3c Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6"): `review-pass`** (sau sửa ở PR #23, tái kiểm định [REVERIFY-M6-001](M6-G3-FOLLOWUP-REVERIFICATION.md) và D-M6-13 hoãn REV-M6-006).
 
 ---
 
@@ -217,7 +217,7 @@ Không chạy: project `visual` (chỉ chạy trên Linux CI, `playwright.config
 
 ## 8. Approval and re-review
 
-- **Reviewer decision actor/date/evidence:** Independent Reviewer (agent), 2026-11-17, đề xuất `review-pass-with-follow-up` theo các lệnh ở §1.2–§1.3. **Không phải chữ ký gate**; G3c chờ human Owner.
+- **Reviewer decision actor/date/evidence:** Independent Reviewer (agent), 2026-11-17, đề xuất `review-pass-with-follow-up` theo các lệnh ở §1.2–§1.3. Gate: `review-pass` — Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6").
 - **Next owner/action:** Frontend sửa `REV-M6-002` và Tech Lead sửa `REV-M6-005` trước khi merge vào `main`; Owner quyết định `REV-M6-006`; `REV-M6-001`, `-003`, `-004`, `-007` theo dõi tới G4a của bản M6.
 - **Fix commit/target:** —
 - **Retest command/evidence:** `npm run check` (chạy ít nhất 3 lần liên tiếp để xác nhận `REV-M6-002`), `npm run verify:bundle`, `E2E_PORT=4383 npm run test:e2e`; thêm Vitest cho `REV-M6-001` và assertion cây truy cập cho `REV-M6-003`.
