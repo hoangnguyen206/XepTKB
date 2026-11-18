@@ -4,7 +4,7 @@
 > **Artifact status:** `g0-approved`  
 > **Canonical gate:** `G0`  
 > **Owner:** Product Spec  
-> **Last reviewed:** 2026-11-12  
+> **Last reviewed:** 2026-11-18  
 > **Related docs:** [PLAN-M6-001](M6-FRONTEND-REFRESH-PLAN.md), [PRD §4/§6/§8](../PRD.md), [Security & privacy](../SECURITY_PRIVACY.md), [QA plan](../QA_TEST_PLAN.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md)  
 > **Evidence envelope:** `EVID-M6-001` (tạo ở G2; hiện `N/A — docs-only`)  
 > **Decision actor / UTC timestamp:** Approved by Owner (Product / Tech Lead) at `2026-11-12T14:53Z` (chat: "Ký G0")  
@@ -71,6 +71,7 @@ Sinh viên mở app là thấy ngay lịch tuần nhiều màu, thêm lớp tron
 | D-M6-10 | PR phase merge vào nhánh tích hợp `m6-frontend`; merge vào `main` một lần sau G3 của M6 | Owner, chat 2026-11-12T15:28Z |
 | D-M6-11 | Phiên bản chuyển từ footer vào sheet (i), màn lỗi và thẻ meta; banner dữ liệu chưa công bố thành chip luôn hiện (sửa ADR-0014 điểm 3, AC-M5-01, ADR-0010 §2 quy tắc 4) | Owner, chat 2026-11-12T15:28Z |
 | D-M6-12 | Bỏ độ đậm 600 (sửa D-M6-4): đo ở F1a, 6 file woff2 400/600/800 của `@fontsource/be-vietnam-pro@5.3.0` = 101 632 B > 90 000 B; giữ 400 + 800 (4 file = 67 424 B), ngân sách font giữ nguyên. Chỗ thiết kế ghi độ đậm 600 dùng 800 | Owner, chat 2026-11-12T15:35Z (theo DESIGN-M6-001 §14) |
+| D-M6-13 | Hoãn hai hiệu ứng ở DESIGN-M6-001 §11: mờ dần khi đổi view và lớp "rơi" vào lưới trên desktop (G3c `REV-M6-006`). M6 giữ hiệu ứng trượt khi đổi tuần (`app/motion.ts`) và luật giảm chuyển động; hai hiệu ứng còn lại không thuộc AC nào của M6 và đưa vào backlog sau M6, cần quyết định ngân sách JS (tổng JS còn ≈ 230 B) khi làm | Owner, chat 2026-11-18 |
 
 **Giả định đã được Owner xác nhận cùng G0 (`2026-11-12T14:53Z`):**
 

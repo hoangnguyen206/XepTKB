@@ -4,7 +4,7 @@
 > **Artifact status:** `g1-approved`  
 > **Canonical gate:** `G1`  
 > **Owner:** Tech Lead (+ Frontend, Platform theo work package §13)  
-> **Last reviewed:** 2026-11-17  
+> **Last reviewed:** 2026-11-18  
 > **Related docs:** [SPEC-M6-001](M6-SPEC.md), [PLAN-M6-001](M6-FRONTEND-REFRESH-PLAN.md), [ADR-0015](../adr/ADR-0015-m6-design-system-and-local-ui-settings.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md), [DESIGN-M5-001](M5-DESIGN-HANDOFF.md), [Architecture](../ARCHITECTURE.md), [Security & privacy](../SECURITY_PRIVACY.md), [QA plan](../QA_TEST_PLAN.md)  
 > **Evidence envelope:** `EVID-M6-001` — `N/A — docs-only` (tạo ở G2). Số đo ở §1 là lệnh đọc để lấy baseline, không phải bằng chứng G2.  
 > **Decision actor / UTC timestamp:** Approved by Owner (Tech Lead; Security consulted) at `2026-11-12T15:28Z` (chat: "Ký G1")
@@ -163,6 +163,7 @@
 
 - **new** `apps/web/src/app/motion.ts`: **new** `prefersReducedMotion()`; **new** `withViewTransition(update)` dùng View Transitions API nếu có và không bật giảm chuyển động (bọc flushSync của react-dom), nếu không thì gọi update trực tiếp.
 - Dùng cho: đổi tuần (vùng có view-transition-name trùng tên class `week-grid` hiện có, trượt 200 ms theo hướng ghi ở thuộc tính **new** `data-nav-dir` trên thẻ html), đổi view (mờ dần 150 ms), lớp "rơi" vào lưới trên desktop (gán view-transition-name cho ô mới qua prop `style`). Khi không có API: dùng keyframes CSS trên ô mới. Sheet mở/đóng bằng CSS transition. Giảm chuyển động: JS bỏ qua, CSS tắt mọi animation và pseudo-element của view transition (luật chung trong **new** `styles/base.css`). Không thêm request nào; CSP không bị ảnh hưởng.
+- **Quyết định D-M6-13 (Owner, 2026-11-18):** chỉ làm hiệu ứng trượt khi đổi tuần (F7). Mờ dần khi đổi view và lớp "rơi" vào lưới trên desktop được **hoãn** sang sau M6 (G3c `REV-M6-006`); khi làm phải tính lại ngân sách JS.
 
 ## 12. Kiểm thử
 
