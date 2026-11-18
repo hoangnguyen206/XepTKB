@@ -130,5 +130,5 @@
 
 - **Recommendation/gate decision:** G2 `g2-ready-for-verification` trên `51da517`, cập nhật bởi PR #23 (`bd0d087`); G3a `qa-pass-with-follow-up` → sau sửa `qa-pass`; G3b `security-pass`; G3c `review-pass-with-follow-up` → với D-M6-13 (Owner hoãn REV-M6-006), điều kiện nêu ở `REVERIFY-M6-001` đã thỏa, `review-pass`. **Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6"): G2 `g2-ready-for-verification`, G3a `qa-pass`, G3b `security-pass`, G3c `review-pass`.**
 - **Conditions/follow-up owner + due date:** REV-M6-006 đã có quyết định (D-M6-13, hoãn); PR #23 đã merge (`5ecf11c`, CI push run `44136477700` xanh); sau khi Owner ký G2/G3, một lần merge `m6-frontend` → `main` (D-M6-10). Trước G4a của bản M6: kiểm tra thủ công trên thiết bị thật (SPEC/DESIGN §12) và `SEC-M3-007` (header production).
-- **Next owner action:** G2/G3 đã ký; còn chờ Owner cho phép một lần merge `m6-frontend` → `main` (D-M6-10).
+- **Next owner action:** G2/G3 đã ký (PR #25, `053d416`); `m6-frontend` đã merge vào `main` qua PR #26 (`2058ec3`, D-M6-10). Tiếp theo: kiểm thủ công trên thiết bị thật rồi G4a.
 - **Notes:** báo cáo do agent viết được quét máy mọi định danh/đường dẫn trong backtick so với commit đích trước khi đưa vào đây.
