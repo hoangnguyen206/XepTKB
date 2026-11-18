@@ -2,3 +2,8 @@
 # so that SHA-256 hashes remain stable across platforms.
 fixtures/**/*.json eol=lf
 fixtures/**/*.doc  eol=lf
+
+# M6-B: self-hosted font files and their licence are committed byte for byte (scripts/test/fonts.test.mjs compares
+# them with node_modules), and the served licence file must not change bytes between checkouts.
+apps/web/src/assets/fonts/** -text
+apps/web/public/licenses.txt -text

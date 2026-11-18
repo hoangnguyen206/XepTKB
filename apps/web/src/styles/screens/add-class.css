@@ -1,0 +1,44 @@
+/*
+ * Thêm lớp (F4, DESIGN-M6-001 §8, AC-M6-09/10): search, the "Không trùng lịch" filter chip, course rows, the class
+ * sheet (section and group chips, session list, mini-calendar, actions) and the desktop ghost preview note.
+ */
+.add-class { display: flex; flex-direction: column; gap: var(--s-2); }
+.add-class > h2,
+.add-class > h3 { margin: 0; font-size: var(--fs-16); }
+.add-class-tools { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.add-class [role="status"] { margin: 0; }
+.course-results .course-row { border-radius: var(--r-sm); }
+
+.class-chips { margin-bottom: var(--s-2); }
+.chip-slot { display: inline-flex; }
+.chip-mark { display: inline-flex; align-items: center; gap: 2px; }
+.chip-mark.is-conflict { color: var(--danger); }
+.chip-radio input:checked + .chip .chip-mark.is-conflict { color: inherit; }
+
+.section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-1) 10px; }
+.section-head h3,
+.section-head h4 { margin: 0; }
+.session-list { margin: 6px 0; padding-left: var(--s-5); }
+.session-list li,
+.preview-list li { margin-bottom: var(--s-1); }
+.preview-list { margin: var(--s-2) 0; padding: 0; list-style: none; }
+.section-report { margin-top: var(--s-1); }
+
+.class-detail { display: flex; flex-direction: column; gap: var(--s-2); padding-top: var(--s-2); border-top: 1px solid var(--line); }
+.class-detail h3 { margin: 0; font-size: var(--fs-16); }
+.class-detail .session-list { margin: 0; }
+.class-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+
+/* Mini-calendar: the whole term, decorative (aria-hidden); text lives in the conflict list. */
+.mini-cal { margin: 0; }
+.mini-cal-caption { margin-top: var(--s-1); color: var(--muted); font-size: var(--fs-12); }
+.week-grid-wrap.variant-compact { --row: 10px; --times: 16px; padding: var(--s-1); border: 1px solid var(--line); border-radius: var(--r-md); }
+.variant-compact .grid-head { display: grid; grid-template-columns: var(--times) repeat(var(--days), minmax(0, 1fr)); color: var(--muted); font-size: var(--fs-12); font-weight: var(--fw-bold); text-align: center; }
+.variant-compact .wg-times li { font-size: 0; }
+.variant-compact .block { padding: 0; border-left-width: 2px; }
+.variant-compact .block > * { display: none; }
+.variant-compact .block:not(.is-ghost) { --course-bg: var(--surface-2); --course-edge: var(--line-strong); }
+.variant-compact .block.is-ghost { border-style: solid; opacity: 1; }
+.variant-compact .block.is-conflict { border-width: 2px; }
+
+.ghost-note { margin: var(--s-2) 0 0; color: var(--muted); font-size: var(--fs-14); }

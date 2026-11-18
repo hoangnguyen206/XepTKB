@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { lintRepo, lintSource } from "../lint.mjs";
+import { lintCss, lintRepo, lintSource } from "../lint.mjs";
 
 test("AST + regex linter catches all 10 C16 bypass vectors and obfuscated sinks (SEC-M3-005)", () => {
   const webFile = "apps/web/src/ui/Probe.tsx";
@@ -120,6 +120,68 @@ test("build-time constants are confined to app/build-info.ts, build-env.d.ts and
     const errors = lintRepo(tmp);
     assert.equal(errors.length, 1);
     assert.match(errors[0], /Footer\.tsx:1: build-time constant outside/);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("M6: runtime stylesheets, FontFace and CSS url()/@import with a scheme are rejected in apps/web/src (DESIGN-M6-001 §12)", () => {
+  const file = "apps/web/src/components/Probe.tsx";
+  const rejected = [
+    { code: 'const s = document.createElement("style");', match: /runtime stylesheet/ },
+    { code: "const s = document.createElement('STYLE');", match: /runtime stylesheet/ },
+    { code: 'const t = "sty" + "le"; document.createElement(t);', match: /runtime stylesheet/ },
+    { code: 'document.createElementNS("http://www.w3.org/2000/svg", "style");', match: /runtime stylesheet/ },
+    { code: "const sheet = new CSSStyleSheet();", match: /runtime stylesheet/ },
+    { code: "document.adoptedStyleSheets = [];", match: /runtime stylesheet/ },
+    { code: 'const f = new FontFace("x", "url(./a.woff2)");', match: /FontFace constructor/ },
+    { code: 'const F = window["Font" + "Face"]; new F("x", "y");', match: /FontFace constructor/ },
+  ];
+  for (const sample of rejected) {
+    const errors = lintSource(sample.code, file, "web");
+    assert.ok(errors.some((err) => sample.match.test(err)), `Expected ${sample.code} to match ${sample.match}, got: ${JSON.stringify(errors)}`);
+  }
+  // Allowed: React style props (CSSOM), loading declared fonts, SVG markup and tests.
+  for (const code of [
+    'export const el = <div style={{ "--c-bg": "x" } as React.CSSProperties} />;',
+    'export const ready = document.fonts.load("400 1em \\"Be Vietnam Pro\\"");',
+    'export const svg = <svg aria-hidden="true"><path d="M0 0" /></svg>;',
+  ]) {
+    assert.deepEqual(lintSource(code, file, "web"), [], code);
+  }
+  assert.deepEqual(lintSource('const s = document.createElement("style");', "apps/web/src/components/Probe.test.tsx", "web"), []);
+
+  const css = "apps/web/src/styles/fonts.css";
+  for (const source of [
+    '@font-face { src: url(data:font/woff2;base64,AA==) format("woff2"); }',
+    "a { background: url( 'https://cdn.example/x.png'); }",
+    'a { background: url("//cdn.example/x.png"); }',
+    '@import url("https://fonts.example/css");',
+    "@import 'http://x.example/a.css';",
+    "a { background: URL(Data:image/png;base64,AA==); }",
+  ]) {
+    assert.match(lintCss(source, css).join("\n"), /url\(\)\/@import with a scheme/, source);
+  }
+  for (const source of [
+    '@font-face { src: url("../assets/fonts/be-vietnam-pro-latin-400-normal.woff2") format("woff2"); }',
+    "@import './tokens.css' layer(tokens);",
+    "/* url(https://example.com) in a comment is ignored */ a { color: var(--ink); }",
+  ]) {
+    assert.deepEqual(lintCss(source, css), [], source);
+  }
+  // Line numbers survive stripped comments.
+  assert.match(lintCss("/* a\nb */\na{}\nb{background:url(data:image/png;base64,AA==)}", css)[0], /fonts\.css:4:/);
+
+  // lintRepo walks CSS under apps/web/src only.
+  const tmp = mkdtempSync(join(tmpdir(), "ky-nay-lint-css-"));
+  try {
+    mkdirSync(join(tmp, "apps", "web", "src", "styles"), { recursive: true });
+    writeFileSync(join(tmp, "apps", "web", "src", "styles", "ok.css"), "@import './tokens.css';\n");
+    assert.deepEqual(lintRepo(tmp), []);
+    writeFileSync(join(tmp, "apps", "web", "src", "styles", "bad.css"), "\n@font-face{src:url(data:font/woff2;base64,AA==)}\n");
+    const errors = lintRepo(tmp);
+    assert.equal(errors.length, 1);
+    assert.match(errors[0], /bad\.css:2: url\(\)\/@import with a scheme/);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

@@ -1,0 +1,242 @@
+/**
+ * The Lịch view (DESIGN-M6-001 §7, AC-M6-05…08): week header ("Chọn tuần" select as the title, previous / next /
+ * "Tuần này"), the day strip and week grid — or one day's list after tapping a day — the sessions without fixed times,
+ * and the session sheet. Weeks change with the buttons, a touch swipe on the grid, or ←/→ and T while focus is inside
+ * the calendar (not in a form field). Today's column and the current-time line appear only in the current week.
+ */
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import type { DayNo, HardConflict, TimeFrame } from "@ky-nay/domain";
+import { buildGridLayout, conflictKeys, formatWeeks, kindText, nonFixedSessions, weekOfDate, weekRange, type ScheduledSession } from "@ky-nay/export";
+import { conflictPartners, nowLineOffset, visiblePeriods } from "../model/grid-view.js";
+import { courseColorStyle, type CourseColorId } from "../model/palette.js";
+import { withViewTransition } from "../app/motion.js";
+import { nowInVietnam, weekLabel } from "../model/week.js";
+import type { WeekChoice } from "./common.js";
+import { overrideBadges } from "./CourseBlock.js";
+import { DayStrip } from "./DayStrip.js";
+import { DayView } from "./DayView.js";
+import { IconCalendar, IconChevronLeft, IconChevronRight } from "./icons.js";
+import { SessionSheet } from "./SessionSheet.js";
+import { Button } from "./ui/Button.js";
+import { EmptyState } from "./ui/EmptyState.js";
+import type { CourseColorLookup } from "./useCourseColors.js";
+import { useSwipe } from "./useSwipe.js";
+import { WeekGrid } from "./WeekGrid.js";
+
+/** Minutes and date in Vietnam, refreshed every 60 s while the page is visible. */
+function useNow(): { date: string; minutes: number } {
+  const [now, setNow] = useState(() => nowInVietnam());
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const start = () => {
+      setNow(nowInVietnam());
+      timer ??= setInterval(() => setNow(nowInVietnam()), 60_000);
+    };
+    const stop = () => {
+      if (timer) clearInterval(timer);
+      timer = undefined;
+    };
+    const onVisibility = () => (document.visibilityState === "visible" ? start() : stop());
+    if (document.visibilityState !== "hidden") start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+  return now;
+}
+
+/** Sessions without a fixed time slot (ONL…): listed apart, never on the grid, still counted in credits (Q-009). */
+export function NonFixedList(props: { sessions: readonly ScheduledSession[]; colorOf?: CourseColorLookup["colorOf"] }) {
+  if (props.sessions.length === 0) return null;
+  return (
+    <section className="non-fixed" aria-labelledby="non-fixed-heading">
+      <h3 id="non-fixed-heading">Không có giờ cố định (không xếp vào lưới)</h3>
+      <ul className="list">
+        {props.sessions.map((session) => {
+          const detail = (session.overrides ?? []).map((item) => item.detail).join("; ");
+          return (
+            <li key={session.key} className="list-row">
+              {props.colorOf ? <span className="list-row-dot course-color" style={courseColorStyle(props.colorOf(session.courseCode))} aria-hidden="true" /> : null}
+              <span className="list-row-text">
+                <span className="list-row-title">{session.courseCode} {session.courseName}</span>
+                <span className="list-row-meta">
+                  lớp {session.sectionId}{kindText(session.kind) ? ` · ${kindText(session.kind)}` : ""} · tuần {formatWeeks(session.weeks)}
+                  {overrideBadges(session).map((badge) => <span key={badge} className="badge badge-override">{badge}</span>)}
+                  {detail ? <span className="override-detail"> ({detail})</span> : null}
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+export function WeekView(props: {
+  sessions: readonly ScheduledSession[];
+  conflicts: readonly HardConflict[];
+  frame: TimeFrame;
+  maxPeriod: number;
+  week1: string;
+  teachingWeeks: number;
+  week: WeekChoice;
+  onWeekChange: (week: WeekChoice) => void;
+  colors: CourseColorLookup;
+  onCourseColor: (courseCode: string, color: CourseColorId | undefined) => void;
+  onUnpick: (sectionId: string) => void;
+  /** Shown when the plan has no session at all (F5 turns it into the empty state). */
+  empty?: ReactNode;
+  /** F4 §8 (desktop): the Plan with a previewed class; its sessions in `keys` are drawn as dashed ghosts. */
+  ghost?: { sessions: readonly ScheduledSession[]; conflicts: readonly HardConflict[]; keys: ReadonlySet<string>; sectionId: string };
+  /** F5 §9: the one-time hint shown under the grid, and the hinted actions it listens for. */
+  hint?: ReactNode;
+  onAction?: (action: "swipe" | "open") => void;
+  /** F6 (AC-M6-13): focus this session's cell once it is on the grid (from a conflict chip), then report it. */
+  focusKey?: string;
+  onFocused?: () => void;
+}) {
+  const selectId = useId();
+  const now = useNow();
+  const [day, setDay] = useState<DayNo | undefined>(undefined);
+  const [openKey, setOpenKey] = useState<string | undefined>(undefined);
+  const weekNumber = props.week === "all" ? undefined : props.week;
+  const currentWeek = weekOfDate(props.week1, now.date);
+  const inTerm = currentWeek >= 1 && currentWeek <= props.teachingWeeks;
+  const isCurrentWeek = weekNumber !== undefined && weekNumber === currentWeek;
+  const gridSessions = props.ghost?.sessions ?? props.sessions;
+  const gridConflicts = props.ghost?.conflicts ?? props.conflicts;
+  const periods = useMemo(() => visiblePeriods(gridSessions, props.maxPeriod), [gridSessions, props.maxPeriod]);
+  const keys = useMemo(() => conflictKeys(gridConflicts, weekNumber), [gridConflicts, weekNumber]);
+  const layout = useMemo(
+    () => buildGridLayout(gridSessions, { ...(weekNumber !== undefined ? { week: weekNumber } : {}), maxPeriod: periods, conflictKeys: keys }),
+    [gridSessions, weekNumber, periods, keys],
+  );
+  const partners = useMemo(() => conflictPartners(gridConflicts, gridSessions, weekNumber), [gridConflicts, gridSessions, weekNumber]);
+  const ghostShown = props.ghost ? layout.blocks.some((block) => props.ghost!.keys.has(block.session.key)) : false;
+  const monday = weekNumber !== undefined ? weekRange(props.week1, weekNumber).start : undefined;
+  const todayDay = isCurrentWeek ? (((new Date(`${now.date}T00:00:00Z`).getUTCDay() + 6) % 7) + 2) as DayNo : undefined;
+  const nowOffset = isCurrentWeek && todayDay !== undefined && layout.days.includes(todayDay) ? nowLineOffset(props.frame, now.minutes, periods) : undefined;
+  const counts = useMemo(() => {
+    const map = new Map<DayNo, number>();
+    for (const block of layout.blocks) map.set(block.day, (map.get(block.day) ?? 0) + 1);
+    return map;
+  }, [layout]);
+
+  // §11: a week change slides the grid (View Transitions; skipped with reduced motion).
+  const go = (week: number) => {
+    if (week < 1 || week > props.teachingWeeks || week === weekNumber) return;
+    withViewTransition(() => props.onWeekChange(week), weekNumber !== undefined && week < weekNumber ? "prev" : "next");
+  };
+  const step = (delta: -1 | 1) => {
+    if (weekNumber !== undefined) go(weekNumber + delta);
+  };
+  const swipe = useSwipe((direction) => {
+    step(direction);
+    props.onAction?.("swipe");
+  });
+  const openSession = (session: ScheduledSession) => {
+    setOpenKey(session.key);
+    props.onAction?.("open");
+  };
+  // F5 §9: a week without any session offers the nearest week that has one (later first).
+  const nearestWeek = useMemo(() => {
+    if (weekNumber === undefined) return undefined;
+    const weeks = new Set(props.sessions.filter((session) => session.fixed).flatMap((session) => session.weeks).filter((week) => week >= 1 && week <= props.teachingWeeks));
+    const sorted = [...weeks].sort((a, b) => a - b);
+    return sorted.find((week) => week > weekNumber) ?? sorted.reverse().find((week) => week < weekNumber);
+  }, [props.sessions, props.teachingWeeks, weekNumber]);
+  const emptyWeek = weekNumber !== undefined && !props.ghost && layout.blocks.length === 0 && nearestWeek !== undefined;
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) return;
+    if (target.closest("input, select, textarea, [contenteditable='true'], dialog")) return;
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      event.preventDefault();
+      step(event.key === "ArrowLeft" ? -1 : 1);
+    } else if ((event.key === "t" || event.key === "T") && inTerm) {
+      event.preventDefault();
+      go(currentWeek);
+    }
+  };
+
+  const open = openKey ? props.sessions.find((session) => session.key === openKey) : undefined;
+  const openCode = open ? props.colors.canonical(open.courseCode) : undefined;
+  const allPartners = useMemo(() => conflictPartners(props.conflicts, props.sessions), [props.conflicts, props.sessions]);
+
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!props.focusKey) return;
+    const target = [...(rootRef.current?.querySelectorAll<HTMLElement>("[data-session-key]") ?? [])].find((element) => element.dataset.sessionKey === props.focusKey);
+    if (!target) return;
+    target.focus();
+    target.scrollIntoView({ block: "center" });
+    props.onFocused?.();
+  }, [props.focusKey, layout, props.onFocused]);
+
+  return (
+    <div className="week-view" ref={rootRef} onKeyDown={onKeyDown}>
+      <div className="week-head">
+        <Button variant="ghost" label="Tuần trước" icon={<IconChevronLeft />} disabled={weekNumber === undefined || weekNumber <= 1} onClick={() => step(-1)} />
+        <label htmlFor={selectId} className="visually-hidden">Chọn tuần</label>
+        <select id={selectId} className="week-select" value={String(props.week)} onChange={(event) => props.onWeekChange(event.target.value === "all" ? "all" : Number(event.target.value))}>
+          <option value="all">Tất cả các tuần</option>
+          {Array.from({ length: props.teachingWeeks }, (_, index) => index + 1).map((week) => (
+            <option key={week} value={week}>{weekLabel(props.week1, week)}</option>
+          ))}
+        </select>
+        <Button variant="ghost" label="Tuần sau" icon={<IconChevronRight />} disabled={weekNumber === undefined || weekNumber >= props.teachingWeeks} onClick={() => step(1)} />
+        <Button variant="secondary" size="sm" disabled={!inTerm || isCurrentWeek} onClick={() => go(currentWeek)}>Tuần này</Button>
+      </div>
+      {day !== undefined ? (
+        <>
+          <div className="day-head">
+            <Button variant="ghost" size="sm" icon={<IconChevronLeft size={18} />} onClick={() => setDay(undefined)}>Cả tuần</Button>
+          </div>
+          <DayStrip days={layout.days} {...(monday ? { monday } : {})} {...(todayDay ? { todayDay } : {})} counts={counts} selected={day} onOpenDay={setDay} />
+          <DayView day={day} week={props.week} week1={props.week1} frame={props.frame} sessions={props.sessions} today={now.date} conflictKeys={keys} colorOf={props.colors.colorOf} onOpenSession={openSession} />
+        </>
+      ) : (
+        <div className="week-swipe" {...swipe}>
+          <WeekGrid
+            layout={layout}
+            frame={props.frame}
+            week1={props.week1}
+            week={props.week}
+            caption={props.week === "all" ? "Lưới thời khóa biểu tất cả các tuần" : `Lưới thời khóa biểu tuần ${props.week}`}
+            colorOf={props.colors.colorOf}
+            header={<DayStrip days={layout.days} {...(monday ? { monday } : {})} {...(todayDay ? { todayDay } : {})} counts={counts} onOpenDay={setDay} />}
+            partners={partners}
+            {...(todayDay ? { todayDay } : {})}
+            {...(nowOffset !== undefined ? { nowOffset } : {})}
+            onOpenSession={openSession}
+            {...(props.ghost ? { ghostKeys: props.ghost.keys } : {})}
+          />
+        </div>
+      )}
+      {props.ghost && !ghostShown ? (
+        <p className="ghost-note">{weekNumber !== undefined ? `Lớp ${props.ghost.sectionId} không học tuần ${weekNumber}.` : `Lớp ${props.ghost.sectionId} không có giờ cố định.`}</p>
+      ) : null}
+      {emptyWeek ? (
+        <EmptyState icon={<IconCalendar />} title={`Tuần ${weekNumber} không có buổi học`} action={<Button variant="secondary" onClick={() => go(nearestWeek!)}>Tới tuần có lớp</Button>} />
+      ) : null}
+      {props.hint}
+      {props.empty}
+      <NonFixedList sessions={nonFixedSessions(props.sessions)} colorOf={props.colors.colorOf} />
+      <SessionSheet
+        {...(open ? { session: open } : {})}
+        onClose={() => setOpenKey(undefined)}
+        frame={props.frame}
+        partners={open ? allPartners.get(open.key) ?? [] : []}
+        color={props.colors.colorOf(open?.courseCode ?? "")}
+        {...(openCode && props.colors.overrides[openCode] ? { chosen: props.colors.overrides[openCode] } : {})}
+        onColor={(color) => {
+          if (openCode) props.onCourseColor(openCode, color);
+        }}
+        {...(open ? { onUnpick: () => props.onUnpick(open.sectionId) } : {})}
+      />
+    </div>
+  );
+}

@@ -1,0 +1,115 @@
+/*
+ * M6 design tokens (DESIGN-M6-001 §2, ADR-0015 point 1-2). Colour values live only here, in print.css and in
+ * model/palette.ts; styles/contrast.test.ts checks every text pair and that both dark blocks are identical.
+ * Light values sit on :root. Dark values apply when the OS is dark and data-theme is not "light", or when
+ * data-theme="dark" (set by app/theme.ts from the saved setting).
+ */
+:root {
+  --bg: #F5F6FA;
+  --surface: #FFFFFF;
+  --surface-2: #EEF0F6;
+  --ink: #15172A;
+  --muted: #5B5F78;
+  --line: #DCDFEA;
+  --line-strong: #8A8EA8;
+  --accent: #4F46E5;
+  --accent-ink: #FFFFFF;
+  --accent-text: #4338CA;
+  --accent-weak: #EEF0FF;
+  --danger: #B91C1C;
+  --danger-weak: #FEE2E2;
+  --danger-solid: #B91C1C;
+  --danger-solid-ink: #FFFFFF;
+  --conflict-edge: #DC2626;
+  --warning: #92400E;
+  --warning-weak: #FEF3C7;
+  --success: #15803D;
+  --success-weak: #DCFCE7;
+  --focus: #4F46E5;
+  --shadow-1: 0 1px 2px rgb(21 23 42 / 0.08);
+  --shadow-2: 0 1px 3px rgb(21 23 42 / 0.06), 0 8px 24px rgb(21 23 42 / 0.08);
+  --scrim: rgb(14 16 32 / 0.48);
+  color-scheme: light;
+
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --fw-regular: 400;
+  --fw-bold: 800;
+  --fs-12: 0.75rem;
+  --fs-14: 0.875rem;
+  --fs-16: 1rem;
+  --fs-20: 1.25rem;
+  --fs-28: 1.75rem;
+  --fs-40: 2.5rem;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+  --tap: 44px;
+  --t-fast: 150ms;
+  --t-slow: 250ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1020;
+    --surface: #181A2E;
+    --surface-2: #22253D;
+    --ink: #ECEDF7;
+    --muted: #A3A7C2;
+    --line: #2E3150;
+    --line-strong: #6B6F8E;
+    --accent: #818CF8;
+    --accent-ink: #0E1020;
+    --accent-text: #A5B4FC;
+    --accent-weak: #25285A;
+    --danger: #F87171;
+    --danger-weak: #3B1219;
+    --danger-solid: #B91C1C;
+    --danger-solid-ink: #FFFFFF;
+    --conflict-edge: #F87171;
+    --warning: #FCD34D;
+    --warning-weak: #3A2A0A;
+    --success: #4ADE80;
+    --success-weak: #0B2E1A;
+    --focus: #A5B4FC;
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-2: 0 1px 3px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+    --scrim: rgb(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0E1020;
+  --surface: #181A2E;
+  --surface-2: #22253D;
+  --ink: #ECEDF7;
+  --muted: #A3A7C2;
+  --line: #2E3150;
+  --line-strong: #6B6F8E;
+  --accent: #818CF8;
+  --accent-ink: #0E1020;
+  --accent-text: #A5B4FC;
+  --accent-weak: #25285A;
+  --danger: #F87171;
+  --danger-weak: #3B1219;
+  --danger-solid: #B91C1C;
+  --danger-solid-ink: #FFFFFF;
+  --conflict-edge: #F87171;
+  --warning: #FCD34D;
+  --warning-weak: #3A2A0A;
+  --success: #4ADE80;
+  --success-weak: #0B2E1A;
+  --focus: #A5B4FC;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 1px 3px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  --scrim: rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}

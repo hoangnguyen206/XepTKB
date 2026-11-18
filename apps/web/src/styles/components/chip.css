@@ -1,0 +1,31 @@
+/* Chip.tsx: toggle chip, radio chip (native radio, visually hidden) and status chip. */
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: 36px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+}
+/* The visible chip is 36 px tall; the hit area reaches 44 px. */
+.chip::after { content: ""; position: absolute; inset: -4px 0; }
+.chip[aria-pressed="true"],
+.chip-radio input:checked + .chip { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip-radio { position: relative; display: inline-flex; }
+.chip-radio input:focus-visible + .chip { outline: 3px solid var(--focus); outline-offset: 2px; }
+.chip-radio input:disabled + .chip { background: var(--surface-2); color: var(--muted); cursor: not-allowed; }
+.chip-group { display: flex; flex-wrap: wrap; gap: var(--s-2); min-width: 0; margin: 0; padding: 0; border: 0; }
+.chip-group legend { margin-bottom: var(--s-2); padding: 0; font-weight: var(--fw-bold); }
+.status-chip { cursor: default; }
+button.status-chip { cursor: pointer; }
+.status-chip.tone-warning { background: var(--warning-weak); border-color: var(--warning); color: var(--warning); }
+.status-chip.tone-danger { background: var(--danger-weak); border-color: var(--danger); color: var(--danger); }
+.status-chip.tone-success { background: var(--success-weak); border-color: var(--success); color: var(--success); }
+.status-chip.tone-info { background: var(--accent-weak); border-color: var(--accent); color: var(--accent-text); }

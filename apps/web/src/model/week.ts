@@ -2,6 +2,7 @@
 import { formatDate, weekOfDate, weekRange } from "@ky-nay/export";
 
 const VIETNAM_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" });
+const VIETNAM_TIME = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Ho_Chi_Minh", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 /** Today's civil date in Vietnam as `YYYY-MM-DD`. */
 export function todayInVietnam(now: Date = new Date()): string {
@@ -23,4 +24,10 @@ export function defaultWeek(week1: string, teachingWeeks: number, today: string)
 export function weekLabel(week1: string, week: number): string {
   const range = weekRange(week1, week);
   return `Tuần ${week} · ${formatDate(range.start, false)}–${formatDate(range.end, false)}`;
+}
+
+/** M6-E (DESIGN-M6-001 §7): today in Vietnam and minutes since local midnight, for the current-time line. */
+export function nowInVietnam(now: Date = new Date()): { date: string; minutes: number } {
+  const [hours, minutes] = VIETNAM_TIME.format(now).split(":").map(Number);
+  return { date: todayInVietnam(now), minutes: hours! * 60 + minutes! };
 }

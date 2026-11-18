@@ -1,0 +1,70 @@
+/*
+ * Phương án (F6, DESIGN-M6-001 §6/§10, AC-M6-13): plan bar, credits StatCard with its colour bar, conflict chips, the
+ * compact class list with group chips, and the 2×2 export tiles.
+ */
+.plan-bar { margin-bottom: var(--s-2); }
+.plan-bar-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); margin-bottom: var(--s-1); }
+.final-plan-actions { padding-top: var(--s-2); border-top: 1px dashed var(--line); }
+.export-panel { margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--line); }
+.plan-bar h2 { margin: 0; }
+.plan-slot-controls { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.slot-switcher { display: inline-flex; flex-wrap: wrap; gap: var(--s-1); }
+.plan-summary { display: flex; flex-direction: column; gap: var(--s-3); margin: var(--s-3) 0; }
+.plan-summary h3 { margin: var(--s-2) 0 0; font-size: var(--fs-16); }
+
+.credit-bar { display: flex; gap: 2px; height: 10px; margin-top: var(--s-3); overflow: hidden; border-radius: var(--r-pill); }
+.credit-seg { flex-basis: 0; min-width: 4px; background: var(--course-edge); }
+
+.conflict-summary ul { display: flex; flex-direction: column; gap: var(--s-2); margin: var(--s-2) 0 0; padding: 0; list-style: none; }
+.conflict-chip {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  min-height: var(--tap);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-md);
+  background: var(--danger-weak);
+  color: var(--danger);
+  font-weight: var(--fw-bold);
+  text-align: left;
+  cursor: pointer;
+}
+.conflict-chip .icon { flex: none; margin-top: 2px; }
+
+.pick-list { border-top: 1px solid var(--line); }
+.pick-row { display: flex; align-items: flex-start; gap: var(--s-3); padding: var(--s-3) 0; border-bottom: 1px solid var(--line); }
+.pick-row .list-row-dot { margin-top: 6px; }
+.pick-main { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.pick-main .badge { margin-left: var(--s-1); }
+.pick-groups { margin-top: var(--s-1); }
+.pick-groups legend { font-size: var(--fs-14); }
+
+.export-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin: var(--s-3) 0; }
+.export-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-1);
+  min-height: 88px;
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+  text-align: left;
+  cursor: pointer;
+}
+.export-tile .icon { color: var(--accent-text); }
+.export-tile:hover:not(:disabled) { background: var(--surface-2); }
+.export-tile:disabled { background: var(--surface-2); color: var(--muted); box-shadow: none; cursor: not-allowed; }
+.export-tile:disabled .icon { color: var(--muted); }
+.export-tile-title { font-size: var(--fs-16); font-weight: var(--fw-bold); }
+.export-tile-format { color: var(--muted); font-size: var(--fs-14); }
+@media (min-width: 768px) { .export-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* "Ảnh" export sheet (DESIGN-M6-001 §10): week PNG or share poster, one full-width choice each with a short note. */
+.export-choice { display: flex; flex-direction: column; gap: var(--s-2); }
+.export-choice .btn { justify-content: flex-start; width: 100%; }
+.export-choice .muted { margin: 0 0 var(--s-2); font-size: var(--fs-14); }

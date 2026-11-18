@@ -4,6 +4,7 @@
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import type { Locator } from "@playwright/test";
 import { expect, test, type Page } from "./fixture.js";
 
 type Json = Record<string, unknown>;
@@ -38,14 +39,45 @@ async function serveCrafted(page: Page, options: { version: string; courses: Jso
 
 async function start(page: Page): Promise<void> {
   await page.goto("/");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
-  await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
+  // M6 F5: the start screen's submit is "Bắt đầu"; every cohort of the HK II term shares week 1, so it is enabled at once.
+  await page.getByRole("button", { name: "Bắt đầu", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
 }
 
-async function open(page: Page, code: string): Promise<void> {
+/** M6 F2: Lịch · Thêm lớp · Phương án are main-navigation buttons (formerly tabs). */
+async function openView(page: Page, name: "Lịch" | "Thêm lớp" | "Phương án"): Promise<void> {
+  const button = page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("button", { name, exact: true });
+  await button.click();
+  await expect(button).toHaveAttribute("aria-current", "page");
+}
+
+/** M6 F4: the class sheet of a course is a modal dialog named "{code} {name}". */
+const sheetOf = (page: Page, code: string) => page.getByRole("dialog", { name: new RegExp(`^${code} `) });
+
+/**
+ * Group chips are visually-hidden radios under their label chip, which intercepts pointer events, so
+ * `locator.check()` cannot click the input: the chip (its label) is clicked, as a user would.
+ */
+async function checkChip(radio: Locator): Promise<void> {
+  if (await radio.isChecked()) return;
+  const id = await radio.getAttribute("id");
+  await radio.page().locator(`label[for="${id}"]`).click();
+  await expect(radio).toBeChecked();
+}
+
+/** Opens the class sheet of a one-class course and returns that class's article "Lớp {code} 1". */
+async function open(page: Page, code: string) {
   await page.getByLabel("Mã hoặc tên môn").fill(code);
-  const toggle = page.getByRole("button", { name: new RegExp(`^${code}`) });
-  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  // Scoped to the search list: from 1200 px the calendar blocks (also named by course code) are on screen too.
+  await page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${code} `) }).click();
+  await expect(sheetOf(page, code)).toBeVisible();
+  return sheetOf(page, code).getByRole("article", { name: `Lớp ${code} 1` });
+}
+
+/** A successful pick closes the sheet; Esc closes it without a change. */
+async function expectClosed(page: Page, code: string, how: "picked" | "escape" = "picked"): Promise<void> {
+  if (how === "escape") await page.keyboard.press("Escape");
+  await expect(sheetOf(page, code)).toBeHidden();
 }
 
 const course = (code: string, name: string) => ({ code, altCodes: [], name, normalizedName: name.toLowerCase(), credits: 3, school: "uet" });
@@ -63,23 +95,26 @@ test("QA-M3 — PRD AC-01 exact case, adjacency, week-scoped grid flags and a gr
     ],
   });
   await start(page);
-  await open(page, "QAA001");
-  const a = page.getByRole("article", { name: "Lớp QAA001 1" });
-  await a.getByLabel("Nhóm 1").check();
-  await a.getByRole("button", { name: "Chọn lớp này" }).click();
-  await open(page, "QAB001");
-  await expect(page.getByRole("article", { name: "Lớp QAB001 1" }).getByText("⚠ Trùng lịch với QAA001 1 (Môn A): Thứ 3, tiết 5–6, tuần 8–10")).toBeVisible();
-  await open(page, "QAD001");
-  await expect(page.getByRole("article", { name: "Lớp QAD001 1" }).locator(".preview-list")).toHaveCount(0);
-  await open(page, "QAC001");
-  const c = page.getByRole("article", { name: "Lớp QAC001 1" });
+  const a = await open(page, "QAA001");
+  await checkChip(a.getByLabel("Nhóm 1"));
+  await a.getByRole("button", { name: "Thêm vào lịch" }).click();
+  await expectClosed(page, "QAA001");
+  await expect((await open(page, "QAB001")).getByText("⚠ Trùng lịch với QAA001 1 (Môn A): Thứ 3, tiết 5–6, tuần 8–10")).toBeVisible();
+  await expectClosed(page, "QAB001", "escape");
+  await expect((await open(page, "QAD001")).locator(".preview-list")).toHaveCount(0);
+  await expectClosed(page, "QAD001", "escape");
+  const c = await open(page, "QAC001");
   await expect(c.locator(".preview-list")).toHaveCount(0);
-  await c.getByRole("button", { name: "Chọn lớp này" }).click();
+  await c.getByRole("button", { name: "Thêm vào lịch" }).click();
+  await expectClosed(page, "QAC001");
   await open(page, "QAA001");
-  await a.getByLabel("Nhóm 2").check();
+  await checkChip(a.getByLabel("Nhóm 2"));
   await expect(a.getByText("⚠ Trùng lịch với QAC001 1 (Môn C): Thứ 5, tiết 2, tuần 5")).toBeVisible();
-  await a.getByRole("button", { name: "Đổi nhóm" }).click();
+  await a.getByRole("button", { name: "Vẫn đổi nhóm", exact: true }).click();
+  await expectClosed(page, "QAA001");
+  await openView(page, "Phương án");
   await expect(page.locator(".plan-bar")).toContainText("⚠ 1 chỗ trùng lịch");
+  await openView(page, "Lịch");
   await page.getByLabel("Chọn tuần").selectOption("5");
   await expect(page.getByRole("region", { name: /Lưới thời khóa biểu tuần 5/ }).locator(".block.is-conflict")).toHaveCount(2);
   await page.getByLabel("Chọn tuần").selectOption("6");
@@ -97,15 +132,16 @@ test("QA-M3 — hostile manifest and dataset strings stay inert in the UI and th
     sections: [["QAX001 1", [fixed("x1", 2, 1, 3, range(1, 15), { room: payload, campus: payload, lecturers: [payload] })], { homeClasses: [payload] }]],
   });
   await start(page);
-  await page.getByRole("tab", { name: "Tìm môn" }).click();
-  await open(page, "QAX001");
-  await page.getByRole("article", { name: "Lớp QAX001 1" }).getByRole("button", { name: "Chọn lớp này" }).click();
-  await page.getByRole("button", { name: /Dữ liệu mẫu \(tổng hợp\)/ }).click();
-  const provenance = page.getByRole("region", { name: "Nguồn và phiên bản dữ liệu" });
+  await openView(page, "Thêm lớp");
+  await (await open(page, "QAX001")).getByRole("button", { name: "Thêm vào lịch" }).click();
+  await expectClosed(page, "QAX001");
+  await page.getByRole("button", { name: /^Nguồn dữ liệu: / }).click();
+  const provenance = page.getByRole("dialog", { name: "Nguồn và phiên bản dữ liệu" });
   await expect(provenance.getByText("<script>window.__qaXss=2</script>")).toBeVisible();
   await expect(provenance.getByText(`HK ${payload}`)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
-  await page.getByRole("tab", { name: /^Phương án/ }).click();
+  await page.keyboard.press("Escape");
+  await openView(page, "Phương án");
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Tải Word (.doc)" }).click()]);
   const word = readFileSync(await download.path(), "utf8");
   for (const raw of ["<img src", "<script>", "<svg", "<b>Môn"]) expect(word).not.toContain(raw);
@@ -115,7 +151,7 @@ test("QA-M3 — hostile manifest and dataset strings stay inert in the UI and th
 
 test("QA-M3 — the build's CSP blocks injected inline scripts and inline handlers", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Bắt đầu", exact: true })).toBeVisible();
   const result = await page.evaluate(async () => {
     const violations: string[] = [];
     document.addEventListener("securitypolicyviolation", (event) => violations.push(event.violatedDirective));
@@ -142,5 +178,5 @@ test("QA-M3 — first visit without a reachable manifest shows the offline-first
   await expect(page.getByText("Không kết nối được tới nguồn dữ liệu. Lần đầu sử dụng cần có kết nối mạng để tải dữ liệu.")).toBeVisible();
   reachable = true;
   await page.getByRole("button", { name: "Thử lại" }).click();
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Bắt đầu", exact: true })).toBeVisible();
 });

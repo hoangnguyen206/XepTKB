@@ -5,6 +5,7 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
 import { AxeBuilder } from "@axe-core/playwright";
+import type { Locator } from "@playwright/test";
 import { expect, test, type Page } from "./fixture.js";
 
 const SCREENSHOTS = process.env.M3_SCREENSHOT_DIR;
@@ -16,37 +17,97 @@ const VIEWPORTS = [
   { name: "1280", width: 1280, height: 900 },
 ];
 
+/**
+ * M6 F5 start screen: its heading is visually hidden, so the screen is recognised by its "Bắt đầu" submit button;
+ * the cohort is a chip radio in the "Bạn khóa mấy?" group (clicked through its label, see `checkChip`).
+ */
+const startButton = (page: Page) => page.getByRole("button", { name: "Bắt đầu", exact: true });
+
+async function chooseCohort(page: Page, cohort: string): Promise<void> {
+  await checkChip(page.getByRole("group", { name: "Bạn khóa mấy?" }).getByRole("radio", { name: cohort, exact: true }));
+}
+
 async function startPlan(page: Page): Promise<void> {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
-  await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
+  await chooseCohort(page, "K69");
+  await startButton(page).click();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
+}
+
+/** M6 F2: Lịch · Thêm lớp · Phương án are main-navigation buttons (formerly tabs). */
+async function openView(page: Page, name: "Lịch" | "Thêm lớp" | "Phương án"): Promise<void> {
+  const button = page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("button", { name, exact: true });
+  await button.click();
+  await expect(button).toHaveAttribute("aria-current", "page");
+}
+
+/** The plan summary line ("N lớp · M tín chỉ …") is on the Phương án view. */
+async function expectPlanLine(page: Page, line: RegExp): Promise<void> {
+  await openView(page, "Phương án");
+  await expect(page.getByText(line)).toBeVisible();
+}
+
+/** "Dữ liệu trên máy" now sits in the (i) sheet (D-M6-11). */
+async function openLocalData(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }).click();
+  await page.getByRole("dialog", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }).locator("summary", { hasText: "Dữ liệu trên máy" }).click();
 }
 
 async function openSearch(page: Page): Promise<void> {
-  // At ≥1200 px the search pane is always visible; below that it is a tab.
-  if ((page.viewportSize()?.width ?? 0) < 1200) await page.getByRole("tab", { name: "Tìm môn" }).click();
+  // At ≥1200 px the search pane is always visible; below that it is the "Thêm lớp" view.
+  if ((page.viewportSize()?.width ?? 0) < 1200) await openView(page, "Thêm lớp");
   await expect(page.getByLabel("Mã hoặc tên môn")).toBeVisible();
 }
 
-async function openCourse(page: Page, query: string, code: string): Promise<void> {
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** M6 F4: the class sheet of a course is a modal dialog named "{code} {name}". */
+const classSheet = (page: Page, code: string) => page.getByRole("dialog", { name: new RegExp(`^${escapeRegExp(code)} `) });
+
+/** The course row in the search results (from 1200 px the calendar blocks, also named by course code, are on screen too). */
+const courseRow = (page: Page, code: string) => page.getByRole("region", { name: "Tìm môn" }).getByRole("button", { name: new RegExp(`^${escapeRegExp(code)} `) });
+
+/** Opens the class sheet of `code` and returns it. */
+async function openCourse(page: Page, query: string, code: string) {
   await openSearch(page);
   await page.getByLabel("Mã hoặc tên môn").fill(query);
-  const toggle = page.getByRole("button", { name: new RegExp(`^${code}`) });
-  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await courseRow(page, code).click();
+  const sheet = classSheet(page, code);
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+/** Opens the course of `section`, selects that class chip ("Lớp {id}[ đã chọn][ Trùng]") and returns its article. */
+async function openSection(page: Page, query: string, section: string) {
+  const sheet = await openCourse(page, query, section.split(" ")[0]!);
+  await checkChip(sheet.getByRole("radio", { name: new RegExp(`^Lớp ${escapeRegExp(section)}(?!\\d)`) }));
+  return sheet.getByRole("article", { name: `Lớp ${section}` });
+}
+
+/**
+ * Chip radios (class and group chips) are visually-hidden inputs under their label chip, which intercepts pointer
+ * events, so `locator.check()` cannot click the input: the chip (its label) is clicked, as a user would.
+ */
+async function checkChip(radio: Locator): Promise<void> {
+  if (await radio.isChecked()) return;
+  const id = await radio.getAttribute("id");
+  await radio.page().locator(`label[for="${id}"]`).click();
+  await expect(radio).toBeChecked();
+}
+
+/** A successful pick closes the sheet and marks the course row "✓ đã chọn lớp {id}". */
+async function expectPicked(page: Page, section: string): Promise<void> {
+  const code = section.split(" ")[0]!;
+  await expect(classSheet(page, code)).toBeHidden();
+  await expect(courseRow(page, code)).toHaveAccessibleName(new RegExp(` · ✓ đã chọn lớp ${escapeRegExp(section)}$`));
 }
 
 async function pick(page: Page, query: string, section: string, options: { group?: string; button?: RegExp } = {}): Promise<void> {
-  await openCourse(page, query, section.split(" ")[0]!);
-  const card = page.getByRole("article", { name: `Lớp ${section}` });
-  if (options.group) await card.getByLabel(`Nhóm ${options.group}`).check();
-  await card.getByRole("button", { name: options.button ?? /^(Chọn lớp này|Vẫn chọn)/ }).click();
-  await expect(card.getByText(/✓ Đã chọn/)).toBeVisible();
-}
-
-async function openTab(page: Page, name: RegExp): Promise<void> {
-  await page.getByRole("tab", { name }).click();
+  const card = await openSection(page, query, section);
+  if (options.group) await checkChip(card.getByLabel(`Nhóm ${options.group}`));
+  await card.getByRole("button", { name: options.button ?? /^(Thêm vào lịch|Vẫn thêm lớp này)$/ }).click();
+  await expectPicked(page, section);
 }
 
 async function pageOverflow(page: Page): Promise<number> {
@@ -68,14 +129,14 @@ test("AC-M3-01/02/03/04/06 — core flow on a 360 px phone, persisted across rel
   await page.setViewportSize({ width: 360, height: 780 });
   await startPlan(page);
   await pick(page, "giai tich", "SYN1001 1", { group: "1" });
-  await openCourse(page, "vat ly", "SYN1003");
-  const conflicting = page.getByRole("article", { name: "Lớp SYN1003 1" });
+  const conflicting = await openSection(page, "vat ly", "SYN1003 1");
   await expect(conflicting.getByText("⚠ Trùng lịch với SYN1001 1 (Giải tích 1): Thứ 2, tiết 1–3, tuần 9–15")).toBeVisible();
-  await conflicting.getByRole("button", { name: "Vẫn chọn lớp này (đang trùng lịch)" }).click();
+  await conflicting.getByRole("button", { name: "Vẫn thêm lớp này" }).click();
+  await expectPicked(page, "SYN1003 1");
   await pick(page, "ky nang so", "SYN3001 1");
-  await expect(page.getByText("⚠ 1 chỗ trùng lịch")).toBeVisible();
+  await expectPlanLine(page, /⚠ 1 chỗ trùng lịch/);
 
-  await openTab(page, /^Tuần$/);
+  await openView(page, "Lịch");
   await page.getByLabel("Chọn tuần").selectOption("9");
   const grid = page.getByRole("region", { name: /Lưới thời khóa biểu tuần 9/ });
   await expect(grid.locator(".block.is-conflict")).toHaveCount(2);
@@ -83,55 +144,59 @@ test("AC-M3-01/02/03/04/06 — core flow on a 360 px phone, persisted across rel
   await expect(page.getByText("Không có giờ cố định (không xếp vào lưới)").first()).toBeVisible();
   await shot(page, "360-week-grid");
 
-  await openTab(page, /^Ngày$/);
+  // F3: tapping a day in the day strip opens that day's list.
+  await page.getByRole("button", { name: /^Xem Thứ 2 12\/04\/2027/ }).click();
   await expect(page.getByRole("heading", { name: /Thứ 2, 12\/04\/2027/ })).toBeVisible();
   await shot(page, "360-day-list");
 
   await page.reload();
-  await expect(page.getByText(/3 lớp · 9 tín chỉ/)).toBeVisible();
+  await expectPlanLine(page, /3 lớp · 9 tín chỉ/);
 });
 
 test("AC-M3-05 — no horizontal page scroll at 360/768/1200/1280 and no serious axe violations", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize(viewport);
     expect(await pageOverflow(page), `onboarding overflow at ${viewport.name}`).toBeLessThanOrEqual(0);
     expect(await axeSerious(page), `onboarding axe at ${viewport.name}`).toEqual([]);
   }
   await page.setViewportSize({ width: 360, height: 780 });
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
+  await chooseCohort(page, "K69");
+  await startButton(page).click();
   await pick(page, "lap trinh", "SYN2001 1", { group: "2" });
   await pick(page, "SYN1001", "SYN1001 2");
-  await pick(page, "dai so", "SYN1002 2", { button: /Vẫn chọn/ });
+  await pick(page, "dai so", "SYN1002 2", { button: /^Vẫn thêm lớp này$/ });
   await pick(page, "giao duc", "SYN3005 1");
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize(viewport);
-    await openCourse(page, "SYN2001", "SYN2001");
+    const sheet = await openCourse(page, "SYN2001", "SYN2001");
     expect(await pageOverflow(page), `search at ${viewport.name}`).toBeLessThanOrEqual(0);
     expect(await axeSerious(page), `search axe at ${viewport.name}`).toEqual([]);
     await shot(page, `${viewport.name}-search`);
-    for (const tab of [/^(Tuần|Lịch tuần)$/, /^(Ngày|Theo ngày)$/, /^Phương án/]) {
-      await openTab(page, tab);
-      expect(await pageOverflow(page), `${tab} at ${viewport.name}`).toBeLessThanOrEqual(0);
-      expect(await axeSerious(page), `${tab} axe at ${viewport.name}`).toEqual([]);
+    // The class sheet is modal: close it before using the navigation.
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    for (const view of ["Lịch", "Phương án"] as const) {
+      await openView(page, view);
+      expect(await pageOverflow(page), `${view} at ${viewport.name}`).toBeLessThanOrEqual(0);
+      expect(await axeSerious(page), `${view} axe at ${viewport.name}`).toEqual([]);
     }
-    await openTab(page, /^(Tuần|Lịch tuần)$/);
+    await openView(page, "Lịch");
     await shot(page, `${viewport.name}-week`);
   }
-  // Sunday session adds a CN column; the grid scrolls inside its own region on phones.
+  // Sunday session adds a CN column; since M6 (AC-M6-05) every day column fits at 360 px with no horizontal scroll.
   await page.setViewportSize({ width: 360, height: 780 });
-  await expect(page.getByRole("heading", { name: /CN/ }).first()).toBeAttached();
-  const scroller = await page.locator(".grid-scroll").first().evaluate((element) => ({ scroll: element.scrollWidth, client: element.clientWidth }));
-  expect(scroller.scroll).toBeGreaterThan(scroller.client);
+  await expect(page.getByRole("button", { name: /^Xem Chủ nhật/ }).first()).toBeAttached();
+  const scroller = await page.locator(".week-grid-wrap").first().evaluate((element) => ({ scroll: element.scrollWidth, client: element.clientWidth }));
+  expect(scroller.scroll).toBeLessThanOrEqual(scroller.client);
 });
 
 test("AC-M3-05 — keyboard-only path from onboarding to a pick, with visible focus", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   const focusOn = async (matches: (element: { tag: string; text: string; label: string }) => boolean, max = 40) => {
     for (let index = 0; index < max; index += 1) {
       await page.keyboard.press("Tab");
@@ -146,25 +211,30 @@ test("AC-M3-05 — keyboard-only path from onboarding to a pick, with visible fo
     }
     throw new Error("element not reachable with Tab");
   };
-  await focusOn((element) => element.label === "Khóa");
-  await page.keyboard.press("ArrowDown");
-  await focusOn((element) => element.text === "Tạo phương án");
+  // F5: Tab enters the "Bạn khóa mấy?" chip radios on the first cohort; Space checks it (as ArrowDown picked the first
+  // cohort of the former select).
+  await focusOn((element) => element.tag === "INPUT" && /^K\d+$/.test(element.label));
+  await page.keyboard.press("Space");
+  await expect(page.locator("input[type=radio]:focus")).toBeChecked();
+  await focusOn((element) => element.text === "Bắt đầu");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
   await focusOn((element) => element.label === "Mã hoặc tên môn");
   await page.keyboard.type("SYN2003");
   await focusOn((element) => element.text.startsWith("SYN2003"));
   await page.keyboard.press("Enter");
-  await focusOn((element) => element.text === "Chọn lớp này");
+  await expect(classSheet(page, "SYN2003")).toBeVisible();
+  await focusOn((element) => element.text === "Thêm vào lịch");
   await page.keyboard.press("Enter");
+  await expectPicked(page, "SYN2003 1");
+  // F2: the main navigation is reached and used with the keyboard (buttons with aria-current).
+  const planNav = page.getByRole("navigation", { name: "Điều hướng chính" }).getByRole("button", { name: "Phương án", exact: true });
+  await planNav.focus();
+  await page.keyboard.press("Enter");
+  await expect(planNav).toHaveAttribute("aria-current", "page");
   await expect(page.getByText(/1 lớp · 3 tín chỉ/)).toBeVisible();
-  await page.getByRole("tab", { name: "Lịch tuần" }).focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: "Theo ngày" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tab", { name: "Theo ngày" })).toBeFocused();
-  await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: /^Phương án/ })).toHaveAttribute("aria-selected", "true");
-  await focusOn((element) => element.text === "Tải lịch (.ics)");
+  // F6: the export tile's text is "Điện thoại Tải lịch (.ics)" (title + format).
+  await focusOn((element) => element.tag === "BUTTON" && element.text.replace(/\s+/g, " ") === "Điện thoại Tải lịch (.ics)");
   const [ics] = await Promise.all([page.waitForEvent("download"), page.keyboard.press("Enter")]);
   expect(ics.suggestedFilename()).toBe("ky-nay-2026-2027-h2.ics");
 });
@@ -175,7 +245,7 @@ test("AC-M3-09/10 — ICS, PNG and Word exports carry the schedule and provenanc
   await pick(page, "giai tich", "SYN1001 1", { group: "1" });
   await pick(page, "kien truc", "SYN2003 1");
   await pick(page, "ky nang so", "SYN3001 1");
-  await openTab(page, /^Phương án/);
+  await openView(page, "Phương án");
 
   const [ics] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Tải lịch (.ics)" }).click()]);
   expect(ics.suggestedFilename()).toBe("ky-nay-2026-2027-h2.ics");
@@ -190,7 +260,9 @@ test("AC-M3-09/10 — ICS, PNG and Word exports carry the schedule and provenanc
   expect(unfolded).toContain("Dữ liệu mẫu tổng hợp");
   await expect(page.getByText(/gồm 33 buổi học/)).toBeVisible();
 
-  const [png] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Tải ảnh (.png)" }).click()]);
+  // M6 F7: the "Ảnh" tile opens a sheet (week image or poster).
+  await page.getByRole("button", { name: "Tải ảnh (.png)" }).click();
+  const [png] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Ảnh lịch tuần (.png)" }).click()]);
   const image = readFileSync(await png.path());
   expect(image.subarray(1, 4).toString("ascii")).toBe("PNG");
   expect(image.readUInt32BE(16)).toBe(3200);
@@ -229,21 +301,20 @@ test("AC-M3-06 — after the first online visit the Plan opens offline from the 
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText("Đang ngoại tuyến")).toBeVisible();
-  await expect(page.getByText(/1 lớp · 3 tín chỉ/)).toBeVisible();
-  await openTab(page, /^Phương án/);
+  await expect(page.getByRole("button", { name: "Ngoại tuyến" })).toBeVisible();
+  await expectPlanLine(page, /1 lớp · 3 tín chỉ/);
   await expect(page.getByRole("button", { name: "Tải lịch (.ics)" })).toBeEnabled();
   await context.setOffline(false);
 });
 
 test("AC-M3-06 — 'Xóa dữ liệu trên máy' removes the Plan", async ({ page }) => {
   await startPlan(page);
-  await page.locator("summary", { hasText: "Dữ liệu trên máy" }).click();
+  await openLocalData(page);
   await page.getByRole("button", { name: "Xóa dữ liệu trên máy" }).click();
   await page.getByRole("button", { name: "Xác nhận xóa" }).click();
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
 });
 
 test("REV-M3-002 — after 'Xóa dữ liệu trên máy' the next online visit makes the app work offline again", async ({ page, context }) => {
@@ -252,22 +323,23 @@ test("REV-M3-002 — after 'Xóa dữ liệu trên máy' the next online visit m
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
-  await page.locator("summary", { hasText: "Dữ liệu trên máy" }).click();
+  await openLocalData(page);
   await page.getByRole("button", { name: "Xóa dữ liệu trên máy" }).click();
   await page.getByRole("button", { name: "Xác nhận xóa" }).click();
-  await expect(page.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(page)).toBeVisible();
+  await page.keyboard.press("Escape");
   await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(0);
   // Creating a new Plan in the same tab (without reloading first) re-registers the worker and precaches the shell (QA-M3-102, QA-M3-104).
-  await page.getByLabel("Khóa", { exact: true }).selectOption("K69");
-  await page.getByRole("button", { name: "Tạo phương án" }).click();
-  await expect(page.getByRole("heading", { name: "Phương án nháp" })).toBeVisible();
+  await chooseCohort(page, "K69");
+  await startButton(page).click();
+  await expect(page.getByRole("navigation", { name: "Điều hướng chính" })).toBeVisible();
   await pick(page, "mang may tinh", "SYN2004 1");
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await expect.poll(() => page.evaluate(async () => (await caches.keys()).some((key) => key.startsWith("ky-nay-shell-")))).toBe(true);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText("Đang ngoại tuyến")).toBeVisible();
-  await expect(page.getByText(/1 lớp · 3 tín chỉ/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ngoại tuyến" })).toBeVisible();
+  await expectPlanLine(page, /1 lớp · 3 tín chỉ/);
   await context.setOffline(false);
 });
 
@@ -275,11 +347,12 @@ test("QA-M3-005 — two tabs never overwrite each other's Plan, and a wipe in on
   const first = await context.newPage();
   await first.setViewportSize({ width: 1280, height: 900 });
   await startPlan(first);
+  await openView(first, "Phương án");
   await pick(first, "mang may tinh", "SYN2004 1");
   const second = await context.newPage();
   await second.setViewportSize({ width: 1280, height: 900 });
   await second.goto("/");
-  await expect(second.getByText(/1 lớp · 3 tín chỉ/)).toBeVisible();
+  await expectPlanLine(second, /1 lớp · 3 tín chỉ/);
   // The second tab adds a class; the first tab is told and shows it without reloading.
   await pick(second, "SYN1002", "SYN1002 1");
   await expect(first.getByText(/2 lớp · 6 tín chỉ/)).toBeVisible();
@@ -287,14 +360,14 @@ test("QA-M3-005 — two tabs never overwrite each other's Plan, and a wipe in on
   await pick(first, "kien truc", "SYN2003 1");
   await expect(second.getByText(/3 lớp · 9 tín chỉ/)).toBeVisible();
   await first.reload();
-  await expect(first.getByText(/3 lớp · 9 tín chỉ/)).toBeVisible();
+  await expectPlanLine(first, /3 lớp · 9 tín chỉ/);
   // A wipe in one tab resets the other, which must not write its old Plan back.
-  await second.locator("summary", { hasText: "Dữ liệu trên máy" }).click();
+  await openLocalData(second);
   await second.getByRole("button", { name: "Xóa dữ liệu trên máy" }).click();
   await second.getByRole("button", { name: "Xác nhận xóa" }).click();
-  await expect(first.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(first)).toBeVisible();
   await first.reload();
-  await expect(first.getByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" })).toBeVisible();
+  await expect(startButton(first)).toBeVisible();
 });
 
 test("AC-M3-07 — a tampered artifact is rejected before it reaches the UI", async ({ page }) => {
@@ -348,19 +421,22 @@ test("AC-M3-07/12 — a new dataset version marks the Plan stale and rebases it 
   await expect(page.getByText(/sẽ bị bỏ khỏi phương án: SYN2003 1/)).toBeVisible();
   await page.getByRole("button", { name: "Xác nhận cập nhật" }).click();
   await expect(page.getByText("Dữ liệu thời khóa biểu đã có phiên bản khác")).toHaveCount(0);
-  await expect(page.getByText(/1 lớp · 3 tín chỉ/)).toBeVisible();
+  await expectPlanLine(page, /1 lớp · 3 tín chỉ/);
 });
 
 test("REV-M3-001/003 — a revision that renames a picked group keeps the conflict, asks for a new group and does not block other picks", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await startPlan(page);
   await pick(page, "SYN1001", "SYN1001 1", { group: "2" });
-  await pick(page, "SYN1003", "SYN1003 1", { button: /^Vẫn chọn/ });
+  await pick(page, "SYN1003", "SYN1003 1", { button: /^Vẫn thêm lớp này$/ });
+  await openView(page, "Phương án");
   const bar = page.locator(".plan-bar");
   await expect(bar.getByText(/1 chỗ trùng lịch/)).toBeVisible();
   await publishRevision(page, (sections) => sections.map((section) => (section.id === "SYN1001 1"
     ? { ...section, sessions: section.sessions.map((session) => (session.group === "2" ? { ...session, group: "3" } : session)) }
     : section)));
+  // The revision reloads the page, which opens on the calendar again.
+  await openView(page, "Phương án");
   // Before the rebase: the common Monday session still conflicts and the pick is flagged.
   await expect(bar.getByText(/1 chỗ trùng lịch/)).toBeVisible();
   await expect(bar.getByText(/1 lớp cần xử lý/)).toBeVisible();
@@ -374,7 +450,7 @@ test("REV-M3-001/003 — a revision that renames a picked group keeps the confli
   // An unrelated class can still be picked while SYN1001 1 waits for a group.
   await pick(page, "SYN2004", "SYN2004 1");
   // The common Monday session still overlaps SYN1003 1, so the button says so (QA-M3-007).
-  await pick(page, "SYN1001", "SYN1001 1", { group: "3", button: /^Vẫn đổi nhóm \(đang trùng lịch\)/ });
+  await pick(page, "SYN1001", "SYN1001 1", { group: "3", button: /^Vẫn đổi nhóm$/ });
   await expect(bar.getByText(/lớp cần xử lý/)).toHaveCount(0);
 });
 
@@ -390,11 +466,18 @@ test("AC-M3-08/13 — provenance, CSP, same-origin requests only and inert datas
   const headers = await (await page.request.get("/_headers")).text();
   expect(headers).toContain(`Content-Security-Policy: ${await meta.getAttribute("content")}; frame-ancestors 'none'`);
   for (const line of ["X-Frame-Options: DENY", "X-Content-Type-Options: nosniff", "Referrer-Policy: no-referrer", "Strict-Transport-Security: max-age=31536000"]) expect(headers).toContain(line);
-  await page.getByRole("button", { name: /Dữ liệu mẫu \(tổng hợp\) · synthetic-uet-2026-2027-h2\.1/ }).click();
-  const provenance = page.getByRole("region", { name: "Nguồn và phiên bản dữ liệu" });
-  for (const text of ["Dữ liệu mẫu (tổng hợp)", "SYNTHETIC-M3-WORKBOOK", "uet-xlsx@0.2.0", "chưa duyệt", "Mã kiểm tra (SHA-256)"]) await expect(provenance.getByText(text, { exact: false }).first()).toBeVisible();
-  await expect(page.getByText("không phải sản phẩm của nhà trường").first()).toBeVisible();
+  // A-M6-2: the source is one tap away, from the term chip.
+  await page.getByRole("button", { name: /^Nguồn dữ liệu: / }).click();
+  const provenance = page.getByRole("dialog", { name: "Nguồn và phiên bản dữ liệu" });
+  for (const text of ["Dữ liệu mẫu (tổng hợp)", "SYNTHETIC-M3-WORKBOOK", "uet-xlsx@0.2.0", "chưa duyệt", "Mã kiểm tra (SHA-256)", "synthetic-uet-2026-2027-h2.1"]) await expect(provenance.getByText(text, { exact: false }).first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  // A-M6-1: the independence sentence is in the (i) sheet (and on the start screen and exports), not on the calendar.
+  await page.getByRole("button", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }).click();
+  await expect(page.getByRole("dialog", { name: "Giới thiệu, quyền riêng tư & báo lỗi" }).getByText("không phải sản phẩm của nhà trường").first()).toBeVisible();
+  await page.keyboard.press("Escape");
   await pick(page, "kiem thu", "SYN9999 1");
+  // The lecturer text is shown in the class sheet, which a successful pick closes: reopen it.
+  await courseRow(page, "SYN9999").click();
   await expect(page.getByText(/<img src=x onerror=/).first()).toBeVisible();
   expect(await page.evaluate(() => (window as { __kyNayXss?: number }).__kyNayXss)).toBeUndefined();
   expect(requests.filter((request) => !request.url.startsWith(baseURL!))).toEqual([]);

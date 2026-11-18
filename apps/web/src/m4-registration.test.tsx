@@ -286,15 +286,22 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     const user = userEvent.setup();
     render(<App />);
     await screen.findByRole("heading", { name: "Bắt đầu xếp thời khóa biểu" });
-    await user.selectOptions(screen.getByLabelText("Khóa"), "K69");
-    await user.click(screen.getByRole("button", { name: "Tạo phương án" }));
-    await screen.findByRole("heading", { name: "Phương án nháp" });
+    await user.click(screen.getByLabelText("K69"));
+    await user.click(screen.getByRole("button", { name: "Bắt đầu" }));
+    await screen.findByRole("navigation", { name: "Điều hướng chính" });
+    // M6 F2: Lịch · Thêm lớp · Phương án are main-navigation buttons (formerly tabs).
+    const nav = (name: "Lịch" | "Thêm lớp" | "Phương án") => within(screen.getByRole("navigation", { name: "Điều hướng chính" })).getByRole("button", { name });
+    await user.click(nav("Thêm lớp"));
 
     // Pick SYN4001 1 in draft plan
     const searchInput = screen.getByLabelText("Mã hoặc tên môn");
     await user.type(searchInput, "seminar");
-    await user.click(await screen.findByRole("button", { name: /SYN4001/ }));
-    await user.click(within(screen.getByRole("article", { name: "Lớp SYN4001 1" })).getByRole("button", { name: "Chọn lớp này" }));
+    await user.click(await screen.findByRole("button", { name: /^SYN4001 / }));
+    // M6 F4: the course row opens the class sheet; a successful pick closes it.
+    const classSheet = await screen.findByRole("dialog", { name: /^SYN4001 / });
+    await user.click(within(within(classSheet).getByRole("article", { name: "Lớp SYN4001 1" })).getByRole("button", { name: "Thêm vào lịch" }));
+    expect(screen.queryByRole("dialog", { name: /^SYN4001 / })).toBeNull();
+    await user.click(nav("Phương án"));
     expect(await screen.findByRole("button", { name: "Phương án nháp (1)" })).toBeTruthy();
 
     // Open Registration Import panel and verify in-app browser banner (Q-007 / REV-M4-003)
@@ -313,31 +320,36 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
     const makeFile = () => new File([html], "23029876_secret_ketqua.doc", { type: "application/msword" });
 
     // 1. Upload and click Hủy -> nothing saved to final slot
-    await user.upload(screen.getByLabelText(/Chọn file Kết quả đăng ký môn học/), makeFile());
+    // M6 F6: the import is a sheet whose title renders before the lazily loaded panel, so wait for the file input.
+    await user.upload(await screen.findByLabelText(/Chọn file Kết quả đăng ký môn học/), makeFile());
     expect(await screen.findByRole("heading", { name: /Xem trước trước khi lưu: 2 lớp khớp TKB/ })).toBeTruthy();
     expect(screen.getByText(/Có 1 lớp trong file ĐKMH không khớp dữ liệu TKB/)).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Hủy" }));
+    expect(screen.queryByRole("heading", { name: "Nhập kết quả đăng ký môn học (ĐKMH)" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Phương án chính thức/ })).toBeNull();
 
     // 2. Re-open, upload and click Confirm -> switches to Phương án chính thức
     await user.click(screen.getByRole("button", { name: "Nhập kết quả ĐKMH" }));
-    await user.upload(screen.getByLabelText(/Chọn file Kết quả đăng ký môn học/), makeFile());
+    await user.upload(await screen.findByLabelText(/Chọn file Kết quả đăng ký môn học/), makeFile());
     await user.click(await screen.findByRole("button", { name: "Áp dụng vào Phương án chính thức" }));
 
     expect(await screen.findByRole("heading", { name: "Phương án chính thức" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Nhập kết quả đăng ký môn học (ĐKMH)" })).toBeNull();
     expect(screen.getByRole("button", { name: "Phương án nháp (1)" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Phương án chính thức (2)" })).toBeTruthy();
 
     // Check Plan tab on Phương án chính thức
-    await user.click(screen.getByRole("tab", { name: /^Phương án/ }));
-    const planPanel = await screen.findByRole("tabpanel");
+    await user.click(nav("Phương án"));
+    const planPanel = await screen.findByRole("region", { name: "Phương án" });
     expect(within(planPanel).getAllByText("Đã đổi phòng").length).toBeGreaterThan(0);
     expect(within(planPanel).getByText(/Phòng học: Hòa Lạc A101 → 305-G2 \(theo ĐKMH\)/)).toBeTruthy();
     expect(within(planPanel).getByText(/Có 1 lớp trong file ĐKMH chưa khớp dữ liệu TKB/)).toBeTruthy();
 
-    // Select group 2 for SYN1001 1 inline in PlanSummary
-    const groupSelect = within(planPanel).getByLabelText("Nhóm thực hành");
-    await user.selectOptions(groupSelect, "2");
+    // Select group 2 for SYN1001 1 inline in the plan list (M6 F6: "Nhóm thực hành" is a fieldset of chip radios)
+    const groupRow = within(planPanel).getByText("SYN1001 1").closest("li")!;
+    expect(within(groupRow).getByRole("group", { name: "Nhóm thực hành" })).toBeTruthy();
+    await user.click(within(groupRow).getByLabelText("Nhóm 2"));
+    expect((within(groupRow).getByLabelText("Nhóm 2") as HTMLInputElement).checked).toBe(true);
     await waitFor(() => expect(screen.queryByText(/1 lớp cần xử lý/)).toBeNull());
     // Overrides remain intact after selecting group
     expect(within(planPanel).getByText(/Phòng học: Hòa Lạc A101 → 305-G2 \(theo ĐKMH\)/)).toBeTruthy();
@@ -348,25 +360,30 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
       { courseCode: "SYN1003", courseName: "Vật lý đại cương", credits: "3", sectionId: "SYN1003 1", day: "T2", periods: "1 - 3", room: "409-G2" },
     ]);
     await user.upload(
-      screen.getByLabelText(/Chọn file Kết quả đăng ký môn học/),
+      await screen.findByLabelText(/Chọn file Kết quả đăng ký môn học/),
       new File([htmlUpdated], "23029876_secret_ketqua.doc", { type: "application/msword" }),
     );
     await user.click(await screen.findByRole("button", { name: "Xác nhận cập nhật Phương án chính thức" }));
     expect(await screen.findByRole("button", { name: "Phương án chính thức (1)" })).toBeTruthy();
 
     // Check Day tab ("Tất cả các tuần") shows updated override badge and detail (409-G2, not 305-G2)
-    await user.click(screen.getByRole("tab", { name: "Ngày" }));
-    const dayPanel = await screen.findByRole("tabpanel");
-    await user.selectOptions(within(dayPanel).getByLabelText("Chọn tuần"), "all");
+    await user.click(nav("Lịch"));
+    const calendar = await screen.findByRole("region", { name: "Lịch" });
+    await user.selectOptions(within(calendar).getByLabelText("Chọn tuần"), "all");
+    // M6 F3: the session sheet (tap the block) carries the override badge and "from → to" detail.
+    await user.click(within(calendar).getAllByRole("button", { name: /^SYN1003 Vật lý đại cương/ })[0]!);
+    const dayPanel = await screen.findByRole("dialog", { name: /^SYN1003/ });
     expect(within(dayPanel).getAllByText("Đã đổi phòng").length).toBeGreaterThan(0);
     expect(within(dayPanel).getByText(/Phòng học: Hòa Lạc A101 → 409-G2 \(theo ĐKMH\)/)).toBeTruthy();
     expect(within(dayPanel).queryByText(/305-G2/)).toBeNull();
+    await user.click(within(dayPanel).getByRole("button", { name: "Đóng" }));
 
     // Switch back to Phương án nháp -> SYN4001 1 is still preserved
+    await user.click(nav("Phương án"));
     await user.click(screen.getByRole("button", { name: "Phương án nháp (1)" }));
     expect(await screen.findByRole("heading", { name: "Phương án nháp" })).toBeTruthy();
-    await user.click(screen.getByRole("tab", { name: /^Phương án/ }));
-    expect(within(await screen.findByRole("tabpanel")).getByText(/SYN4001 1/)).toBeTruthy();
+    await user.click(nav("Phương án"));
+    expect(within(await screen.findByRole("region", { name: "Phương án" })).getByText(/SYN4001 1/)).toBeTruthy();
 
     // Verify zero PII in DOM and IndexedDB
     const domText = document.body.textContent ?? "";
@@ -385,7 +402,7 @@ describe("M4 UI flow: preview, confirm, 2-slot switcher, group picker, re-import
 
     // Switch back to Phương án chính thức and delete it -> returns to Phương án nháp
     await user.click(screen.getByRole("button", { name: "Phương án chính thức (1)" }));
-    await user.click(screen.getByRole("tab", { name: /^Phương án/ }));
+    await user.click(nav("Phương án"));
     await user.click(screen.getByRole("button", { name: "Xóa phương án chính thức" }));
     await user.click(screen.getByRole("button", { name: "Xác nhận xóa phương án chính thức" }));
     expect(await screen.findByRole("heading", { name: "Phương án nháp" })).toBeTruthy();

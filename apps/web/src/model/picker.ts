@@ -100,3 +100,31 @@ export function applyPick(plan: Plan, catalog: AppCatalog, pick: PlanPick, now: 
 export function unpick(plan: Plan, sectionId: string, now: string): Plan {
   return { ...removePlanPick(plan, sectionId), updatedAt: now };
 }
+
+/** The Plan as it would be with `pick` (replacing the course's other section), unvalidated: for previews only. */
+export function candidatePlan(plan: Plan, catalog: AppCatalog, pick: PlanPick): Plan {
+  return withPick(plan, catalog, pick);
+}
+
+/**
+ * DESIGN-M6-001 §8, AC-M6-09: the "Không trùng lịch" filter. A section fits when adding it creates no hard conflict
+ * (specific weeks × periods × overlapping weeks, via `previewPick`); with groups, one fitting group is enough. A section
+ * already in the Plan always fits, so the filter never hides what the user has chosen.
+ */
+export function sectionFits(plan: Plan, catalog: AppCatalog, section: Section): boolean {
+  if (isPicked(plan, section)) return true;
+  const groups = groupOptions(section);
+  if (groups.length === 0) return previewPick(plan, catalog, { sectionId: section.id }).conflicts.length === 0;
+  return groups.some((group) => previewPick(plan, catalog, { sectionId: section.id, group }).conflicts.length === 0);
+}
+
+/** The pick a hover/focus preview shows for `section` (F4 §8): the picked group, else the first group that fits, else the first group. */
+export function previewTargetFor(plan: Plan, catalog: AppCatalog, section: Section): PlanPick {
+  const groups = groupOptions(section);
+  if (groups.length === 0) return { sectionId: section.id };
+  const picked = normalizeGroup(isPicked(plan, section)?.group);
+  const group = (picked && groups.includes(picked) ? picked : undefined)
+    ?? groups.find((option) => previewPick(plan, catalog, { sectionId: section.id, group: option }).conflicts.length === 0)
+    ?? groups[0]!;
+  return { sectionId: section.id, group };
+}

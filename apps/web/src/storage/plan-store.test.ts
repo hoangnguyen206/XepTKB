@@ -2,7 +2,7 @@ import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
 import { createPlan } from "@ky-nay/domain";
 import { idbEntries, idbPut, openDb } from "./db.js";
-import { datasetCache, loadSettings, saveSettings, wipeLocalData } from "./local-data.js";
+import { datasetCache, loadSettings, mutateSettings, wipeLocalData } from "./local-data.js";
 import { listBackups, loadPlans, migratePlanRecord, savePlan, savePlanIfUnchanged } from "./plan-store.js";
 
 const plan = createPlan({ id: "p1", term: "2026-2027-h2", datasetVersion: "v1", name: "Phương án nháp", planKind: "draft", picks: [{ sectionId: "SYN1001 1", group: "1" }], cohort: "K69" }, "2026-10-25T00:00:00.000Z");
@@ -86,7 +86,7 @@ describe("Plan persistence and migration (DOMAIN_MODEL §9, QA-M2-005)", () => {
   it("wipe clears plans, dataset cache, settings and backups", async () => {
     const db = await openDb(new IDBFactory());
     await savePlan(db, plan);
-    await saveSettings(db, { activeTerm: "2026-2027-h2" });
+    await mutateSettings(db, () => ({ activeTerm: "2026-2027-h2" }));
     await idbPut(db, "backups", { reason: "x", movedAt: "y", record: {} });
     await wipeLocalData(db);
     expect((await loadPlans(db)).plans).toEqual([]);

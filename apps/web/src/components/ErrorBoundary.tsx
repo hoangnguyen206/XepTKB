@@ -74,28 +74,28 @@ export function AppErrorFallback(props: { errorName: string } & RecoveryActions)
 
   return (
     <>
-      <header className="app-header">
-        <div className="brand">
+      <header className="app-bar">
+        <div className="app-bar-row">
           <p className="app-name">{APP_NAME}</p>
-          <p className="tagline">{INDEPENDENCE_NOTE}</p>
         </div>
+        <p className="independence-note">{INDEPENDENCE_NOTE}</p>
       </header>
       <main id="main" className="error-screen">
         <div className="card">
           <h1 ref={headingRef} tabIndex={-1}>Ứng dụng gặp lỗi</h1>
           <p>Đã có lỗi khi hiển thị giao diện. Phương án của bạn vẫn được lưu trên thiết bị này — thường chỉ cần tải lại trang.</p>
           <div className="actions">
-            <button type="button" className="button primary" onClick={reload}>Tải lại trang</button>
+            <button type="button" className="btn btn-primary" onClick={reload}>Tải lại trang</button>
             {confirming ? null : (
-              <button type="button" className="button secondary" onClick={() => setConfirming(true)}>Xóa dữ liệu trên máy rồi tải lại</button>
+              <button type="button" className="btn btn-secondary" onClick={() => setConfirming(true)}>Xóa dữ liệu trên máy rồi tải lại</button>
             )}
           </div>
           {confirming ? (
             <div className="confirm-box">
               <p>Xóa phương án, dữ liệu thời khóa biểu đã lưu và bộ nhớ đệm của ứng dụng trên thiết bị này? Không thể hoàn tác. Hãy xuất phương án trước nếu còn cần.</p>
               <div className="actions">
-                <button type="button" className="button danger" disabled={busy} onClick={wipe}>Xác nhận xóa và tải lại</button>
-                <button type="button" className="button secondary" disabled={busy} onClick={() => setConfirming(false)}>Hủy</button>
+                <button type="button" className="btn btn-danger" disabled={busy} onClick={wipe}>Xác nhận xóa và tải lại</button>
+                <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setConfirming(false)}>Hủy</button>
               </div>
             </div>
           ) : null}

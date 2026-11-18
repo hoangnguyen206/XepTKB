@@ -6,7 +6,7 @@
 > **Date:** 2026-11-12  
 > **Owner:** Tech Lead + Frontend  
 > **Decision owner:** Owner (Product + Tech Lead); Security Reviewer được tham vấn  
-> **Last reviewed:** 2026-11-12  
+> **Last reviewed:** 2026-11-17  
 > **Related docs:** [DESIGN-M6-001](../evidence/M6-DESIGN-HANDOFF.md), [SPEC-M6-001](../evidence/M6-SPEC.md), [PLAN-M6-001](../evidence/M6-FRONTEND-REFRESH-PLAN.md), [ADR-0010](ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0013](ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [ADR-0014](ADR-0014-m5-release-observability-without-telemetry.md), [Architecture](../ARCHITECTURE.md), [Security & privacy](../SECURITY_PRIVACY.md)  
 > **Evidence envelope:** `EVID-M6-001` — `N/A — docs-only` (chưa chạy code cho ADR này)  
 > **Supersedes:** none. Đề xuất sửa câu chữ của ADR-0014 điểm 3 và ADR-0010 §2 quy tắc 4 (mục Decision, điểm 7)
@@ -32,7 +32,7 @@
 
 ## Decision
 
-1. **Token CSS tĩnh.** CSS thuần chia thành nhiều file trong **new** `apps/web/src/styles/`, gom bằng một entry **new** `styles/index.css` (cascade layer: legacy → tokens → base → components → screens → print) và chỉ import từ `main.tsx`. Module component không import CSS, nên build ra đúng một file CSS ban đầu và chunk lazy không có CSS. Mã màu chỉ được nằm trong **new** `styles/tokens.css`, **new** `styles/print.css` và **new** `model/palette.ts`.
+1. **Token CSS tĩnh.** CSS thuần chia thành nhiều file trong **new** `apps/web/src/styles/`, gom bằng một entry **new** `styles/index.css` (cascade layer: tokens → base → legacy → components → screens → print; thứ tự sửa ở F1b, xem DESIGN-M6-001 §2; **r3:** F7 xóa `styles/legacy.css` và layer `legacy`, thứ tự còn tokens → base → components → screens → print) và chỉ import từ `main.tsx`. Module component không import CSS, nên build ra đúng một file CSS ban đầu và chunk lazy không có CSS. Mã màu chỉ được nằm trong **new** `styles/tokens.css`, **new** `styles/print.css` và **new** `model/palette.ts`.
 2. **Theme.** Giá trị sáng đặt trên :root. Giá trị tối áp khi hệ điều hành ở chế độ tối và data-theme khác "light", hoặc khi data-theme là "dark". Thuộc tính **new** `data-theme` trên thẻ html do **new** `applyTheme` (**new** `app/theme.ts`) đặt sau khi đọc settings. Người dùng "Hệ thống" không bị nháy theme. Người chọn theme ngược với hệ điều hành thấy theme hệ điều hành trong lúc chờ đọc IndexedDB; rủi ro này được chấp nhận vì mọi cách tránh đều phải có script inline hoặc storage đồng bộ.
 3. **Bảng màu môn là TS và là nguồn duy nhất.**
    - **new** `COURSE_PALETTE` gồm 10 cặp sáng/tối (giá trị và tỉ lệ ở DESIGN §3).
@@ -40,10 +40,10 @@
    - Canvas export và test tương phản import thẳng module.
    - **new** `assignCourseColors` gán màu tất định: hash mã môn + dò theo thứ tự pick, màu người dùng chọn đè lên.
 4. **Font tự host.**
-   - Nguồn: Be Vietnam Pro 400/600/800, subset vietnamese + latin, chỉ woff2, lấy từ devDependency pin version **new** `@fontsource/be-vietnam-pro`.
+   - Nguồn: Be Vietnam Pro 400/800 (600 bỏ theo D-M6-12), subset vietnamese + latin, chỉ woff2, lấy từ devDependency pin version **new** `@fontsource/be-vietnam-pro`.
    - Lưu trữ: **new** `scripts/sync-fonts.mjs` chép vào **new** `apps/web/src/assets/fonts/`, file được commit kèm giấy phép OFL.
    - Phục vụ: Vite băm tên file và đưa vào bundle, nên `serviceWorker()` precache mà không phải sửa `PUBLIC_SHELL`. Cấm inline dạng data: vì `font-src 'self'` sẽ chặn.
-   - Nạp sẵn: **new** `warmFonts` nạp đủ 3 độ đậm lúc khởi động, để luồng nhập ĐKMH (cửa sổ 0 request trong `apps/web/e2e/m4.spec.ts`) không phát sinh request font.
+   - Nạp sẵn: **new** `warmFonts` nạp đủ 2 độ đậm lúc khởi động, để luồng nhập ĐKMH (cửa sổ 0 request trong `apps/web/e2e/m4.spec.ts`) không phát sinh request font.
    - Ngân sách: **new** `fontsMaxBytes` (90 000 B).
 5. **Icon là component SVG nhúng** (**new** `components/icons.tsx`), path chép từ một release Lucide pin version (ISC, phần gốc Feather theo MIT). Không có icon font, không có file sprite, không có package icon. Giấy phép OFL/ISC/MIT nằm trong **new** `apps/web/public/licenses.txt` (precache).
 6. **Settings giao diện trên máy** (trong `Settings`, không tăng version DB):
@@ -106,7 +106,7 @@
 
 - Người chọn theme ngược với hệ điều hành có thể thấy nháy theme trong lúc tải.
 - Bảng token tối được viết hai lần; test kiểm hai bản giống nhau.
-- Kích thước 6 file font chưa đo; nếu vượt 90 KB thì Owner phải quyết (bỏ một độ đậm hoặc nới ngân sách).
+- Font đã đo ở F1a: 6 file = 101 632 B vượt 90 KB; Owner bỏ độ đậm 600 (D-M6-12), còn 4 file = 67 424 B.
 - JS ban đầu chỉ còn trống khoảng 10.3 KiB (đo ở `5fdce55`). DESIGN-M6-001 §14 có ngưỡng kích hoạt để dời phần export sang chunk lazy.
 
 ### Privacy/security
@@ -151,11 +151,14 @@
 
 | Action | Owner | Due/trigger | Status |
 | --- | --- | --- | --- |
-| Pin version `@fontsource/be-vietnam-pro`, đo 6 file woff2 so với 90 KB | Platform | F1a | open |
-| Thêm 3 trường settings vào kho dữ liệu cá nhân trong `docs/SECURITY_PRIVACY.md` §2 | Security Reviewer | G2 của F1b | open |
+| Pin version `@fontsource/be-vietnam-pro`, đo 6 file woff2 so với 90 KB | Platform | F1a | done — pin `5.3.0`; 6 file = 101 632 B > 90 000 B; Owner chọn bỏ 600 (D-M6-12), 4 file = 67 424 B |
+| Thêm 3 trường settings vào kho dữ liệu cá nhân trong `docs/SECURITY_PRIVACY.md` §2 | Security Reviewer | G2 của F1b | done — dòng "UI settings (M6)" có từ PR #10; câu chữ quyền riêng tư trong ứng dụng cập nhật ở F1b |
 | Sửa câu chữ ADR-0014 điểm 3 và ADR-0010 quy tắc 4 nếu Owner đồng ý (Q-3) | Tech Lead | khi ký G1 | open |
 | Thêm ADR-0015 vào bảng ADR của `docs/README.md` và `docs/TECH_STACK.md` | Tech Lead | khi ký G1 | open |
 
 | Change ID | Date/actor | Reason | Supersedes |
 | --- | --- | --- | --- |
 | ADR-0015-r0 | 2026-11-12, Tech Lead (agent) | Đề xuất ban đầu cho G1 của M6 | — |
+| ADR-0015-r1 | 2026-11-12, Platform (agent), quyết định của Owner `2026-11-12T15:35Z` | Font đo vượt ngân sách ở F1a; bỏ độ đậm 600 (D-M6-12) | điểm 4 (độ đậm) |
+| ADR-0015-r2 | 2026-11-13, Frontend (agent) | Thứ tự cascade layer: base nằm dưới legacy (F1b) | điểm 1 (thứ tự layer) |
+| ADR-0015-r3 | 2026-11-17, Frontend (agent), theo G3c `REV-M6-005` | F7 xóa `styles/legacy.css` và layer `legacy` | điểm 1 (thứ tự layer) |

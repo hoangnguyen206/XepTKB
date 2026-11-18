@@ -1,0 +1,29 @@
+/*
+ * The only stylesheet entry (DESIGN-M6-001 §2, ADR-0015 point 1), imported once from main.tsx. Component modules never
+ * import CSS: a lazy chunk with its own CSS would add a request and leave the budget (requireSingleCss).
+ * Layer order, lowest first: tokens → base → components → screens → print. A higher layer wins regardless of
+ * specificity, so base holds only element defaults and small utilities (native fields, main, .muted) that components
+ * and screens restyle. F7 removed the M3–M5 legacy layer; its live rules moved to the files below.
+ */
+@layer tokens, base, components, screens, print;
+
+@import "./tokens.css" layer(tokens);
+@import "./fonts.css" layer(base);
+@import "./base.css" layer(base);
+@import "./components/button.css" layer(components);
+@import "./components/chip.css" layer(components);
+@import "./components/segmented.css" layer(components);
+@import "./components/sheet.css" layer(components);
+@import "./components/toast.css" layer(components);
+@import "./components/cards.css" layer(components);
+@import "./components/course-color.css" layer(components);
+@import "./components/forms.css" layer(components);
+@import "./components/notice.css" layer(components);
+@import "./components/badge.css" layer(components);
+@import "./screens/app-shell.css" layer(screens);
+@import "./screens/calendar.css" layer(screens);
+@import "./screens/add-class.css" layer(screens);
+@import "./screens/import.css" layer(screens);
+@import "./screens/start.css" layer(screens);
+@import "./screens/plan.css" layer(screens);
+@import "./print.css" layer(print);

@@ -1,0 +1,7 @@
+/* Component gallery layout (test-only page, DESIGN-M6-001 §12). Colours come from tokens only. */
+.gallery { max-width: 1080px; margin: 0 auto; padding: var(--s-6) var(--s-4) 120px; }
+.gallery h1 { font-size: var(--fs-28); }
+.gallery-section { margin-top: var(--s-6); padding: var(--s-4); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-1); }
+.gallery-section h2 { font-size: var(--fs-16); color: var(--muted); }
+.gallery-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.gallery-wide { flex: 1 1 100%; }

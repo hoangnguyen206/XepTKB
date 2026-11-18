@@ -4,13 +4,16 @@ import type { Plan } from "@ky-nay/domain";
 import { ArtifactError, type LoadedDataset } from "../data/contract.js";
 import { loadDataset, type DatasetCacheLike, type TermOption } from "../data/loader.js";
 import { buildAppCatalog, type AppCatalog } from "../model/catalog.js";
+import type { HintId } from "../model/hints.js";
+import type { CourseColorId } from "../model/palette.js";
 import { openDb } from "../storage/db.js";
-import { datasetCache, loadSettings, saveSettings, updateSettings, wipeLocalData, type Settings, type TermRegistrationNotes } from "../storage/local-data.js";
+import { datasetCache, loadSettings, mutateSettings, updateSettings, wipeLocalData, withCourseColor, type Settings, type TermRegistrationNotes } from "../storage/local-data.js";
 import { deletePlan, loadPlans, savePlanIfUnchanged } from "../storage/plan-store.js";
 import { ensureServiceWorkerAfterWipe } from "./sw-client.js";
+import { applyTheme, type ThemePreference } from "./theme.js";
 
-/** Cross-tab messages (QA-M3-005): another tab saved Plans or wiped the device data. */
-type TabMessage = { type: "plans-changed" } | { type: "wiped" };
+/** Cross-tab messages (QA-M3-005): another tab saved Plans or UI settings (M6), or wiped the device data. */
+type TabMessage = { type: "plans-changed" } | { type: "settings-changed" } | { type: "wiped" };
 const CHANNEL = "ky-nay";
 
 /** ADR-0010 §2 rule 4 / SEC-M3-003: dev server and preview builds with VITE_ALLOW_UNPUBLISHED=true may load unpublished data; explicit "false" always disables it. */
@@ -26,7 +29,22 @@ export type Ready = {
   plans: Plan[];
   activeSlots: Record<string, "draft" | "final">;
   registrationNotes: Record<string, TermRegistrationNotes>;
+  /** M6 UI settings (DESIGN-M6-001 §4). */
+  theme: ThemePreference;
+  courseColors: Record<string, CourseColorId>;
+  seenHints: Partial<Record<HintId, true>>;
 };
+
+/** The settings fields every Ready state carries. */
+function settingsView(settings: Settings): Pick<Ready, "activeSlots" | "registrationNotes" | "theme" | "courseColors" | "seenHints"> {
+  return {
+    activeSlots: settings.activeSlots ?? {},
+    registrationNotes: settings.registrationNotes ?? {},
+    theme: settings.theme ?? "system",
+    courseColors: settings.courseColors ?? {},
+    seenHints: settings.seenHints ?? {},
+  };
+}
 
 export type AppState =
   | { status: "loading" }
@@ -44,6 +62,8 @@ export function useAppController() {
   const [state, setState] = useState<AppState>({ status: "loading" });
   const [notices, setNotices] = useState<StorageNotice[]>([]);
   const [wipeGeneration, setWipeGeneration] = useState(0);
+  // Outside Ready too: the About panel (theme picker) is reachable while loading or when data is unavailable.
+  const [theme, setThemeState] = useState<ThemePreference>("system");
   const dbRef = useRef<IDBDatabase | undefined>(undefined);
   const cacheRef = useRef<DatasetCacheLike>(memoryCache());
   const plansRef = useRef<Plan[]>([]);
@@ -51,20 +71,20 @@ export function useAppController() {
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
   const channelRef = useRef<BroadcastChannel | undefined>(undefined);
 
+  /** Makes `nextSettings` current: ref, theme attribute and the Ready state. */
+  const showSettings = useCallback((nextSettings: Settings) => {
+    settingsRef.current = nextSettings;
+    const preference = nextSettings.theme ?? "system";
+    applyTheme(preference);
+    setThemeState(preference);
+    setState((current) => (current.status === "ready" ? { ...current, ...settingsView(nextSettings) } : current));
+  }, []);
+
   const showPlans = useCallback((plans: Plan[], nextSettings: Settings = settingsRef.current) => {
     plansRef.current = plans;
-    settingsRef.current = nextSettings;
-    setState((current) =>
-      current.status === "ready"
-        ? {
-            ...current,
-            plans,
-            activeSlots: nextSettings.activeSlots ?? {},
-            registrationNotes: nextSettings.registrationNotes ?? {},
-          }
-        : current,
-    );
-  }, []);
+    setState((current) => (current.status === "ready" ? { ...current, plans } : current));
+    showSettings(nextSettings);
+  }, [showSettings]);
 
   const reloadPlans = useCallback(async () => {
     const db = dbRef.current;
@@ -101,8 +121,7 @@ export function useAppController() {
       terms: result.terms,
       ...(result.kind === "cached" ? { cached: { reason: result.reason, error: result.error } } : {}),
       plans: plansRef.current,
-      activeSlots: settingsRef.current.activeSlots ?? {},
-      registrationNotes: settingsRef.current.registrationNotes ?? {},
+      ...settingsView(settingsRef.current),
     });
   }, []);
 
@@ -117,6 +136,11 @@ export function useAppController() {
         cacheRef.current = datasetCache(db);
         const loadedSettings = await loadSettings(db);
         settingsRef.current = loadedSettings;
+        // DESIGN-M6-001 §2: before the dataset loads, so a saved theme shows as early as IndexedDB allows.
+        if (!cancelled) {
+          applyTheme(loadedSettings.theme ?? "system");
+          setThemeState(loadedSettings.theme ?? "system");
+        }
         activeTerm = loadedSettings.activeTerm;
         const report = await loadPlans(db);
         plansRef.current = report.plans;
@@ -233,7 +257,12 @@ export function useAppController() {
     saveChainRef.current = saveChainRef.current.then(async () => {
       try {
         await deletePlan(db, planId);
-        await saveSettings(db, nextSettings);
+        // ADR-0015 point 6: read-modify-write in one transaction, so UI settings saved by another tab are kept.
+        await mutateSettings(db, (current) => {
+          const registrationNotes = { ...(current.registrationNotes ?? {}) };
+          delete registrationNotes[term];
+          return { ...current, activeSlots: { ...(current.activeSlots ?? {}), [term]: "draft" }, registrationNotes };
+        });
         channelRef.current?.postMessage({ type: "plans-changed" } satisfies TabMessage);
       } catch {
         setNotices((current) => [...current, { kind: "warning", text: "Không xóa được phương án chính thức khỏi bộ nhớ trình duyệt." }]);
@@ -246,11 +275,50 @@ export function useAppController() {
     const db = dbRef.current;
     plansRef.current = [];
     settingsRef.current = {};
+    applyTheme("system");
+    setThemeState("system");
     cacheRef.current = db ? datasetCache(db) : memoryCache();
     setWipeGeneration((n) => n + 1);
     setNotices([{ kind: "info", text }]);
     await load(undefined);
   }, [load]);
+
+  /** Saves one UI settings change (theme, course colour, hint) after the queued saves; other tabs reload settings. */
+  const saveUiSetting = useCallback(async (local: (current: Settings) => Settings) => {
+    showSettings(local(settingsRef.current));
+    const db = dbRef.current;
+    if (!db) return;
+    saveChainRef.current = saveChainRef.current.then(async () => {
+      try {
+        await mutateSettings(db, local);
+        channelRef.current?.postMessage({ type: "settings-changed" } satisfies TabMessage);
+      } catch {
+        setNotices((current) => [...current, { kind: "warning", text: "Không lưu được cài đặt giao diện vào bộ nhớ trình duyệt." }]);
+      }
+    });
+    await saveChainRef.current;
+  }, [showSettings]);
+
+  const setTheme = useCallback(
+    (preference: ThemePreference) => saveUiSetting((current) => {
+      const next = { ...current };
+      if (preference === "system") delete next.theme;
+      else next.theme = preference;
+      return next;
+    }),
+    [saveUiSetting],
+  );
+
+  /** `undefined` = "Tự động" (the key is removed). */
+  const setCourseColor = useCallback(
+    (courseCode: string, color: CourseColorId | undefined) => saveUiSetting((current) => ({ ...current, courseColors: withCourseColor(current.courseColors, courseCode, color) })),
+    [saveUiSetting],
+  );
+
+  const markHintSeen = useCallback(
+    (id: HintId) => saveUiSetting((current) => ({ ...current, seenHints: { ...(current.seenHints ?? {}), [id]: true } })),
+    [saveUiSetting],
+  );
 
   const wipe = useCallback(async () => {
     const db = dbRef.current;
@@ -264,7 +332,7 @@ export function useAppController() {
     const channel = new BroadcastChannel(CHANNEL);
     channelRef.current = channel;
     channel.onmessage = (event: MessageEvent<TabMessage>) => {
-      if (event.data?.type === "plans-changed") void reloadPlans();
+      if (event.data?.type === "plans-changed" || event.data?.type === "settings-changed") void reloadPlans();
       if (event.data?.type === "wiped") void resetAfterWipe("Dữ liệu trên máy đã được xóa ở một tab khác.");
     };
     return () => {
@@ -284,6 +352,10 @@ export function useAppController() {
     selectSlot,
     applyRegistrationImport,
     removeFinalPlan,
+    theme,
+    setTheme,
+    setCourseColor,
+    markHintSeen,
     wipe,
     db: () => dbRef.current,
   };

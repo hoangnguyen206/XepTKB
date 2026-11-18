@@ -78,6 +78,33 @@ export async function idbPutIfUnchanged(db: IDBDatabase, store: StoreName, key: 
   return written;
 }
 
+/**
+ * Reads `key`, applies `mutate` and writes the result in one readwrite transaction (ADR-0015 point 6): two tabs
+ * updating different fields of the same record cannot overwrite each other. Resolves to the value written.
+ */
+export async function idbUpdate<T>(db: IDBDatabase, store: StoreName, key: IDBValidKey, mutate: (current: T | undefined) => T): Promise<T> {
+  const transaction = db.transaction(store, "readwrite");
+  const objectStore = transaction.objectStore(store);
+  let next: T | undefined;
+  let failure: unknown;
+  const request = objectStore.get(key);
+  request.onsuccess = () => {
+    try {
+      next = mutate(request.result as T | undefined);
+      objectStore.put(next, key);
+    } catch (error) {
+      failure = error;
+      transaction.abort();
+    }
+  };
+  try {
+    await completed(transaction);
+  } catch (error) {
+    throw failure ?? error;
+  }
+  return next as T;
+}
+
 /** Moves a record to `backups` and deletes the original in one transaction. */
 export async function idbMoveToBackup(db: IDBDatabase, store: StoreName, key: IDBValidKey, backup: unknown): Promise<void> {
   const transaction = db.transaction([store, "backups"], "readwrite");

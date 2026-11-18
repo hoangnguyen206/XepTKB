@@ -2,11 +2,21 @@
 // Verifies that a production site build (`apps/web/dist`) disables unpublished datasets (`allowUnpublished:!1`),
 // strips candidate/validated entries from `dist/data/manifest.json`, and emits `_headers` and `sw.js` (SEC-M3-003, SEC-M3-007).
 // M5: also the `ky-nay-build` meta tag (M5-A), the PNG icons (M5-G) and the no-telemetry checks (AC-M5-18).
+// M6 (DESIGN-M6-001 §5/§12, ADR-0015, AC-M6-02/18): the CSP is byte-for-byte the fixed string below, every self-hosted
+// woff2 and licenses.txt are precached, and the test-only component gallery is absent.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { ICON_TARGETS, readPngSize } from "./generate-icons.mjs";
 import { readDefaultReportUrl, resolveReportUrlSetting } from "./lib/build-identity.mjs";
 import { repoRoot } from "./lib/cli.mjs";
+
+/**
+ * ADR-0010 §4 CSP, frozen for M6 (ADR-0015: "CSP không đổi"). Kept here as an independent copy of the string built in
+ * apps/web/vite.config.ts so any edit there fails this check until both are changed on purpose.
+ */
+const EXPECTED_CSP =
+  "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; " +
+  "worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'";
 
 const fail = (message) => {
   console.error(`verify-production-bundle: ${message}`);
@@ -87,6 +97,24 @@ for (const [src, purpose] of [["icons/icon-192.png", "any"], ["icons/icon-512.pn
   }
 }
 
+// M6: CSP unchanged in the meta tag and in _headers (AC-M6-18).
+const cspMetaExact = /<meta http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(indexHtml)?.[1];
+if (cspMetaExact !== EXPECTED_CSP) fail(`index.html CSP differs from the fixed policy (got ${JSON.stringify(cspMetaExact)}, expected ${JSON.stringify(EXPECTED_CSP)})`);
+const cspHeader = /^ {2}Content-Security-Policy: (.+)$/m.exec(headersText)?.[1];
+if (cspHeader !== `${EXPECTED_CSP}; frame-ancestors 'none'`) fail(`_headers CSP differs from the fixed policy: ${cspHeader}`);
+
+// M6-B: self-hosted fonts are precached (so the registration import window stays at 0 requests offline and online).
+const fontFiles = readdirSync(assetsDir).filter((name) => /\.(?:woff2?|ttf|otf|eot)$/i.test(name));
+for (const font of fontFiles) {
+  if (!font.endsWith(".woff2")) fail(`assets/${font}: only woff2 fonts are allowed`);
+  if (!swText.includes(`"./assets/${font}"`)) fail(`sw.js does not precache ./assets/${font}`);
+}
+if (!existsSync(join(distDir, "licenses.txt"))) fail("missing licenses.txt in production bundle (ADR-0015 point 5)");
+if (!swText.includes('"./licenses.txt"')) fail("sw.js does not precache ./licenses.txt");
+// DESIGN-M6-001 §12: the component gallery exists only in the e2e build (KY_NAY_GALLERY=1).
+if (existsSync(join(distDir, "gallery.html"))) fail("gallery.html is in the production bundle; build without KY_NAY_GALLERY=1");
+if (/gallery/i.test(swText)) fail("sw.js references the component gallery");
+
 // AC-M5-18 / ADR-0014 point 1: no telemetry. CSP keeps connect-src 'self'; no beacon; no third-party origin in code
 // apart from the inert strings below (React error links, XML/SVG namespace URIs used by the registration parser).
 const cspMeta = /<meta http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(indexHtml)?.[1];
@@ -105,5 +133,5 @@ for (const file of jsFiles) {
 }
 
 console.log(
-  `verify-production-bundle: OK (${jsFiles.length} JS asset(s), allowUnpublished:!1, _headers + sw.js present, ky-nay-build=${buildMeta}, ${ICON_TARGETS.length} PNG icons, no third-party origins)`,
+  `verify-production-bundle: OK (${jsFiles.length} JS asset(s), allowUnpublished:!1, _headers + sw.js present, ky-nay-build=${buildMeta}, ${ICON_TARGETS.length} PNG icons, CSP unchanged, ${fontFiles.length} precached woff2 + licenses.txt, no gallery, no third-party origins)`,
 );
