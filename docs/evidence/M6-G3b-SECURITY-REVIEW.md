@@ -1,10 +1,10 @@
 # M6 security review — "Lịch có màu": design system, font tự host, settings giao diện trên máy, poster chia sẻ (G3b)
 
 > **Artifact ID:** `SEC-REVIEW-M6-001`  
-> **Artifact status:** `needs_review` — G3b implementation verification độc lập trên commit cố định `51da5174d29adb201bc8a9f99e08903d38d776f0` (`51da517`, tip `origin/m6-frontend`; base `origin/main` = `990784c`). Đề xuất `security-pass` (`0 S0`, `0 S1`, `0 S2`, `0 S3` mới trong M6); **chưa có chữ ký Owner**.  
+> **Artifact status:** `approved` — G3b implementation verification độc lập trên commit cố định `51da5174d29adb201bc8a9f99e08903d38d776f0` (`51da517`, tip `origin/m6-frontend`; base `origin/main` = `990784c`). Đề xuất `security-pass` (`0 S0`, `0 S1`, `0 S2`, `0 S3` mới trong M6); **Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6"): `security-pass`**.  
 > **Canonical gate:** `G3b` (bắt buộc cho M6 theo `DESIGN-M6-001` §15 C-6: thay đổi precache Service Worker và trường settings IndexedDB mở lại xác nhận của ADR-0010)  
 > **Owner:** Security Reviewer (agent role)  
-> **Last reviewed:** 2026-11-17  
+> **Last reviewed:** 2026-11-18  
 > **Related docs:** [Security & privacy](../SECURITY_PRIVACY.md), [Architecture](../ARCHITECTURE.md), [ADR-0015](../adr/ADR-0015-m6-design-system-and-local-ui-settings.md), [ADR-0010](../adr/ADR-0010-m3-web-app-artifact-storage-export.md), [ADR-0013](../adr/ADR-0013-m4-registration-merge-ui-and-privacy-boundary.md), [ADR-0014](../adr/ADR-0014-m5-release-observability-without-telemetry.md), [M6 spec](M6-SPEC.md), [M6 design handoff](M6-DESIGN-HANDOFF.md), [M5 security review](M5-G3b-SECURITY-REVIEW.md), [Trạng thái dự án](../README.md#trạng-thái-hiện-tại)  
 > **Evidence envelope:** `EVID-M6-001` (G2 envelope của M6; không có trong checkout của reviewer — báo cáo này chỉ dẫn các lệnh reviewer tự chạy lại bên dưới)
 
@@ -94,7 +94,7 @@
 
 ## Decision
 
-- **Decision (đề xuất):** **`security-pass`** cho G3b của M6 trên `51da5174d29adb201bc8a9f99e08903d38d776f0` — `0` finding S0–S3 mới; boundary mạng, CSP, IndexedDB, PII của luồng ĐKMH và export giữ nguyên hoặc được kiểm chặt hơn (`EXPECTED_CSP`, luật lint style/font/CSS, kiểm precache font/licences, loại gallery).
+- **Decision:** **`security-pass`** (Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6")) cho G3b của M6 trên `51da5174d29adb201bc8a9f99e08903d38d776f0` — `0` finding S0–S3 mới; boundary mạng, CSP, IndexedDB, PII của luồng ĐKMH và export giữ nguyên hoặc được kiểm chặt hơn (`EXPECTED_CSP`, luật lint style/font/CSS, kiểm precache font/licences, loại gallery).
 - **Required remediation/retest:** không bắt buộc. Khuyến nghị `OBS-M6-01..04` là việc tăng cường, có thể làm sau. Nếu commit đích thay đổi (thêm commit vào `m6-frontend` trước khi merge `main`), cần chạy lại ít nhất: `npm run verify:bundle`, `E2E_PORT=4382 npx playwright test e2e/m4.spec.ts e2e/qa-m3.spec.ts e2e/m6.spec.ts`, và `git diff` của `apps/web/e2e/m4.spec.ts`, `vite.config.ts` (CSP), `storage/`.
 - **Actor/date/UTC:** Independent Security Reviewer subagent — `2026-11-17` (trên commit `51da517`). **Chưa có quyết định của Owner**; báo cáo này không ghi gate nào là đã ký.
 - **Next owner acknowledgement:** Owner (Security / Release Manager) xem xét và ký G3b của M6 trong `EVID-M6-001`, cùng G3a (QA) và G3c (Independent Review), trước khi merge `m6-frontend` vào `main` một lần (`DESIGN-M6-001` §15 Q-2).

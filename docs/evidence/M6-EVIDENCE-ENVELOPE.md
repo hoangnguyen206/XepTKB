@@ -1,13 +1,13 @@
 # M6 evidence envelope — Làm mới frontend "Lịch có màu"
 
 > **Artifact ID:** `EVID-M6-001`  
-> **Artifact status:** `needs_review` — G0 (`SPEC-M6-001`) Owner ký `2026-11-12T14:53Z`; G1 (`DESIGN-M6-001`, `ADR-0015`) Owner ký `2026-11-12T15:28Z`; G2 ghi nhận trên commit cố định `51da5174d29adb201bc8a9f99e08903d38d776f0` (`51da517`, nhánh tích hợp `m6-frontend`); G3a (`TEST-M6-001` → `qa-pass-with-follow-up`), G3b (`SEC-REVIEW-M6-001` → `security-pass`), G3c (`REVIEW-M6-001` → `review-pass-with-follow-up`) đã chạy độc lập trên cùng commit, mỗi role một worktree riêng; 0 S0/S1. Các finding đã sửa ở `821fc6b` và `bd0d087` (PR #23); tái kiểm định độc lập hai vòng ([`REVERIFY-M6-001`](M6-G3-FOLLOWUP-REVERIFICATION.md)) trên `bd0d087` đề xuất G3a `qa-pass` và G3c `review-pass-with-follow-up` cho phần thay đổi; còn **đóng** (`821fc6b`, `posterCreditsLine`) REV-M6-006 (S3, chờ Owner). **Chưa có gate G2/G3 nào được Owner ký**  
+> **Artifact status:** `approved` — G0 (`SPEC-M6-001`) Owner ký `2026-11-12T14:53Z`; G1 (`DESIGN-M6-001`, `ADR-0015`) Owner ký `2026-11-12T15:28Z`; G2 ghi nhận trên commit cố định `51da5174d29adb201bc8a9f99e08903d38d776f0` (`51da517`, nhánh tích hợp `m6-frontend`); G3a (`TEST-M6-001` → `qa-pass-with-follow-up`), G3b (`SEC-REVIEW-M6-001` → `security-pass`), G3c (`REVIEW-M6-001` → `review-pass-with-follow-up`) đã chạy độc lập trên cùng commit, mỗi role một worktree riêng; 0 S0/S1. Các finding đã sửa ở `821fc6b` và `bd0d087` (PR #23); tái kiểm định độc lập hai vòng ([`REVERIFY-M6-001`](M6-G3-FOLLOWUP-REVERIFICATION.md)) trên `bd0d087` đề xuất G3a `qa-pass` và G3c `review-pass-with-follow-up` cho phần thay đổi; REV-M6-006 (S3) Owner hoãn theo D-M6-13. **G2/G3 Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6")**: G2 `g2-ready-for-verification` trên `bd0d087` (tip `m6-frontend` `dfc3e5b` chỉ thêm tên bước workflow, 2 mốc gallery và tài liệu), G3a `qa-pass`, G3b `security-pass`, G3c `review-pass`  
 > **Canonical gate/sub-gate:** `G2 | G3a | G3b | G3c` (G0/G1 đã ký, xem [docs/README.md › Trạng thái hiện tại](../README.md#trạng-thái-hiện-tại))  
 > **Owner:** Tech Lead + Release Manager  
-> **Last reviewed:** 2026-11-17  
+> **Last reviewed:** 2026-11-18  
 > **Related docs:** [M6 spec](M6-SPEC.md), [M6 design handoff](M6-DESIGN-HANDOFF.md), [M6 plan](M6-FRONTEND-REFRESH-PLAN.md), [ADR-0015](../adr/ADR-0015-m6-design-system-and-local-ui-settings.md), [CHANGELOG](../../CHANGELOG.md), [M5 evidence envelope](M5-EVIDENCE-ENVELOPE.md)  
-> **Decision actor / UTC timestamp:** G2 ghi nhận bởi orchestrator ngày `2026-11-17` cho commit `51da517`; G3a/G3b/G3c hoàn tất kỹ thuật ngày `2026-11-17` trên `51da517` (đề xuất, chưa ký)  
-> **Receiving owner / acknowledgement:** Tester (`G3a`), Security Reviewer (`G3b`, bắt buộc theo C-6 của DESIGN-M6-001 §15), Independent Reviewer (`G3c`); Owner ký G2/G3 — `pending`
+> **Decision actor / UTC timestamp:** G2 ghi nhận bởi orchestrator ngày `2026-11-17` cho commit `51da517`; G3a/G3b/G3c hoàn tất kỹ thuật ngày `2026-11-17` trên `51da517`, tái kiểm định trên `bd0d087`; Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6") cho G2/G3a/G3b/G3c  
+> **Receiving owner / acknowledgement:** Tester (`G3a`), Security Reviewer (`G3b`, bắt buộc theo C-6 của DESIGN-M6-001 §15), Independent Reviewer (`G3c`); Owner ký G2/G3 — **done `2026-11-18T10:49Z`**
 
 ## Source and traceability
 
@@ -128,7 +128,7 @@
 
 ## Decision and next step
 
-- **Recommendation/gate decision:** G2 `g2-ready-for-verification` trên `51da517`, cập nhật bởi PR #23 (`bd0d087`); G3a `qa-pass-with-follow-up` → sau sửa `qa-pass`; G3b `security-pass`; G3c `review-pass-with-follow-up` → với D-M6-13 (Owner hoãn REV-M6-006), điều kiện nêu ở `REVERIFY-M6-001` đã thỏa, đề xuất `review-pass` (orchestrator ghi, chưa phải chữ ký). **Owner chưa ký gate nào.**
+- **Recommendation/gate decision:** G2 `g2-ready-for-verification` trên `51da517`, cập nhật bởi PR #23 (`bd0d087`); G3a `qa-pass-with-follow-up` → sau sửa `qa-pass`; G3b `security-pass`; G3c `review-pass-with-follow-up` → với D-M6-13 (Owner hoãn REV-M6-006), điều kiện nêu ở `REVERIFY-M6-001` đã thỏa, `review-pass`. **Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6"): G2 `g2-ready-for-verification`, G3a `qa-pass`, G3b `security-pass`, G3c `review-pass`.**
 - **Conditions/follow-up owner + due date:** REV-M6-006 đã có quyết định (D-M6-13, hoãn); PR #23 đã merge (`5ecf11c`, CI push run `44136477700` xanh); sau khi Owner ký G2/G3, một lần merge `m6-frontend` → `main` (D-M6-10). Trước G4a của bản M6: kiểm tra thủ công trên thiết bị thật (SPEC/DESIGN §12) và `SEC-M3-007` (header production).
-- **Next owner action:** ký (hoặc không) G2/G3 của M6, rồi cho phép merge `m6-frontend` → `main`.
+- **Next owner action:** G2/G3 đã ký; còn chờ Owner cho phép một lần merge `m6-frontend` → `main` (D-M6-10).
 - **Notes:** báo cáo do agent viết được quét máy mọi định danh/đường dẫn trong backtick so với commit đích trước khi đưa vào đây.

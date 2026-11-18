@@ -1,13 +1,13 @@
 # Test report — M6 "Lịch có màu" (làm mới frontend), kiểm định QA độc lập G3a
 
 > **Artifact ID:** `TEST-M6-001`  
-> **Artifact status:** `needs_review`  
+> **Artifact status:** `approved`  
 > **Canonical gate:** `G3a`  
 > **Owner:** Tester  
-> **Last reviewed:** 2026-11-17  
+> **Last reviewed:** 2026-11-18  
 > **Related docs:** [SPEC-M6-001](M6-SPEC.md), [DESIGN-M6-001](M6-DESIGN-HANDOFF.md), [ADR-0015](../adr/ADR-0015-m6-design-system-and-local-ui-settings.md), [QA plan](../QA_TEST_PLAN.md), [PRD §8](../PRD.md), [TEST-M5-001](M5-G3a-QA-REPORT.md) (mẫu định dạng), [Agent workflow](../../.claude/AGENT_WORKFLOW.md)  
 > **Evidence envelope:** `EVID-M6-001` (G2, `docs/evidence/M6-EVIDENCE-ENVELOPE.md` — đang được viết song song, không có trong commit đích)  
-> **Tester sign-off actor / UTC timestamp:** Tester (agent, vai `.claude/agents/tester.md`), `2026-11-17` — chỉ là **khuyến nghị** `qa-pass-with-follow-up`; G3a **chưa** được Owner ký.
+> **Tester sign-off actor / UTC timestamp:** Tester (agent, vai `.claude/agents/tester.md`), `2026-11-17` — khuyến nghị `qa-pass-with-follow-up`; sau sửa và tái kiểm định ([REVERIFY-M6-001](M6-G3-FOLLOWUP-REVERIFICATION.md)) `qa-pass`. **G3a Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6"): `qa-pass`.**
 
 ## 1. Scope and immutable identity
 
@@ -134,7 +134,7 @@ Không có S0/S1.
 
 ## 10. Gate decision
 
-- **Decision:** `qa-pass-with-follow-up` (khuyến nghị của Tester, **chưa** có chữ ký Owner).
+- **Decision:** `qa-pass-with-follow-up` (khuyến nghị của Tester); sau sửa và tái kiểm định: `qa-pass` — Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6").
 - **Lý do:** toàn bộ suite tự động xanh trên `51da517` (`npm run check` lần 3: node:test 153/153, Vitest 188/188, fixtures 6/6; `verify:bundle` exit 0; e2e 54 passed / 4 skipped / 0 failed; CI tip xanh cả `check`/`e2e`/`visual`); 20/20 AC có bằng chứng; privacy M4 giữ nguyên từng byte; không có S0/S1. Có một lỗi **S2** (F-M6-QA-01: focus bị thanh điều hướng dưới che hoàn toàn, trái AC-M6-16) và ba S3 — theo CLAUDE.md §5 chỉ được pass khi có risk acceptance, owner, mitigation, due.
 - **Release recommendation:** `follow-up-open` — đề nghị sửa F-M6-QA-01 (thay đổi CSS nhỏ + 1 e2e) rồi chạy lại G3a phần a11y trước khi merge M6 vào `main`; nếu Owner chọn merge trước thì cần Release Manager ghi chấp nhận rủi ro với hạn sửa.
 - **Điều kiện / owner kế tiếp:** Frontend (F-M6-QA-01, F-M6-QA-02), Tester + Frontend (F-M6-QA-03), Tech Lead (F-M6-QA-04 trong gói G2 `EVID-M6-001`); G3b và G3c ra quyết định riêng.

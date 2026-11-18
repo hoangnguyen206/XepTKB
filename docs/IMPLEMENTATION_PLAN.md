@@ -25,7 +25,7 @@ Mốc kinh doanh là cửa sổ trường công bố TKB HK II 2026–2027 (dự
 | M3 Core UI & export | onboarding, chọn lớp + giải thích trùng, lưới tuần/ngày 360/768/1200, Plan IndexedDB, export ICS/PNG/Word + in A4, provenance, offline; CLI publish dữ liệu (ADR-0012) | G2+G3a/G3c | Owner ký 06/11; G4b drill pass |
 | M4 Registration merge UI | chọn file `.doc` cục bộ, xem trước không PII, 2 slot Plan, nhãn override | G2+G3a/G3b | Owner ký 06/11 |
 | M5 Admin ingest, hardening, launch | publish/rollback qua CLI, hardening (build info, báo lỗi không egress, lazy chunk, bundle budget, icon PWA, CI audit/secret scan), runbook release | G3a/G3b/G3c → **G4a**, **G4b**, **G5** | G0–G3 Owner ký 12/11; G4a/G4b/G5 chưa chạy |
-| M6 Làm mới frontend "Lịch có màu" | design token + dark mode, font tự host, khung app (thanh dưới cùng / 2 cột), lịch màu đủ 6 ngày ở 360 px, luồng thêm lớp có xem trước, màn Bắt đầu 1 màn, poster PNG ([SPEC-M6-001](evidence/M6-SPEC.md)) | G0 → G1 → G2 → G3a/G3b/G3c | G0, G1 Owner ký 12/11; làm trên nhánh `m6-frontend`; không chặn G4a (D-M6-8) |
+| M6 Làm mới frontend "Lịch có màu" | design token + dark mode, font tự host, khung app (thanh dưới cùng / 2 cột), lịch màu đủ 6 ngày ở 360 px, luồng thêm lớp có xem trước, màn Bắt đầu 1 màn, poster PNG ([SPEC-M6-001](evidence/M6-SPEC.md)) | G0 → G1 → G2 → G3a/G3b/G3c | G0, G1 Owner ký 12/11; G2/G3 Owner ký 18/11; làm trên nhánh `m6-frontend`; không chặn G4a (D-M6-8) |
 
 Thứ tự phụ thuộc cứng M0 → M5. Gate canonical và người duyệt: [QA plan §7](QA_TEST_PLAN.md#7-canonical-release-gates-và-crosswalk), [Agent workflow](../.claude/AGENT_WORKFLOW.md).
 

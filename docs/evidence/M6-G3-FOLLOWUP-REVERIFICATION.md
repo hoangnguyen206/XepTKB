@@ -1,10 +1,10 @@
 # Tái kiểm định các bản sửa sau G3 của M6 (G3a/G3c mở lại cho phần thay đổi)
 
 > **Artifact ID:** `REVERIFY-M6-001`  
-> **Trạng thái/Status:** `needs_review` — đề xuất kỹ thuật của agent; **chưa** có Owner/Release Manager ký, không ghi gate nào là đã ký  
+> **Trạng thái/Status:** `approved` — đề xuất kỹ thuật của agent; **G2/G3 Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6")** (G3a `qa-pass`, G3c `review-pass` sau D-M6-13)  
 > **Canonical gate/sub-gate:** `G3a` + `G3c` (mở lại cho phần thay đổi, theo [Agent workflow](../../.claude/AGENT_WORKFLOW.md): thay đổi code/build/UI → mở lại G2 và G3a/G3c)  
 > **Owner:** Tester (`.claude/agents/tester.md`) + Independent Reviewer (`.claude/agents/reviewer.md`) — agent tái kiểm độc lập  
-> **Last reviewed:** 2026-11-17  
+> **Last reviewed:** 2026-11-18  
 > **Base / target:** `51da5174d29adb201bc8a9f99e08903d38d776f0` (`51da517`, target G3 trước) → `821fc6b7fc9f30196a5aa35c4f58abb2f377a5eb` (`821fc6b`, nhánh `origin/fix/m6-g3-findings`, 1 commit, 19 file, +327/−41) — vòng 1; **vòng 2:** `821fc6b` → `bd0d0874709604030f49d8bd477e079509fc12ab` (`bd0d087`), xem mục 6 (đề xuất cuối ở mục 6.4)  
 > **Liên kết:** `EVID-M6-001` (evidence envelope M6), `TEST-M6-001` (G3a), `SEC-REVIEW-M6-001` (G3b), `REVIEW-M6-001` (G3c) — ba báo cáo G3 chưa commit, finding lấy từ bản tóm tắt được giao; [Evidence Envelope template](../../.claude/templates/EVIDENCE_ENVELOPE.md)  
 > **Related docs:** [M6-SPEC](M6-SPEC.md) (`SPEC-M6-001`), [M6-DESIGN-HANDOFF](M6-DESIGN-HANDOFF.md) (`DESIGN-M6-001`), [ADR-0015](../adr/ADR-0015-m6-design-system-and-local-ui-settings.md), [QA_TEST_PLAN](../QA_TEST_PLAN.md), [Trạng thái hiện tại](../README.md#trạng-thái-hiện-tại)
@@ -140,4 +140,4 @@ Không có run ID của CI. Không chạy G4a/G4b/G5.
 - **G3a (Tester): `qa-pass`.** Mọi finding G3a trong phạm vi (F-M6-QA-01..04 và F-RV-M6-01) đã đóng. Mỗi bản sửa có test làm fail khi bỏ bản sửa. Check, bundle và e2e đều xanh; không thấy hồi quy của `scroll-padding-top`; không còn S0/S1/S2 mở trong phần thay đổi.
 - **G3c (Independent Reviewer): `review-pass-with-follow-up`.** Mọi finding G3c trong phạm vi đã đóng: REV-M6-001..005, 007, F-RV-M6-02, F-RV-M6-03. Phần follow-up duy nhất là **REV-M6-006 (S3, hai hiệu ứng §11)**, cố ý để mở chờ Owner quyết định; nó cần owner, mitigation và hạn theo quy tắc S3. Nếu Owner quyết định bỏ hoặc hoãn có ghi nhận, G3c có thể thành `review-pass`.
 - Các quan sát OBS-RV-01..06 không chặn gate. Lưu ý về ngân sách: tổng JS chỉ còn 234 B dưới giới hạn.
-- Đây là đề xuất của agent. Không gate nào được ghi là đã ký; quyết định thuộc Owner/Release Manager.
+- Đây là đề xuất của agent. REV-M6-006 sau đó được Owner hoãn (D-M6-13, 2026-11-18); Owner ký `2026-11-18T10:49Z` (chat: "Ký G2/G3 M6"): G3a `qa-pass`, G3c `review-pass`.
