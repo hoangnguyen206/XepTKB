@@ -105,7 +105,7 @@
 | REV-M6-002 / F-M6-QA-02 | S3 | `m5-ui.test.tsx` "only carries public identifiers…" chập chờn vì timeout 5 s khi máy bận | **đóng** (9 e2e + 1 Vitest, `821fc6b`) |
 | F-M6-QA-03 | S3 | Thiếu coverage tự động: axe tối cho Bắt đầu/Lịch và mọi màn ở 768; đường bàn phím ở khổ điện thoại; màu môn sau khi tải lại offline; "Tắt lọc"; sọc trùng trên lưới chính trong mốc ảnh; axe cho DayView | **đóng** (`821fc6b`, phần sót F-RV-M6-03 ở `bd0d087`) |
 | REV-M6-005 / F-M6-QA-04 | S3 | Tài liệu lệch code: README (F7 "đang ở PR"), ADR-0015 điểm 1 và DESIGN §2 còn layer `legacy`, DESIGN §10/§13 còn `poster-lazy.ts`, `QA_TEST_PLAN` chưa có M6, hai comment cũ | **đóng** (`821fc6b`; `.course-chip` giữ có chú thích — chỉ gallery dùng, một file CSS) |
-| REV-M6-006 | S3 | Hai hiệu ứng §11 (mờ khi đổi view, lớp "rơi" vào lưới) chưa làm, chưa có quyết định Owner | chờ Owner quyết |
+| REV-M6-006 | S3 | Hai hiệu ứng §11 (mờ khi đổi view, lớp "rơi" vào lưới) chưa làm | **đóng bằng quyết định** — Owner hoãn sang sau M6 (D-M6-13, chat 2026-11-18; SPEC-M6-001 §6, DESIGN-M6-001 §11) |
 | REV-M6-007 | S3 | Code/CSS chết: `PRIVACY_NOTE`, `saveSettings`, `.week-picker`/`.day-section`, `.course-chip`, `IconPalette`/`IconUpload` | mở |
 | OBS-M6-01..04 | — | G3b: `verify-production-bundle` chỉ quét JS; `wipe` không chờ hàng đợi lưu settings (có từ trước M6); poster hiển thị phòng sau override (đúng ADR-0013, cần làm rõ chữ trong §10); CI action pin theo tag | ghi nhận |
 
@@ -128,7 +128,7 @@
 
 ## Decision and next step
 
-- **Recommendation/gate decision:** G2 `g2-ready-for-verification` trên `51da517`, cập nhật bởi PR #23 (`bd0d087`); G3a `qa-pass-with-follow-up` → sau sửa `qa-pass`; G3b `security-pass`; G3c `review-pass-with-follow-up` (còn REV-M6-006). **Owner chưa ký gate nào.**
-- **Conditions/follow-up owner + due date:** Owner quyết REV-M6-006 (làm hai hiệu ứng §11 hay ghi quyết định hoãn); merge PR #23 khi CI xanh; sau khi Owner ký G2/G3, một lần merge `m6-frontend` → `main` (D-M6-10). Trước G4a của bản M6: kiểm tra thủ công trên thiết bị thật (SPEC/DESIGN §12) và `SEC-M3-007` (header production).
-- **Next owner action:** đọc ba báo cáo G3, quyết định cách xử lý F-M6-QA-01 và REV-M6-006, rồi ký (hoặc không) G2/G3.
+- **Recommendation/gate decision:** G2 `g2-ready-for-verification` trên `51da517`, cập nhật bởi PR #23 (`bd0d087`); G3a `qa-pass-with-follow-up` → sau sửa `qa-pass`; G3b `security-pass`; G3c `review-pass-with-follow-up` → với D-M6-13 (Owner hoãn REV-M6-006), điều kiện nêu ở `REVERIFY-M6-001` đã thỏa, đề xuất `review-pass` (orchestrator ghi, chưa phải chữ ký). **Owner chưa ký gate nào.**
+- **Conditions/follow-up owner + due date:** REV-M6-006 đã có quyết định (D-M6-13, hoãn); PR #23 đã merge (`5ecf11c`, CI push run `44136477700` xanh); sau khi Owner ký G2/G3, một lần merge `m6-frontend` → `main` (D-M6-10). Trước G4a của bản M6: kiểm tra thủ công trên thiết bị thật (SPEC/DESIGN §12) và `SEC-M3-007` (header production).
+- **Next owner action:** ký (hoặc không) G2/G3 của M6, rồi cho phép merge `m6-frontend` → `main`.
 - **Notes:** báo cáo do agent viết được quét máy mọi định danh/đường dẫn trong backtick so với commit đích trước khi đưa vào đây.
