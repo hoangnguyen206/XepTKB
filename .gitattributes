@@ -7,3 +7,7 @@ fixtures/**/*.doc  eol=lf
 # them with node_modules), and the served licence file must not change bytes between checkouts.
 apps/web/src/assets/fonts/** -text
 apps/web/public/licenses.txt -text
+
+# Published dataset artifacts are served byte for byte and checked against the SHA-256/size in
+# data/published/manifest.json (ADR-0012); a CRLF checkout on Windows would break `dataset check`.
+data/published/** -text
