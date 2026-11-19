@@ -1,7 +1,7 @@
 {
   "name": "ky-nay",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Ky Nay - UET timetable planner: domain/parser/export packages and the M3 web app (apps/web). Docs: docs/README.md",
   "workspaces": [

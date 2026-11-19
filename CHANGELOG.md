@@ -1,8 +1,8 @@
 # Changelog
 
-> **Status:** draft — chưa có release nào được tag  
+> **Status:** active — `0.1.0` chuẩn bị cho G4a, chưa có tag (tag chỉ đặt sau quyết định `app-released`)  
 > **Owner:** Release Manager  
-> **Last reviewed:** 2026-11-10  
+> **Last reviewed:** 2026-11-20  
 > **Related docs:** [Operations §4.3](docs/OPERATIONS.md), [M5 spec (M5-A)](docs/evidence/M5-SPEC.md), [M5 release checklist](docs/evidence/M5-RELEASE-CHECKLIST.md), [docs index](docs/README.md)  
 > **Evidence envelope:** `EVID-M5-001` (tạo ở G2; `N/A — docs-only`)
 
@@ -17,7 +17,11 @@ Quy ước (chi tiết ở [OPERATIONS §4.3](docs/OPERATIONS.md)):
 
 ## [Unreleased]
 
-Thay đổi M5 (release hardening) đã merge vào `main` qua PR #3 (`ba43867`, 2026-11-12) theo [SPEC-M5-001](docs/evidence/M5-SPEC.md) / [DESIGN-M5-001](docs/evidence/M5-DESIGN-HANDOFF.md). G0/G1/G3 đã được Owner duyệt ngày 2026-11-12; chưa deploy production. Dòng nào chưa được merge khi release thì phải bỏ khỏi mục version.
+_Chưa có thay đổi._
+
+## [0.1.0] - 2026-11-20
+
+Bản đầu tiên. Gồm M5 (release hardening, PR #3 `ba43867`, [SPEC-M5-001](docs/evidence/M5-SPEC.md) / [DESIGN-M5-001](docs/evidence/M5-DESIGN-HANDOFF.md); G0/G1/G3 Owner ký 2026-11-12) và M6 "Lịch có màu" (PR #26 `2058ec3`, [SPEC-M6-001](docs/evidence/M6-SPEC.md) / [DESIGN-M6-001](docs/evidence/M6-DESIGN-HANDOFF.md); G0/G1 Owner ký 2026-11-12, G2/G3 Owner ký 2026-11-18). Ngày ở tiêu đề là ngày chuẩn bị release; nếu quyết định G4a `app-released` rơi vào ngày khác thì sửa ngày cho khớp trước khi gắn tag. Chưa có dataset được publish trong bản này.
 
 ### Added
 
@@ -40,7 +44,7 @@ Thay đổi M5 (release hardening) đã merge vào `main` qua PR #3 (`ba43867`, 
 
 - Xác nhận không có runtime telemetry trong release đầu: không analytics, counter, gửi lỗi client hay script bên thứ ba; CSP `connect-src 'self'` giữ nguyên (ADR-0014, D-M5-2).
 
-### M6 "Lịch có màu" (chỉ trên nhánh tích hợp `m6-frontend`; `main` nhận một lần sau G3 của M6, D-M6-10)
+### M6 "Lịch có màu" (merge vào `main` một lần qua PR #26 `2058ec3`, D-M6-10)
 
 - F1a (nền tảng): font Be Vietnam Pro 400/800 tự host, subset latin + vietnamese, 67 424 B; bỏ độ đậm 600 (D-M6-12). Thêm `licenses.txt` (OFL, ISC, MIT) được precache. Ngân sách: CSS ban đầu ≤ 12 KiB gzip, font ≤ 90 000 B, đúng một file CSS. Lint cấm tạo stylesheet/FontFace lúc chạy và `url()` có scheme trong CSS. `verify:bundle` kiểm CSP khớp từng ký tự và production không có trang mẫu thành phần. CI có job `visual` cho ảnh so sánh (DESIGN-M6-001 §13).
 - F1b (design system): token màu sáng/tối (chàm `#4F46E5`), font Be Vietnam Pro trên toàn ứng dụng, các màn cũ chạy được ở theme tối. Mục "Giao diện" trong trang Giới thiệu (Hệ thống/Sáng/Tối) lưu trên máy (IndexedDB) và bị xóa cùng "Xóa dữ liệu trên máy". Thêm bảng 10 màu môn và cách gán màu tất định, bộ icon SVG nhúng, các thành phần giao diện mới (nút, chip, sheet, thông báo…) và trang mẫu thành phần chỉ có trong bản kiểm thử. Chưa đổi bố cục màn nào (F2–F7).
