@@ -1,7 +1,7 @@
 # Release report — Kỳ Này 0.1.0 (M5 + M6) (app `pending` / dataset `pending`)
 
 > **Artifact ID:** `RELEASE-M5-001`  
-> **Artifact status:** `draft` — đã chuẩn bị G4a (version `0.1.0`, preview dữ liệu thật đạt smoke); chưa deploy production, chưa có quyết định G4a/G4b/G5  
+> **Artifact status:** `draft` — `0.1.0` đã lên production (`bc90a4f`, smoke `--production` 16/16, `SEC-M3-007` PASS); chưa có quyết định G4a/G4b/G5  
 > **Canonical gate:** `G4a` + `G4b` (phối hợp, quyết định riêng) → `G5`  
 > **Owner:** Release Manager  
 > **Last reviewed:** 2026-11-20  
@@ -38,7 +38,8 @@ Finding/exception đã biết:
 
 - `F-M5-001` — S2 (process/evidence): **đóng** khi Owner ký G3 của M5 (`2026-11-12T04:19Z`).
 - `RA-M5-001` — single reviewer (`--accept-single-reviewer`); owner Release Manager; mitigation và expiry ở [checklist §6](M5-RELEASE-CHECKLIST.md). Trạng thái: **accepted** — Owner `2026-11-12T04:19Z`. Hết hạn "trước G4a public đầu tiên hoặc 2027-01-31" → **cần Owner gia hạn (ghi lý do) khi quyết định G4a**, nếu không G4a là no-go.
-- `SEC-M3-007` — kiểm `curl -I` header trên domain production ở G4a. Trạng thái: open (vận hành). Trên preview, smoke đã PASS toàn bộ header (mục dưới).
+- `SEC-M3-007` — kiểm `curl -I` header trên domain production ở G4a. Trạng thái: **PASS 2026-11-20** trên `bc90a4f` (mục Deploy/publish evidence); đóng khi Owner quyết định G4a.
+- `OBS-G4A-01` — thông tin: bản WebKit của Playwright log vi phạm `style-src-attr` cho shadow DOM của `<select>`; không do code app, không ảnh hưởng chức năng; Owner xem ô chọn tuần trên iPhone thật.
 - `P-14` (checklist §1) — Owner rà lời văn tuyên bố độc lập/quyền riêng tư/Giới thiệu (`apps/web/src/model/about-content.ts`). Trạng thái: open; domain đã chốt (`xeptkb-63v.pages.dev`).
 - `OBS-M6-DC-01`, `OBS-M6-DC-02` — S3 giao diện, thấy khi kiểm preview dữ liệu thật ([EVID-M6-001](M6-EVIDENCE-ENVELOPE.md)); owner Frontend, sửa ở `0.1.1`; không chặn G4a.
 
@@ -48,7 +49,11 @@ Finding/exception đã biết:
 - Smoke preview: `node scripts/smoke-deploy.mjs https://m6-device-check.xeptkb-63v.pages.dev --expect-commit 0c1a339` → exit `0`, **PASS 17/17** (CSP có `frame-ancestors 'none'` + `connect-src 'self'`, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer`, HSTS, `Permissions-Policy`, meta `0.1.0+0c1a339`, `/sw.js` và `/data/manifest.json` `no-cache`, 4 icon PNG, 2 artifact HK I khớp bytes + SHA-256).
 - Kiểm tự động trên preview (giả lập, không phải thiết bị thật): 50/50 — chi tiết ở [EVID-M6-001](M6-EVIDENCE-ENVELOPE.md).
 - CI: PR #28 và PR #29 có `check`, `e2e`, `visual`, Cloudflare Pages đều pass trước khi merge.
-- Production deploy ID, smoke `--production`, `SEC-M3-007` `curl -I` trên domain production: `pending — not executed`.
+- **Production (agent chạy, 2026-11-20):** Owner bật automatic production deployments cho `main` trên Pages (chat "Đã bật"); merge PR #31 (`bc90a4f`, chỉ sửa tài liệu) kích build production — Cloudflare Pages deployment `61ef8c37` (check run "Cloudflare Pages" trên `bc90a4f`: "Deploy successful"); `https://xeptkb-63v.pages.dev/` trả 200 (trước đó 404, chưa có production deployment nào). Code app của `bc90a4f` giống `75975c5`.
+- Smoke production: `node scripts/smoke-deploy.mjs https://xeptkb-63v.pages.dev --production --expect-commit bc90a4f` → exit `0`, **PASS 16/16** (meta `0.1.0+bc90a4f`; manifest production chỉ có dataset `published`/`retracted` — hiện 0 dataset).
+- **SEC-M3-007** (`curl -sI` trên domain production, agent chạy): `/`, `/sw.js`, `/data/manifest.json` đều có `content-security-policy` (`default-src 'self'` … `connect-src 'self'` … `frame-ancestors 'none'`), `x-frame-options: DENY`, `x-content-type-options: nosniff`, `referrer-policy: no-referrer`, `permissions-policy`, `strict-transport-security: max-age=31536000`, `cross-origin-opener-policy: same-origin`; `/sw.js` và `/data/manifest.json` có `Cache-Control: no-cache` → **PASS**.
+- Kiểm production trong trình duyệt (Playwright, giả lập; agent chạy): Chromium 360×780, WebKit "iPhone 14", Chromium 1280×800 — màn "Chưa có dữ liệu thời khóa biểu được công bố cho kỳ này" + câu độc lập, không cuộn ngang, axe 0 serious/critical (màn đầu và sheet Giới thiệu), sheet Giới thiệu hiện version `0.1.0`, tải lại offline vẫn mở app (Chromium), 0 request ra ngoài origin, 0 request không phải GET → 21/22. Mục không đạt chỉ là log console của WebKit: "Refused to apply a stylesheet…" (`style-src-attr`). Đã khoanh: một `<select>` thuần, không có code app, cũng gây 2 vi phạm trong bản WebKit của Playwright; Chromium không có; ô chọn tuần vẫn chọn được tuần và hiển thị đúng → hành vi shadow DOM của trình duyệt, không phải lỗi app (`OBS-G4A-01`, theo dõi khi Owner xem trên iPhone thật).
+- Production deployment ID do Owner xác nhận trong dashboard và nhãn nút rollback: `pending — Owner`.
 - Two-person dataset approval: không áp dụng cho G4a (không publish dataset).
 - Changelog/status message: [CHANGELOG](../../CHANGELOG.md) mục `[0.1.0] - 2026-11-20` (sửa ngày nếu quyết định G4a rơi vào ngày khác).
 
