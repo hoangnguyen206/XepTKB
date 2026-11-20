@@ -16,7 +16,7 @@ Quyết định Owner áp dụng cho tài liệu này (chat 2026-11-10, ghi ở 
 | preview | Cloudflare Pages tự build **mọi nhánh khác `main`** → `<nhánh>.<project-subdomain>.pages.dev` | `candidate`/`validated`/`published` trong `data/published` của nhánh, có banner "chưa được công bố" khi chưa publish; không PII | Owner (Coder + Reviewer khi có người thứ hai) |
 | staging | **không được cấp phát (not provisioned).** URL preview của một nhánh là bản thay thế cho staged release (D-M5-1) | — | — |
 | beta link | URL preview của một nhánh được Owner chỉ định, chia sẻ riêng cho nhóm nhỏ, không quảng bá (Q-011 / D-M5-1) | chỉ dataset đã `validated` hoặc `published` trên nhánh đó | Owner (Product + Release Manager) |
-| production | nhánh `main`; **automatic production deployments đang tắt** tới G4a đầu tiên, Owner kích hoạt thủ công | chỉ `published` (SEC-M3-003); immutable artifact | Owner sau G4a ([checklist](evidence/M5-RELEASE-CHECKLIST.md)) |
+| production | nhánh `main`; **automatic production deployments đã bật** (Owner, 2026-11-20, cho G4a đầu tiên): từ đây **mỗi merge vào `main` là một production deploy** | chỉ `published` (SEC-M3-003); immutable artifact | Owner sau G4a ([checklist](evidence/M5-RELEASE-CHECKLIST.md)) |
 
 Trình tự promote (D-M5-1): **preview → beta link → production**. Không bỏ bước: một build chỉ lên production khi cùng commit (hoặc commit chỉ khác ở `data/`/docs đã review) đã chạy trên preview và qua smoke §5.2.
 
@@ -32,7 +32,7 @@ Cấu hình project Pages (Git integration với `hoangnguyen206/XepTKB`):
 | Build command | `npm run build:web` (copies `data/published` into the site, [ADR-0012](adr/ADR-0012-dataset-publish-pipeline.md); dev/e2e use synthetic data) |
 | Build output directory | `apps/web/dist` |
 | Node | `.node-version` = 22 (repo root) |
-| Production branch | `main`, **tắt automatic production deployments** cho tới G4a đầu tiên |
+| Production branch | `main`, **bật automatic production deployments** từ 2026-11-20 (Owner bật cho G4a đầu tiên). Hệ quả: chỉ merge vào `main` khi CI xanh và đã kiểm; dữ liệu chưa công bố vẫn không lên production (dòng dưới) |
 | Preview deployments | mọi nhánh khác (ví dụ `m5-release-hardening`, `m5-hk1-validation`) |
 | Dữ liệu chưa công bố | **Không cần biến dashboard.** `apps/web/vite.config.ts` và `scripts/site-data.mjs` đọc `CF_PAGES_BRANCH` do Cloudflare cung cấp: nhánh preview → cho phép dữ liệu `candidate`/`validated` (có banner "chưa được công bố"); nhánh `main` → **luôn tắt**, kể cả khi dashboard đặt `VITE_ALLOW_UNPUBLISHED=true` (SEC-M3-003) |
 | Header | `apps/web/dist/_headers` sinh lúc build từ CSP (SEC-M3-007): CSP + `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy`, `Strict-Transport-Security`, `Cross-Origin-Opener-Policy`; `Cache-Control: no-cache` cho `/sw.js` và `/data/manifest.json`. Kiểm bằng smoke (§5.2) trên preview và trên domain production ở G4a |
